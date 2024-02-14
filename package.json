@@ -15,6 +15,7 @@
 		"@sveltejs/adapter-static": "^3.0.1",
 		"@sveltejs/kit": "^2.0.0",
 		"@sveltejs/vite-plugin-svelte": "^3.0.0",
+		"@tauri-apps/cli": "^1.5.9",
 		"autoprefixer": "^10.4.17",
 		"postcss": "^8.4.35",
 		"svelte": "^4.2.7",
@@ -27,6 +28,8 @@
 	"type": "module",
 	"dependencies": {
 		"@auth/sveltekit": "^0.12.3",
-		"@tauri-apps/api": "^1.5.3"
+		"@tauri-apps/api": "^1.5.3",
+		"mysql2": "^3.9.1",
+		"sequelize": "^6.37.0"
 	}
 }
