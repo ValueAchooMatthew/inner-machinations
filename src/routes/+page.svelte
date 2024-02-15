@@ -1,5 +1,18 @@
-<script>
-	
+<script lang="ts">
+	import { invoke } from "@tauri-apps/api/tauri";
+	const handleSubmit = (event: SubmitEvent): void=>{
+		event.preventDefault();
+		if(event.target instanceof HTMLFormElement){
+			const data = new FormData(event.target);
+			const email = data.get("email");
+			const password = data.get("password")
+			invoke("get_user_data", {email: email, password: password});
+		}else{
+			console.log("There was an error parsing user information")
+			return;
+		}
+
+	}
 </script>
 
 <style lang="postcss">
@@ -19,7 +32,7 @@
 		</h2>
 	</div>
 	
-	<form class="text-3xl font-semibold mt-52 " method="POST">
+	<form class="text-3xl font-semibold mt-52 " on:submit={handleSubmit}>
 		<div class="flex flex-col justify-around">
 			<label  class="self-center my-4">
 				Email

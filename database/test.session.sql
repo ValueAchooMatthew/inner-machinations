@@ -1,4 +1,0 @@
-
-
---@block
-CREATE TABLE Users;
