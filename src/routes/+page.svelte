@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api/tauri";
+
 	const handleSubmit = (event: SubmitEvent): void=>{
 		event.preventDefault();
 		if(event.target instanceof HTMLFormElement){
 			const data = new FormData(event.target);
 			const email = data.get("email");
 			const password = data.get("password")
-			invoke("get_user_data", {email: email, password: password});
+			invoke("register_user", {email:email, password:password});
+			invoke("print_users");
 		}else{
 			console.log("There was an error parsing user information")
 			return;

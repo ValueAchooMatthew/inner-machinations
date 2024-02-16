@@ -14,5 +14,9 @@
             "name": "inner machinations",
             "askForPassword": true
         }
+    ],
+    "rust-analyzer.linkedProjects": [
+        ".\\src-tauri\\Cargo.toml",
+        ".\\src-tauri\\Cargo.toml"
     ]
 }
