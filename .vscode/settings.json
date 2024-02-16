@@ -9,9 +9,9 @@
             "server": "localhost",
             "port": 3306,
             "driver": "MySQL",
+            "name": "InnerMachinations",
+            "database": "innermachinations",
             "username": "valueachoomatthew",
-            "database": "InnerMachinations",
-            "name": "inner machinations",
             "askForPassword": true
         }
     ],

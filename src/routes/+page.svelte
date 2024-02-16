@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api/tauri";
-
-	const handleSubmit = (event: SubmitEvent): void=>{
+	const handleSubmit = async (event: SubmitEvent): Promise<void> =>{
 		event.preventDefault();
 		if(event.target instanceof HTMLFormElement){
 			const data = new FormData(event.target);
 			const email = data.get("email");
-			const password = data.get("password")
-			invoke("register_user", {email:email, password:password});
-			invoke("print_users");
+			const password = data.get("password");
+			invoke("register_user", {em: email, pswd: password});
+
 		}else{
 			console.log("There was an error parsing user information")
 			return;
@@ -23,18 +22,18 @@
 	}
 </style>
 
-<body class="h-screen py-16 relative">
+<body class="h-screen py-10 relative">
 	<svg xmlns="http://www.w3.org/2000/svg" class="absolute top-0 -z-10" viewBox="0 0 1440 320"><path fill="#ff5500" fill-opacity="1" d="M0,256L60,234.7C120,213,240,171,360,170.7C480,171,600,213,720,213.3C840,213,960,171,1080,176C1200,181,1320,235,1380,261.3L1440,288L1440,0L1380,0C1320,0,1200,0,1080,0C960,0,840,0,720,0C600,0,480,0,360,0C240,0,120,0,60,0L0,0Z"></path></svg>
 	<div class="mb-6 text-gray-100">
-		<h1 class="text-center text-7xl font-semibold">
+		<h1 class="text-center text-6xl font-semibold">
 			Inner Machinations
 		</h1>
-		<h2 class="italic text-center text-3xl mt-4">
+		<h2 class="italic text-center text-2xl mt-4">
 			A desktop application to create your very own DFA's and NFA's
 		</h2>
 	</div>
 	
-	<form class="text-3xl font-semibold mt-52 " on:submit={handleSubmit}>
+	<form class="text-3xl font-semibold mt-32" on:submit={handleSubmit}>
 		<div class="flex flex-col justify-around">
 			<label  class="self-center my-4">
 				Email
@@ -54,7 +53,7 @@
 	</form>
 	<div class="text-center mt-4">
 		<span class=" text-lg italic text-orange-500">
-			Or <a class="underline " href="/">Register</a>
+			Or <a class="underline " href="/registration">Register</a>
 		</span>
 	</div>
 
