@@ -18,7 +18,7 @@ pub fn establish_connection() -> MysqlConnection {
 }
 
 use models::User;
-pub fn check_for_user(em: &str) -> Option<User> {
+pub fn retrieve_registered_user(em: &str) -> Option<User> {
   use crate::schema::users::dsl::*;
 
   let mut connection =  establish_connection();
@@ -44,4 +44,17 @@ pub fn add_user_to_db(email: &str, password: &str) -> () {
       .values(&new_user)
       .execute(&mut conn)
       .expect("whoopsies, there was an error registering the user!");
+}
+
+use magic_crypt::{MagicCrypt256, MagicCryptTrait};
+pub fn encrypt_user_data(cipher: &MagicCrypt256, email: &str, password: &str) -> [String; 2] {
+  let encrypted_email = cipher.encrypt_str_to_base64(email);
+  let encrypted_password = cipher.encrypt_str_to_base64(password);
+  [encrypted_email, encrypted_password]
+}
+
+pub fn decrypt_user_data(cipher: &MagicCrypt256, user: User) -> [String; 2]{
+  let decrypted_email = cipher.decrypt_base64_to_string(user.email).unwrap();
+  let decrypted_password = cipher.decrypt_base64_to_string(user.password).unwrap();
+  [decrypted_email, decrypted_password]
 }
