@@ -7,5 +7,6 @@ diesel::table! {
         email -> Varchar,
         #[max_length = 255]
         password -> Varchar,
+        verified -> Bool,
     }
 }

@@ -1,20 +1,5 @@
 {
-    "sqltools.connections": [
-        {
-            "mysqlOptions": {
-                "authProtocol": "default",
-                "enableSsl": "Disabled"
-            },
-            "previewLimit": 50,
-            "server": "localhost",
-            "port": 3306,
-            "driver": "MySQL",
-            "name": "InnerMachinations",
-            "database": "innermachinations",
-            "username": "valueachoomatthew",
-            "askForPassword": true
-        }
-    ],
+    "sqltools.connections": [],
     "rust-analyzer.linkedProjects": [
         ".\\src-tauri\\Cargo.toml",
         ".\\src-tauri\\Cargo.toml"
