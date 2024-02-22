@@ -7,7 +7,7 @@ pub mod models;
 
 fn main() {
   tauri::Builder::default()
-  .invoke_handler(tauri::generate_handler![handle_registration_event, is_user_registered])
+  .invoke_handler(tauri::generate_handler![handle_registration_event, is_user_registered, send_email])
   .run(tauri::generate_context!())
   .expect("error while running tauri application");
 }
@@ -37,6 +37,35 @@ fn handle_registration_event(email: &str, password: &str) -> () {
   }
 
 }
+use lettre::message::header::ContentType;
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{Message, SmtpTransport, Transport};
+#[tauri::command]
+fn send_email(address: &str, link: &str){
+  let email = Message::builder()
+  .from("Matthew <info.innermachinations@gmail.com>".parse().unwrap())
+  .to(address.parse().unwrap())
+  .subject("Inner Machinations Verification")
+  .header(ContentType::TEXT_PLAIN)
+  .body(String::from("Click on the following link to verify your email ".to_owned() + link))
+  .unwrap();
+
+let creds = Credentials::new("matthewtamerfarah@gmail.com".to_owned(), "fkyr oetz ethu vqbx".to_owned());
+
+// Open a remote connection to gmail
+let mailer = SmtpTransport::relay("smtp.gmail.com")
+  .unwrap()
+  .credentials(creds)
+  .build();
+
+// Send the email
+match mailer.send(&email) {
+  Ok(_) => println!("Email sent successfully!"),
+  Err(e) => panic!("Could not send email: {e:?}"),
+}
+
+}
+
 
 #[tauri::command]
 fn is_user_registered(email: &str, password: &str) -> bool{
