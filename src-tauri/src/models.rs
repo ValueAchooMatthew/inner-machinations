@@ -8,7 +8,8 @@ pub struct User {
     pub id: i32,
     pub email: String,
     pub password: String,
-    pub verified: bool
+    pub verified: bool,
+    pub code: Option<String>
 }
 
 use crate::schema::users;

@@ -8,5 +8,7 @@ diesel::table! {
         #[max_length = 255]
         password -> Varchar,
         verified -> Bool,
+        #[max_length = 6]
+        code -> Nullable<Varchar>,
     }
 }

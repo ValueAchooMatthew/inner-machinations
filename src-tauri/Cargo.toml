@@ -23,6 +23,7 @@ dotenv = "0.15.0"
 mysqlclient-sys = "0.2.5"
 magic-crypt = "3.1.9"
 lettre = "0.11.4"
+rand = "0.8.5"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

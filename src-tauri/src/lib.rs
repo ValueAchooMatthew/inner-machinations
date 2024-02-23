@@ -58,3 +58,28 @@ pub fn decrypt_user_data(cipher: &MagicCrypt256, user: User) -> [String; 2]{
   let decrypted_password = cipher.decrypt_base64_to_string(user.password).unwrap();
   [decrypted_email, decrypted_password]
 }
+
+use rand::{distributions::Alphanumeric, Rng}; // 0.8
+pub fn generate_code() -> String {
+  let code: String = rand::thread_rng()
+    .sample_iter(&Alphanumeric)
+    .take(6)
+    .map(char::from)
+    .collect();
+  return code;
+}
+
+pub fn set_user_code(generated_code: &str, email_address: &str) -> (){
+  use crate::users::dsl::*;
+  
+  let cipher = magic_crypt::new_magic_crypt!("magickey", 256);
+  let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
+
+  let mut conn: MysqlConnection = establish_connection();
+  diesel::update(users)
+    .filter(email.eq(encrypted_email))
+    .set(code.eq(generated_code))
+    .execute(&mut conn)
+    .expect("There was an error assigning a code for the user");
+
+}
