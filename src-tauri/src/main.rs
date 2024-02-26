@@ -19,7 +19,7 @@ use app::{add_user_to_db, encrypt_user_data, establish_connection, generate_code
 #[tauri::command]
 fn register_user(email: &str, password: &str) -> () {
 
-  let cipher = new_magic_crypt!("magickey", 256);
+  let cipher = new_magic_crypt!(&password, 256);
   let [encrypted_email, encrypted_password] = encrypt_user_data(&cipher, email, password);
   add_user_to_db(&encrypted_email, &encrypted_password)
 
@@ -30,7 +30,7 @@ fn is_correct_log_in(email_address: &str, pwrd: &str) -> bool{
   use crate::users::dsl::*;
   use crate::diesel::ExpressionMethods;
 
-  let cipher = new_magic_crypt!("magickey", 256);
+  let cipher = new_magic_crypt!(&pwrd, 256);
   let [encrypted_email, encrypted_password] = encrypt_user_data(&cipher, email_address, pwrd);
   
   let mut conn: MysqlConnection = establish_connection();
@@ -50,10 +50,10 @@ fn is_correct_log_in(email_address: &str, pwrd: &str) -> bool{
 
 // TODO: Fix way in which encryption is done
 #[tauri::command]
-fn is_user_registered(email: &str) -> bool {
-  let cipher = new_magic_crypt!("magickey", 256);
-  let [email, _] = encrypt_user_data(&cipher, email, "");
-  match retrieve_registered_user(&email){
+fn is_user_registered(email: &str, password: &str) -> bool {
+  let cipher = new_magic_crypt!(&password, 256);
+  let [encrypted_email, _] = encrypt_user_data(&cipher, email, "");
+  match retrieve_registered_user(&encrypted_email){
     Some(_) => true,
     None => false
   }
@@ -64,10 +64,10 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 // TODO: Add sha-256 encryption to emails
 #[tauri::command]
-fn send_email(email_address: &str) -> String {
+fn send_email(email_address: &str, pwrd: &str) -> String {
   let code = generate_code();
 
-  set_user_code(&code, email_address);
+  set_user_code(&code, email_address, pwrd);
 
   let email = Message::builder()
     .from("Matthew <info.innermachinations@gmail.com>".parse().unwrap())
@@ -98,11 +98,11 @@ use diesel::MysqlConnection;
 use diesel::RunQueryDsl;
 use models::User;
 #[tauri::command]
-fn is_user_verified(email_address: &str) -> bool {
+fn is_user_verified(email_address: &str, pwrd: &str) -> bool {
   use crate::users::dsl::*;
   use crate::diesel::ExpressionMethods;
 
-  let cipher = new_magic_crypt!("magickey", 256);
+  let cipher = new_magic_crypt!(&pwrd, 256);
   let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
   let mut conn: MysqlConnection = establish_connection();
   let person: Result<User, diesel::result::Error> = users.filter(email.eq(encrypted_email))
@@ -115,11 +115,11 @@ fn is_user_verified(email_address: &str) -> bool {
 }
 
 #[tauri::command]
-fn verify_user(email_address: &str) -> (){
+fn verify_user(email_address: &str, pwrd: &str) -> (){
   use crate::users::dsl::*;
   use crate::diesel::ExpressionMethods;
 
-  let cipher = new_magic_crypt!("magickey", 256);
+  let cipher = new_magic_crypt!(&pwrd, 256);
   let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
   let mut conn: MysqlConnection = establish_connection();
 

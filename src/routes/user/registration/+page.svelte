@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
 	import { invoke } from "@tauri-apps/api/tauri";
-	import { user_email } from "../../../lib/user";
+	import { user_email, user_password } from "../../../lib/user";
 
 	let response = "";
 
@@ -15,13 +15,14 @@
 				return;
 			}
 			user_email.set(email);
+			user_password.set(password);
 			const isRegistered: boolean = await invoke("is_user_registered", {email: email, password: password});
 			if(!isRegistered){
 				invoke("register_user", {email: email, password: password});
 				goto("verification");	
 			}else{
 				const isCorrectLogin: boolean = await invoke("is_correct_log_in", {emailAddress: email, pwrd: password});
-				const isVerified: boolean = await invoke("is_user_verified", {emailAddress: email});
+				const isVerified: boolean = await invoke("is_user_verified", {emailAddress: email, pwrd: password});
 				if(!isCorrectLogin){
 					response = "Sorry, you've entered an incorrect password"
 				}else{

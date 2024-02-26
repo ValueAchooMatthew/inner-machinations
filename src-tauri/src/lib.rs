@@ -56,6 +56,7 @@ pub fn encrypt_user_data(cipher: &MagicCrypt256, email: &str, password: &str) ->
 pub fn decrypt_user_data(cipher: &MagicCrypt256, user: User) -> [String; 2]{
   let decrypted_email = cipher.decrypt_base64_to_string(user.email).unwrap();
   let decrypted_password = cipher.decrypt_base64_to_string(user.password).unwrap();
+  println!("{}, {}", decrypted_email, decrypted_password);
   [decrypted_email, decrypted_password]
 }
 
@@ -69,10 +70,10 @@ pub fn generate_code() -> String {
   return code;
 }
 
-pub fn set_user_code(generated_code: &str, email_address: &str) -> (){
+pub fn set_user_code(generated_code: &str, email_address: &str, pwrd: &str) -> (){
   use crate::users::dsl::*;
   
-  let cipher = magic_crypt::new_magic_crypt!("magickey", 256);
+  let cipher = magic_crypt::new_magic_crypt!(&pwrd, 256);
   let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
 
   let mut conn: MysqlConnection = establish_connection();
