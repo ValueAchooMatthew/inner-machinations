@@ -47,10 +47,12 @@ fn is_correct_log_in(email_address: &str, pwrd: &str) -> bool{
   }
 }
 
+
+// TODO: Fix way in which encryption is done
 #[tauri::command]
-fn is_user_registered(email: &str, password: &str) -> bool{
+fn is_user_registered(email: &str) -> bool {
   let cipher = new_magic_crypt!("magickey", 256);
-  let [email, _] = encrypt_user_data(&cipher, email, password);
+  let [email, _] = encrypt_user_data(&cipher, email, "");
   match retrieve_registered_user(&email){
     Some(_) => true,
     None => false
