@@ -4,7 +4,10 @@
 extern crate diesel;
 pub mod schema;
 pub mod models;
+use dotenv::dotenv;
+use std::env;
 
+// Fixed Opsec but should refactor key getting and setting into separate func in lib
 fn main() {
   tauri::Builder::default()
   .invoke_handler(tauri::generate_handler![register_user, is_user_registered, is_correct_log_in, send_email, verify_user, is_user_verified])
@@ -19,7 +22,10 @@ use app::{add_user_to_db, encrypt_user_data, establish_connection, generate_code
 #[tauri::command]
 fn register_user(email: &str, password: &str) -> () {
 
-  let cipher = new_magic_crypt!(&password, 256);
+  dotenv().ok();
+  let key = env::var("ENCRYPTION_KEY")
+    .expect("Encryption Key must be set as a .env variable");
+  let cipher = new_magic_crypt!(&key, 256);
   let [encrypted_email, encrypted_password] = encrypt_user_data(&cipher, email, password);
   add_user_to_db(&encrypted_email, &encrypted_password)
 
@@ -30,7 +36,10 @@ fn is_correct_log_in(email_address: &str, pwrd: &str) -> bool{
   use crate::users::dsl::*;
   use crate::diesel::ExpressionMethods;
 
-  let cipher = new_magic_crypt!(&pwrd, 256);
+  dotenv().ok();
+  let key = env::var("ENCRYPTION_KEY")
+    .expect("Encryption Key must be set as a .env variable");
+  let cipher = new_magic_crypt!(&key, 256);
   let [encrypted_email, encrypted_password] = encrypt_user_data(&cipher, email_address, pwrd);
   
   let mut conn: MysqlConnection = establish_connection();
@@ -50,8 +59,13 @@ fn is_correct_log_in(email_address: &str, pwrd: &str) -> bool{
 
 // TODO: Fix way in which encryption is done
 #[tauri::command]
-fn is_user_registered(email: &str, password: &str) -> bool {
-  let cipher = new_magic_crypt!(&password, 256);
+fn is_user_registered(email: &str) -> bool {
+
+  dotenv().ok();
+  let key = env::var("ENCRYPTION_KEY")
+    .expect("Encryption Key must be set as a .env variable");
+  let cipher = new_magic_crypt!(&key, 256);
+
   let [encrypted_email, _] = encrypt_user_data(&cipher, email, "");
   match retrieve_registered_user(&encrypted_email){
     Some(_) => true,
@@ -64,10 +78,15 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 // TODO: Add sha-256 encryption to emails
 #[tauri::command]
-fn send_email(email_address: &str, pwrd: &str) -> String {
+fn send_email(email_address: &str) -> String {
   let code = generate_code();
 
-  set_user_code(&code, email_address, pwrd);
+  dotenv().ok();
+  let key = env::var("ENCRYPTION_KEY")
+    .expect("Encryption Key must be set as a .env variable");
+  let cipher = new_magic_crypt!(&key, 256);
+
+  set_user_code(&cipher, &code, email_address);
 
   let email = Message::builder()
     .from("Matthew <info.innermachinations@gmail.com>".parse().unwrap())
@@ -98,11 +117,15 @@ use diesel::MysqlConnection;
 use diesel::RunQueryDsl;
 use models::User;
 #[tauri::command]
-fn is_user_verified(email_address: &str, pwrd: &str) -> bool {
+fn is_user_verified(email_address: &str) -> bool {
   use crate::users::dsl::*;
   use crate::diesel::ExpressionMethods;
 
-  let cipher = new_magic_crypt!(&pwrd, 256);
+  dotenv().ok();
+  let key = env::var("ENCRYPTION_KEY")
+    .expect("Encryption Key must be set as a .env variable");
+  let cipher = new_magic_crypt!(&key, 256);
+
   let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
   let mut conn: MysqlConnection = establish_connection();
   let person: Result<User, diesel::result::Error> = users.filter(email.eq(encrypted_email))
@@ -115,11 +138,14 @@ fn is_user_verified(email_address: &str, pwrd: &str) -> bool {
 }
 
 #[tauri::command]
-fn verify_user(email_address: &str, pwrd: &str) -> (){
+fn verify_user(email_address: &str) -> (){
   use crate::users::dsl::*;
   use crate::diesel::ExpressionMethods;
 
-  let cipher = new_magic_crypt!(&pwrd, 256);
+  let key = env::var("ENCRYPTION_KEY").ok()
+    .expect("Encryption Key must be set as a .env variable");
+  let cipher = new_magic_crypt!(&key, 256);
+
   let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
   let mut conn: MysqlConnection = establish_connection();
 

@@ -70,10 +70,9 @@ pub fn generate_code() -> String {
   return code;
 }
 
-pub fn set_user_code(generated_code: &str, email_address: &str, pwrd: &str) -> (){
+pub fn set_user_code(cipher: &MagicCrypt256, generated_code: &str, email_address: &str) -> (){
   use crate::users::dsl::*;
-  
-  let cipher = magic_crypt::new_magic_crypt!(&pwrd, 256);
+
   let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
 
   let mut conn: MysqlConnection = establish_connection();
