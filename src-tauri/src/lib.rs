@@ -83,3 +83,16 @@ pub fn set_user_code(cipher: &MagicCrypt256, generated_code: &str, email_address
     .expect("There was an error assigning a code for the user");
 
 }
+
+
+use serde::Deserialize;
+use serde::Serialize;
+#[derive(Debug)]
+#[derive(Deserialize, Serialize)]
+pub struct Node{
+  
+  connected_to: Vec<Node>,
+  connection_chars: Vec<String>,
+  is_final: bool
+
+}

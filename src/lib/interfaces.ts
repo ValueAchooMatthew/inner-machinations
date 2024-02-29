@@ -2,18 +2,8 @@ export interface State{
     x_pos: number,
     y_pos: number,
     element: "State",
+    final: boolean
 };
-
-export interface StartState extends State{
-    start: true
-}
-
-
-export interface EndState{
-    end: true
-
-}
-
 
 export interface Connection {
     x1_pos: number,
@@ -23,9 +13,10 @@ export interface Connection {
     element: "Connection"
 };
 
-export interface Link{
+export interface Node{
     // Specifying coordinates of node as an identification for a node
-    startNode: [number, number]
-    nextNode: [number, number],
-    character: string
+    connected_nodes: Array<Node>,
+    connection_chars: Array<string>,
+    final: boolean,
+
 };

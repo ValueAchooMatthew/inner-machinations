@@ -10,7 +10,7 @@ use std::env;
 // Fixed Opsec but should refactor key getting and setting into separate func in lib
 fn main() {
   tauri::Builder::default()
-  .invoke_handler(tauri::generate_handler![register_user, is_user_registered, is_correct_log_in, send_email, verify_user, is_user_verified])
+  .invoke_handler(tauri::generate_handler![register_user, is_user_registered, is_correct_log_in, send_email, verify_user, is_user_verified, get_links])
   .run(tauri::generate_context!())
   .expect("error while running tauri application");
 }
@@ -154,4 +154,16 @@ fn verify_user(email_address: &str) -> (){
     .set(verified.eq(true))
     .execute(&mut conn)
     .expect("There was an error assigning a code for the user");
+}
+
+use app::Node;
+#[tauri::command]
+fn get_links(node_connections: Vec<Node>, string: &str) -> (){
+
+
+  // match start_link {
+  //   Some(link) => println!("The start link is {:?}", link),
+  //   None => println!("No start link specified!")
+  // }
+
 }
