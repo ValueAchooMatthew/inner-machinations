@@ -160,11 +160,31 @@ fn verify_user(email_address: &str) -> (){
 // use crate::models::Node;
 use crate::models::Node;
 #[tauri::command]
-fn get_links(state_connections: HashMap<String, Node>, start_state_coordinates: String) -> (){
+fn get_links(state_connections: HashMap<String, Node>, start_state_coordinates: String, string_to_check: String) -> (){
   println!("{}", start_state_coordinates);
 
   let start_node: &Node = state_connections.get(&start_state_coordinates).unwrap();
+  let mut current_node: &Node = start_node;
 
-  println!("{:?}", start_node);
+
+  for c in string_to_check.chars(){
+    let next_node_index = match current_node.connection_chars.iter().position(|character| character == &c.to_string()) {
+      Some(index) => index,
+      None => break
+    };
+    let next_node_position = match current_node.nodes_connected_to.get(next_node_index){
+      Some(position) => position,
+      None => break
+    };
+
+    let next_node: &Node = state_connections.get(next_node_position).unwrap();
+    current_node = next_node;
+
+  }
+  if current_node.is_final_state == true {
+    println!("The string was accepted!");
+  }else{
+    println!("The string was not accepted :(");
+  }
 
 }

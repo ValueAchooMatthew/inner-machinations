@@ -16,11 +16,12 @@
     let startStateCoordinates: string | null = null;
     let previouslySelectedNodeKey: string | null = null; 
     let dialogue = "";
+    let stringToCheck: String;
 
     $: console.log(stateConnections)
     
-    $: {if(startStateCoordinates != null){
-        invoke("get_links", {stateConnections: stateConnections, startStateCoordinates: startStateCoordinates});
+    $: {if(startStateCoordinates != null && stringToCheck){
+        invoke("get_links", {stateConnections: stateConnections, startStateCoordinates: startStateCoordinates, stringToCheck: stringToCheck});
     }}
     
     $: width = 900;
@@ -44,6 +45,19 @@
             context.imageSmoothingQuality = "high";
         }
     })
+
+    const handleSubmit = (event: SubmitEvent)=> {
+        if(!(event.target instanceof HTMLFormElement)){
+            return;
+        }
+        const data = new FormData(event.target);
+        const inputtedString = data.get("string");
+        if(!inputtedString){
+            return;
+        }
+        stringToCheck = inputtedString.toString();
+    }
+
 
     const handleClick = (event: MouseEvent): void => {
         const cursor_x_pos = roundToNearest(event.x + window.scrollX, 100);
@@ -112,8 +126,8 @@
     // Decent start
     // Try and draw without redrawing whole canvas
     const handleMove = (event: MouseEvent) =>{
-        const cursor_x_pos = roundToNearest(event.x, 20);
-        const cursor_y_pos = roundToNearest(event.y, 20);
+        const cursor_x_pos = roundToNearest(event.x + window.scrollX, 20);
+        const cursor_y_pos = roundToNearest(event.y + window.scrollY, 20);
         if(lineSelected && drawingLine){
             const line = connections.pop();
             if(line){
@@ -193,8 +207,19 @@
             </svg>
         </div>
     </div>
-    <div>
+    <div class="text-center">
         {dialogue}
     </div>
+    <div class="flex flex-col justify-center">
+        <form class="flex self-center" on:submit|preventDefault={handleSubmit}>
+            <label for="string">
+                Check String:
+                <input class="border-black border-2 text-3xl rounded-md px-2 py-1" type="text" name="string">
+            </label>
+
+
+        </form>
+    </div>
+
 </div>
 <a href="/">Home</a>
