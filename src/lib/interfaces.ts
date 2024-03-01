@@ -2,10 +2,9 @@ export interface State{
     x_pos: number,
     y_pos: number,
     element: "State",
-    final: boolean
 };
 
-export interface Connection {
+export interface Arrow {
     x1_pos: number,
     y1_pos: number,
     x2_pos: number,
@@ -13,10 +12,10 @@ export interface Connection {
     element: "Connection"
 };
 
-export interface Node{
+export interface StateConnection {
     // Specifying coordinates of node as an identification for a node
-    connected_nodes: Array<Node>,
+    nodes_connected_to: Array<string>,
+    nodes_connected_from: Array<string>,
     connection_chars: Array<string>,
-    final: boolean,
-
+    is_final_state: boolean,
 };

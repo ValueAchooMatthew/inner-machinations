@@ -5,6 +5,7 @@ extern crate diesel;
 pub mod schema;
 pub mod models;
 use dotenv::dotenv;
+use std::collections::HashMap;
 use std::env;
 
 // Fixed Opsec but should refactor key getting and setting into separate func in lib
@@ -156,14 +157,14 @@ fn verify_user(email_address: &str) -> (){
     .expect("There was an error assigning a code for the user");
 }
 
-use app::Node;
+// use crate::models::Node;
+use crate::models::Node;
 #[tauri::command]
-fn get_links(node_connections: Vec<Node>, string: &str) -> (){
+fn get_links(state_connections: HashMap<String, Node>, start_state_coordinates: String) -> (){
+  println!("{}", start_state_coordinates);
 
+  let start_node: &Node = state_connections.get(&start_state_coordinates).unwrap();
 
-  // match start_link {
-  //   Some(link) => println!("The start link is {:?}", link),
-  //   None => println!("No start link specified!")
-  // }
+  println!("{:?}", start_node);
 
 }

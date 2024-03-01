@@ -1,4 +1,4 @@
-import type { State, Connection, } from "./interfaces";
+import type { State, Arrow, } from "./interfaces";
 
 export const roundToNearest = (numberToRound: number, roundTo: number): number => {
     const remainder = numberToRound % roundTo;
@@ -11,7 +11,7 @@ export const roundToNearest = (numberToRound: number, roundTo: number): number =
 
 }
 
-const drawArrow = (context: CanvasRenderingContext2D, connection: Connection): void =>{
+const drawArrow = (context: CanvasRenderingContext2D, connection: Arrow): void =>{
     context.lineCap = 'round';
 
     const startX = connection.x1_pos;
@@ -40,7 +40,7 @@ export const draw = (context: CanvasRenderingContext2D,
     width: number, 
     height: number, 
     nodes: Array<State>,
-    connections: Array<Connection>, 
+    connections: Array<Arrow>, 
     startStatePosition: number, 
     finalStatePositions: Array<number>) => {
     

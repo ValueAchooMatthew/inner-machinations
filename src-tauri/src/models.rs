@@ -19,3 +19,15 @@ pub struct Register<'a> {
     pub email: &'a str,
     pub password: &'a str,
 }
+
+use serde::Deserialize;
+use serde::Serialize;
+#[derive(Debug)]
+#[derive(Deserialize, Serialize)]
+pub struct Node{    
+    pub nodes_connected_to: Vec<String>,
+    pub nodes_connected_from: Vec<String>,
+    pub connection_chars: Vec<String>,
+    pub is_final_state: bool
+  
+}
