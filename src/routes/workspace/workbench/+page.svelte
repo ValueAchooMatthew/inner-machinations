@@ -1,11 +1,12 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { invoke } from "@tauri-apps/api";
-    import { draw, roundToNearest } from "../../../lib/utils";
+    import { draw, roundToNearest, undo } from "../../../lib/utils";
     import type { State, Arrow, StateConnection } from "../../../lib/interfaces";
 
-    // Consider splitting elements into state and connection arrays
-    // Map coordinates to elements?
+    // DO NOT CHANGE ANY CODE IN FORM FOO = [...FOO, BAR]
+    // Necessary to trigger sveltekit rerender of dynamic variables and draw to screen
+
     // Consider refactoring into rust backend for faster performance in future
     let states: Array<State> = [];
     let connections: Array<Arrow> = [];
@@ -17,12 +18,6 @@
     let previouslySelectedNodeKey: string | null = null; 
     let dialogue = "";
     let stringToCheck: String;
-
-    $: console.log(stateConnections)
-    
-    $: {if(startStateCoordinates != null && stringToCheck){
-        invoke("get_links", {stateConnections: stateConnections, startStateCoordinates: startStateCoordinates, stringToCheck: stringToCheck});
-    }}
     
     $: width = 900;
     $: height = 900;
@@ -35,6 +30,20 @@
     let isStartStateSelected = false;
     let isFinalStateSelected = false;
 
+    let isStringAccepted: boolean;
+
+    $: {if(startStateCoordinates && stringToCheck){
+        const check_string = async () => {
+            isStringAccepted = await invoke("test_string", {stateConnections: stateConnections, 
+                startStateCoordinates: startStateCoordinates, stringToCheck: stringToCheck});
+        }
+        check_string();
+    }};
+
+   $: {if(context){
+    draw(context, width, height, states, connections, startStatePosition, finalStatePositions);
+   }} 
+
     onMount(()=>{
         width = window.innerWidth;
         height = window.innerHeight
@@ -46,6 +55,22 @@
         }
     })
 
+    const handleTrash = () => {
+        states = [];
+        connections = [];
+        elements = [];
+        startStatePosition = -1;
+        finalStatePositions = [];
+        stateConnections = {};
+        startStateCoordinates = null;
+        previouslySelectedNodeKey = null;
+        lineSelected = false;
+        drawingLine = false;
+        linkStart = [0, 0];
+        isFinalStateSelected = false;
+        isStartStateSelected = false;
+    }
+
     const handleSubmit = (event: SubmitEvent)=> {
         if(!(event.target instanceof HTMLFormElement)){
             return;
@@ -53,6 +78,10 @@
         const data = new FormData(event.target);
         const inputtedString = data.get("string");
         if(!inputtedString){
+            return;
+        }
+        if(startStatePosition === -1){
+            dialogue = "You must specify at least one start state"
             return;
         }
         stringToCheck = inputtedString.toString();
@@ -65,7 +94,7 @@
 
         const selectedState: StateConnection | undefined = stateConnections[`${cursor_x_pos}${cursor_y_pos}`];
 
-        if(!lineSelected ){
+        if(!lineSelected){
             if(selectedState){
                 dialogue = "You cannot place a Node on top of another Node";
                 return;
@@ -73,25 +102,26 @@
             dialogue = "";
             const node: State = {x_pos: cursor_x_pos, y_pos: cursor_y_pos, element: "State"};
             let nodeConnection: StateConnection = {nodes_connected_from: [], nodes_connected_to: [], connection_chars: [], is_final_state: false};
-            elements.push(node);
-            states.push(node);
+            elements = [...elements, node];
+            states = [...states, node];
             if(isStartStateSelected){
                 startStatePosition = states.length - 1;
                 startStateCoordinates = `${cursor_x_pos}${cursor_y_pos}`;
                 isStartStateSelected = false;
             }else if(isFinalStateSelected){
-                finalStatePositions.push(states.length - 1);
+                finalStatePositions = [...finalStatePositions, states.length - 1];
                 nodeConnection.is_final_state = true;
             }
             stateConnections[`${cursor_x_pos}${cursor_y_pos}`] = nodeConnection;
 
         }else if(lineSelected && !drawingLine){
             if(!selectedState){
-                dialogue = "You need to place an arrow on top of another Node";
+                dialogue = "You must place an arrow on top of another Node";
                 return;
             }
             dialogue = "";
-            connections.push({x1_pos: cursor_x_pos, y1_pos: cursor_y_pos, x2_pos: cursor_x_pos, y2_pos: cursor_y_pos, element: "Connection"});
+            const connection: Arrow = {x1_pos: cursor_x_pos, y1_pos: cursor_y_pos, x2_pos: cursor_x_pos, y2_pos: cursor_y_pos, element: "Connection"}
+            connections = [...connections, connection];
             drawingLine = true;
             linkStart = [cursor_x_pos, cursor_y_pos];
             previouslySelectedNodeKey = `${cursor_x_pos}${cursor_y_pos}`
@@ -115,12 +145,11 @@
             if(line){
                 line.x2_pos = cursor_x_pos;
                 line.y2_pos = cursor_y_pos;
-                connections.push(line);
-                elements.push(line);
+                connections = [...connections, line];
+                elements = [...elements, line];
                 drawingLine = false;
             }
         }
-        draw(context, width, height, states, connections, startStatePosition, finalStatePositions);
     }
 
     // Decent start
@@ -133,47 +162,35 @@
             if(line){
                 line.x2_pos = cursor_x_pos;
                 line.y2_pos = cursor_y_pos;
-                connections.push(line);
+                connections = [...connections, line];
             }
-            draw(context, width, height, states, connections, startStatePosition, finalStatePositions);
         }else{
             return;
         }
 
     }
 
-    const undo = (): void =>{
-        const element: State | Arrow | undefined = elements.pop();
-        if(!element){
-            return;
-        }else{
-            if(element.element === "State"){
-                const state = states.pop();
-                if(!state){
-                    return;
-                }else{
-                    stateConnections[`${state.x_pos}${state.y_pos}`] = undefined;
-                }
-            }else{
-                connections.pop();
-            }
-        }
-        draw(context, width, height, states, connections, startStatePosition, finalStatePositions);
-    }
 
     const handleUndoEvent = (event: KeyboardEvent): void =>{
         if(event.ctrlKey === true && event.key === "z"){
-            undo();
+            undo(elements, states, stateConnections, connections);
         }
     }
 
 </script>
 
 <svelte:window on:keydown={handleUndoEvent} on:resize={()=>{width = window.innerWidth; height = window.innerHeight;}}/> 
-<div class="w-full h-full relative font-semibold">
-    <canvas style="width: {width}; height: {height};" width={width} height={height} bind:this={canvas} id="Canvas" on:mousemove={handleMove} on:click={handleClick} >
+<div class="w-fit h-fit relative font-semibold overflow-x-hidden">
+    <div class="text-center absolute top-5">
+        {#if isStringAccepted}
+            <div>The string was accepted!!</div>
+        {:else if isStringAccepted !== undefined}
+            <div>The string was not accepted</div>
+        {/if}
+    </div>
+    <canvas style="width: {width}; height: {height};" width={width} height={height} bind:this={canvas} on:mousemove={handleMove} on:click={handleClick} >
     </canvas>
-    <div class="text-center select-none flex flex-col justify-between gap-3 bg-opacity-100 w-32 h-fit absolute right-0 top-0 bottom-0 my-auto border-black border-2 rounded-md px-2 py-4 mr-0.5 z-50">
+    <div class="text-center select-none flex flex-col justify-between gap-3 bg-opacity-100 w-32 h-fit absolute right-4 top-0 bottom-0 my-auto border-black border-2 rounded-md px-2 py-4 mr-0.5 z-50">
         <div class="flex flex-col gap-2">
             <button on:click={()=>{isFinalStateSelected = false; isStartStateSelected = true; lineSelected = false;}} class="flex flex-col self-center" style="line-height: 15px;">
                 New Start State
@@ -199,15 +216,15 @@
 
         </div>
         <div class="flex justify-center mt-2">
-            <svg on:click={undo} class="hover:cursor-pointer w-6" data-slot="icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <svg on:click={()=>{undo(elements, states, stateConnections, connections)}} class="hover:cursor-pointer w-6" data-slot="icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path clip-rule="evenodd" fill-rule="evenodd" d="M2.515 10.674a1.875 1.875 0 0 0 0 2.652L8.89 19.7c.352.351.829.549 1.326.549H19.5a3 3 0 0 0 3-3V6.75a3 3 0 0 0-3-3h-9.284c-.497 0-.974.198-1.326.55l-6.375 6.374ZM12.53 9.22a.75.75 0 1 0-1.06 1.06L13.19 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 1 0 1.06-1.06L15.31 12l1.72-1.72a.75.75 0 1 0-1.06-1.06l-1.72 1.72-1.72-1.72Z"></path>
               </svg>
-            <svg on:click={()=>{isFinalStateSelected = false; isStartStateSelected = false; states = []; connections = []; draw(context, width, height, states, connections, startStatePosition, finalStatePositions);}} class="hover:cursor-pointer w-6" data-slot="icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <svg on:click={handleTrash} class="hover:cursor-pointer w-6" data-slot="icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path clip-rule="evenodd" fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"></path>
             </svg>
         </div>
     </div>
-    <div class="text-center">
+    <div class="absolute top-0 right-0 left-0 w-fit h-fit mx-auto transition-all duration-300 bg-pink-400 px-5 py-1 rounded-md text-center">
         {dialogue}
     </div>
     <div class="flex flex-col justify-center">
@@ -216,8 +233,6 @@
                 Check String:
                 <input class="border-black border-2 text-3xl rounded-md px-2 py-1" type="text" name="string">
             </label>
-
-
         </form>
     </div>
 

@@ -11,7 +11,8 @@ use std::env;
 // Fixed Opsec but should refactor key getting and setting into separate func in lib
 fn main() {
   tauri::Builder::default()
-  .invoke_handler(tauri::generate_handler![register_user, is_user_registered, is_correct_log_in, send_email, verify_user, is_user_verified, get_links])
+  .invoke_handler(tauri::generate_handler![register_user, is_user_registered, is_correct_log_in,
+    send_email, verify_user, is_user_verified, test_string])
   .run(tauri::generate_context!())
   .expect("error while running tauri application");
 }
@@ -160,31 +161,34 @@ fn verify_user(email_address: &str) -> (){
 // use crate::models::Node;
 use crate::models::Node;
 #[tauri::command]
-fn get_links(state_connections: HashMap<String, Node>, start_state_coordinates: String, string_to_check: String) -> (){
-  println!("{}", start_state_coordinates);
+fn test_string(state_connections: HashMap<String, Node>, start_state_coordinates: String, string_to_check: String) -> bool {
+
+  let mut is_string_accepted: bool = false;
 
   let start_node: &Node = state_connections.get(&start_state_coordinates).unwrap();
   let mut current_node: &Node = start_node;
 
-
   for c in string_to_check.chars(){
-    let next_node_index = match current_node.connection_chars.iter().position(|character| character == &c.to_string()) {
+
+    let next_node_index = match current_node.connection_chars.iter().position(|character| {character == &c.to_string()}) {
       Some(index) => index,
-      None => break
+      None => {is_string_accepted = false; break;} 
     };
+
     let next_node_position = match current_node.nodes_connected_to.get(next_node_index){
-      Some(position) => position,
-      None => break
+      Some(position ) => position,
+      None => {is_string_accepted = false; break;} 
     };
 
     let next_node: &Node = state_connections.get(next_node_position).unwrap();
     current_node = next_node;
+    if current_node.is_final_state == true {
+      is_string_accepted = true;
+    }else{
+      is_string_accepted = false;
+    }
+  }
 
-  }
-  if current_node.is_final_state == true {
-    println!("The string was accepted!");
-  }else{
-    println!("The string was not accepted :(");
-  }
+  is_string_accepted
 
 }

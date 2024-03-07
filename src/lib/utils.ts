@@ -1,4 +1,4 @@
-import type { State, Arrow, } from "./interfaces";
+import type { State, Arrow, StateConnection, } from "./interfaces";
 
 export const roundToNearest = (numberToRound: number, roundTo: number): number => {
     const remainder = numberToRound % roundTo;
@@ -64,5 +64,77 @@ export const draw = (context: CanvasRenderingContext2D,
     connections.forEach((connection)=>{
         drawArrow(context, connection);
     })
+
+}
+
+export const undo = (elements: Array<State | Arrow>, states: Array<State>, stateConnections: {[key: string]: StateConnection | undefined}, connections: Array<Arrow>): void =>{
+    const element: State | Arrow | undefined = elements.pop();
+    if(!element){
+        return;
+    }else{
+        if(element.element === "State"){
+            const state = states[states.length - 1];
+            states = states.slice(0, states.length - 1);
+            if(!state){
+                return;
+            }else{
+                stateConnections[`${state.x_pos}${state.y_pos}`] = undefined;
+            }
+        }else{
+            connections = connections.slice(0, connections.length - 1);
+        }
+    }
+    elements = elements;
+}
+
+// Definitely need to refactor in future
+export const makeNewState = (elements: Array<State | Arrow>,
+    cursor_x_pos: number,
+    cursor_y_pos: number,
+    states: Array<State>,
+    stateConnections: {[key: string]: StateConnection | undefined},
+    isStartStateSelected: boolean,
+    startStatePosition: number,
+    startStateCoordinates: string | null,
+    isFinalStateSelected: boolean,
+    finalStatePositions: Array<number>): void => {
+
+    const node: State = {x_pos: cursor_x_pos, y_pos: cursor_y_pos, element: "State"};
+    let nodeConnection: StateConnection = {nodes_connected_from: [], nodes_connected_to: [], connection_chars: [], is_final_state: false};
+    elements.push(node);
+    states.push(node);
+    if(isStartStateSelected){
+        startStatePosition = states.length - 1;
+        startStateCoordinates = `${cursor_x_pos}${cursor_y_pos}`;
+        isStartStateSelected = false;
+    }else if(isFinalStateSelected){
+        finalStatePositions.push(states.length - 1);
+        nodeConnection.is_final_state = true;
+    }
+    stateConnections[`${cursor_x_pos}${cursor_y_pos}`] = nodeConnection;
+}
+
+export const initalizeNewArrow = (cursor_x_pos: number, cursor_y_pos: number, connections: Array<Arrow>, 
+    linkStart: [number, number], previouslySelectedNodeKey: String | null)=> {
+    const connection: Arrow = {x1_pos: cursor_x_pos, y1_pos: cursor_y_pos, x2_pos: cursor_x_pos, y2_pos: cursor_y_pos, element: "Connection"}
+    connections = [...connections, connection];
+    linkStart = [cursor_x_pos, cursor_y_pos];
+    previouslySelectedNodeKey = `${cursor_x_pos}${cursor_y_pos}`
+}
+
+export const createNewArrow = (cursor_x_pos: number, cursor_y_pos: number, previouslySelectedNodeKey: string, 
+    previousNode: StateConnection, currentNode: StateConnection, connections: Array<Arrow>, elements: Array<State | Arrow>,
+    ) =>{
+
+    previousNode.nodes_connected_to.push(`${cursor_x_pos}${cursor_y_pos}`);
+    previousNode.connection_chars.push("a");
+    currentNode.nodes_connected_from.push( previouslySelectedNodeKey);
+    const line = connections.pop();
+    if(line){
+        line.x2_pos = cursor_x_pos;
+        line.y2_pos = cursor_y_pos;
+        connections = [...connections, line];
+        elements = [...elements, line];
+    }
 
 }
