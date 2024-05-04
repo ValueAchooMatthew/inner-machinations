@@ -69,6 +69,31 @@
                 }
             }else{
                 connections.pop();
+                const nodeOne: StateConnection | undefined = stateConnections[`${element.x1_pos}${element.y1_pos}`];
+                const nodeTwo: StateConnection | undefined = stateConnections[`${element.x2_pos}${element.y2_pos}`];
+                if(!nodeOne || !nodeTwo){
+                    return;
+                }
+
+                const connectionsOne = nodeOne.nodes_connected_to.filter((connection)=>{
+                    if(connection == `${element.x2_pos}${element.y2_pos}`){
+                        return false;
+                    }
+                    return true;
+                });
+                
+                const connectionsTwo = nodeTwo.nodes_connected_from.filter((connection)=>{
+                    if(connection == `${element.x1_pos}${element.y1_pos}`){
+                        return false;
+                    }
+                    return true;
+                });
+
+                nodeOne.nodes_connected_to = connectionsOne;
+                nodeTwo.nodes_connected_from = connectionsTwo;
+                stateConnections[`${element.x1_pos}${element.y1_pos}`] = nodeOne;
+                stateConnections[`${element.x2_pos}${element.y2_pos}`] = nodeTwo;
+
             }
         }
         states = states
@@ -242,9 +267,12 @@
             </svg>
         </div>
     </div>
-    <div class="absolute top-0 right-0 left-0 w-fit h-fit mx-auto transition-all duration-300 bg-pink-400 px-5 py-1 rounded-md text-center">
-        {dialogue}
-    </div>
+    {#if (dialogue)}
+        <div class="absolute top-0 right-0 left-0 w-fit h-fit mx-auto transition-all duration-300 bg-pink-400 px-5 py-1 rounded-md text-center">
+            {dialogue}
+        </div>
+    {/if}
+
     <div class="flex flex-col justify-center">
         <form class="flex self-center" on:submit|preventDefault={handleSubmit}>
             <label for="string">

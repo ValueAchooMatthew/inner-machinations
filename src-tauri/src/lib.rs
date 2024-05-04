@@ -56,7 +56,6 @@ pub fn encrypt_user_data(cipher: &MagicCrypt256, email: &str, password: &str) ->
 pub fn decrypt_user_data(cipher: &MagicCrypt256, user: User) -> [String; 2]{
   let decrypted_email = cipher.decrypt_base64_to_string(user.email).unwrap();
   let decrypted_password = cipher.decrypt_base64_to_string(user.password).unwrap();
-  println!("{}, {}", decrypted_email, decrypted_password);
   [decrypted_email, decrypted_password]
 }
 
