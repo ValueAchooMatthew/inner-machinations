@@ -29,7 +29,7 @@
 	"dependencies": {
 		"@auth/sveltekit": "^0.12.3",
 		"@tauri-apps/api": "^1.5.3",
-		"mysql2": "^3.9.1",
+		"mysql2": "^3.9.7",
 		"sequelize": "^6.37.0"
 	}
 }
