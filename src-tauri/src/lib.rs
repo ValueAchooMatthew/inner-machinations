@@ -83,4 +83,3 @@ pub fn set_user_code(cipher: &MagicCrypt256, generated_code: &str, email_address
     .expect("There was an error assigning a code for the user");
 
 }
-

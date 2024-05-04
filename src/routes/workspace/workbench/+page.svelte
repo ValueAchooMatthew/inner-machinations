@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { invoke } from "@tauri-apps/api";
-    import { draw, roundToNearest, undo } from "../../../lib/utils";
+    import { draw, roundToNearest} from "../../../lib/utils";
     import type { State, Arrow, StateConnection } from "../../../lib/interfaces";
 
     // DO NOT CHANGE ANY CODE IN FORM FOO = [...FOO, BAR]
@@ -40,9 +40,9 @@
         check_string();
     }};
 
-   $: {if(context){
-    draw(context, width, height, states, connections, startStatePosition, finalStatePositions);
-   }} 
+    $: {if(context){
+        draw(context, width, height, states, connections, startStatePosition, finalStatePositions);
+    }} 
 
     onMount(()=>{
         width = window.innerWidth;
@@ -54,6 +54,25 @@
             context.imageSmoothingQuality = "high";
         }
     })
+
+    const undo = (): void =>{
+        const element: State | Arrow | undefined = elements.pop();
+        if(!element){
+            return;
+        }else{
+            if(element.element === "State"){
+                const state = states.pop();
+                if(!state){
+                    return;
+                }else{
+                    stateConnections[`${state.x_pos}${state.y_pos}`] = undefined;
+                }
+            }else{
+                connections.pop();
+            }
+        }
+        states = states
+    }
 
     const handleTrash = () => {
         states = [];
@@ -170,10 +189,9 @@
 
     }
 
-
     const handleUndoEvent = (event: KeyboardEvent): void =>{
         if(event.ctrlKey === true && event.key === "z"){
-            undo(elements, states, stateConnections, connections);
+            undo();
         }
     }
 
@@ -216,7 +234,7 @@
 
         </div>
         <div class="flex justify-center mt-2">
-            <svg on:click={()=>{undo(elements, states, stateConnections, connections)}} class="hover:cursor-pointer w-6" data-slot="icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <svg on:click={()=>{undo()}} class="hover:cursor-pointer w-6" data-slot="icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path clip-rule="evenodd" fill-rule="evenodd" d="M2.515 10.674a1.875 1.875 0 0 0 0 2.652L8.89 19.7c.352.351.829.549 1.326.549H19.5a3 3 0 0 0 3-3V6.75a3 3 0 0 0-3-3h-9.284c-.497 0-.974.198-1.326.55l-6.375 6.374ZM12.53 9.22a.75.75 0 1 0-1.06 1.06L13.19 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 1 0 1.06-1.06L15.31 12l1.72-1.72a.75.75 0 1 0-1.06-1.06l-1.72 1.72-1.72-1.72Z"></path>
               </svg>
             <svg on:click={handleTrash} class="hover:cursor-pointer w-6" data-slot="icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

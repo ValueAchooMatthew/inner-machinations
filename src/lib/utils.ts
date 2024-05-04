@@ -67,25 +67,6 @@ export const draw = (context: CanvasRenderingContext2D,
 
 }
 
-export const undo = (elements: Array<State | Arrow>, states: Array<State>, stateConnections: {[key: string]: StateConnection | undefined}, connections: Array<Arrow>): void =>{
-    const element: State | Arrow | undefined = elements.pop();
-    if(!element){
-        return;
-    }else{
-        if(element.element === "State"){
-            const state = states[states.length - 1];
-            states = states.slice(0, states.length - 1);
-            if(!state){
-                return;
-            }else{
-                stateConnections[`${state.x_pos}${state.y_pos}`] = undefined;
-            }
-        }else{
-            connections = connections.slice(0, connections.length - 1);
-        }
-    }
-    elements = elements;
-}
 
 // Definitely need to refactor in future
 export const makeNewState = (elements: Array<State | Arrow>,

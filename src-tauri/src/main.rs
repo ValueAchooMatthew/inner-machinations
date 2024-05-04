@@ -8,6 +8,11 @@ use dotenv::dotenv;
 use std::collections::HashMap;
 use std::env;
 
+pub mod db;
+
+use db::register_user;
+use db::is_correct_log_in;
+
 // Fixed Opsec but should refactor key getting and setting into separate func in lib
 fn main() {
   tauri::Builder::default()
@@ -20,43 +25,8 @@ fn main() {
 use app::schema::users;
 use diesel::query_dsl::methods::FilterDsl;
 use magic_crypt::new_magic_crypt;
-use app::{add_user_to_db, encrypt_user_data, establish_connection, generate_code, retrieve_registered_user, set_user_code};
-#[tauri::command]
-fn register_user(email: &str, password: &str) -> () {
+use app::{encrypt_user_data, establish_connection, generate_code, retrieve_registered_user, set_user_code};
 
-  dotenv().ok();
-  let key = env::var("ENCRYPTION_KEY")
-    .expect("Encryption Key must be set as a .env variable");
-  let cipher = new_magic_crypt!(&key, 256);
-  let [encrypted_email, encrypted_password] = encrypt_user_data(&cipher, email, password);
-  add_user_to_db(&encrypted_email, &encrypted_password)
-
-}
-
-#[tauri::command]
-fn is_correct_log_in(email_address: &str, pwrd: &str) -> bool{
-  use crate::users::dsl::*;
-  use crate::diesel::ExpressionMethods;
-
-  dotenv().ok();
-  let key = env::var("ENCRYPTION_KEY")
-    .expect("Encryption Key must be set as a .env variable");
-  let cipher = new_magic_crypt!(&key, 256);
-  let [encrypted_email, encrypted_password] = encrypt_user_data(&cipher, email_address, pwrd);
-  
-  let mut conn: MysqlConnection = establish_connection();
-  let person: Result<User, diesel::result::Error> = users.filter(email.eq(encrypted_email))
-    .filter(password.eq(encrypted_password))
-    .get_result::<User>(&mut conn);
-
-
-  // Eventually, I will need to implement either a JWT or cookie system to persist user log-in but for now this is okay as a
-  // minimum viable product 
-  match person.ok(){
-    Some(_) => true,
-    None => false
-  }
-}
 
 
 // TODO: Fix way in which encryption is done
@@ -165,7 +135,11 @@ fn test_string(state_connections: HashMap<String, Node>, start_state_coordinates
 
   let mut is_string_accepted: bool = false;
 
-  let start_node: &Node = state_connections.get(&start_state_coordinates).unwrap();
+  let start_node: &Node = match state_connections.get(&start_state_coordinates){
+    Some(node) => node,
+    None => return false
+  };
+
   let mut current_node: &Node = start_node;
 
   for c in string_to_check.chars(){
@@ -176,15 +150,19 @@ fn test_string(state_connections: HashMap<String, Node>, start_state_coordinates
     };
 
     let next_node_position = match current_node.nodes_connected_to.get(next_node_index){
-      Some(position ) => position,
+      Some(position) => position,
       None => {is_string_accepted = false; break;} 
     };
 
-    let next_node: &Node = state_connections.get(next_node_position).unwrap();
+    let next_node: &Node = match state_connections.get(next_node_position){
+      Some(node) => node,
+      None => return false
+    };
+    
     current_node = next_node;
     if current_node.is_final_state == true {
       is_string_accepted = true;
-    }else{
+    } else {
       is_string_accepted = false;
     }
   }
