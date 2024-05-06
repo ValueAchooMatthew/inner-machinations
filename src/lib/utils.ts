@@ -47,7 +47,7 @@ export const draw = (context: CanvasRenderingContext2D,
     context.clearRect(0, 0, width, height);
     nodes.forEach((node, index)=>{
         context.beginPath();
-
+        console.log("drawing at: " +node.x_pos, node.y_pos)
         context.lineWidth = 3;
         if(index === startStatePosition){
             context.fillStyle = "rgb(22 163 74)";

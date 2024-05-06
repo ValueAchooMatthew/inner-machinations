@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import { invoke } from "@tauri-apps/api";
     import { draw, roundToNearest} from "../../../lib/utils";
     import type { State, Arrow, StateConnection } from "../../../lib/interfaces";
@@ -55,7 +55,7 @@
         }
     })
 
-    const undo = (): void =>{
+    const undo = (): void => {
         const element: State | Arrow | undefined = elements.pop();
         if(!element){
             return;
@@ -75,22 +75,20 @@
                     return;
                 }
 
-                const connectionsOne = nodeOne.nodes_connected_to.filter((connection)=>{
+                nodeOne.nodes_connected_to = nodeOne.nodes_connected_to.filter((connection)=>{
                     if(connection == `${element.x2_pos}${element.y2_pos}`){
                         return false;
                     }
                     return true;
                 });
                 
-                const connectionsTwo = nodeTwo.nodes_connected_from.filter((connection)=>{
+                nodeTwo.nodes_connected_from = nodeTwo.nodes_connected_from.filter((connection)=>{
                     if(connection == `${element.x1_pos}${element.y1_pos}`){
                         return false;
                     }
                     return true;
                 });
-
-                nodeOne.nodes_connected_to = connectionsOne;
-                nodeTwo.nodes_connected_from = connectionsTwo;
+                
                 stateConnections[`${element.x1_pos}${element.y1_pos}`] = nodeOne;
                 stateConnections[`${element.x2_pos}${element.y2_pos}`] = nodeTwo;
 
@@ -222,8 +220,9 @@
 
 </script>
 
-<svelte:window on:keydown={handleUndoEvent} on:resize={()=>{width = window.innerWidth; height = window.innerHeight;}}/> 
-<div class="w-fit h-fit relative font-semibold overflow-x-hidden">
+<svelte:window on:keydown={handleUndoEvent} 
+on:resize={async ()=>{width = window.innerWidth; height = window.innerHeight; await tick(); states = states;}}/> 
+<div class="w-fit h-fit relative font-semibold">
     <div class="text-center absolute top-5">
         {#if isStringAccepted}
             <div>The string was accepted!!</div>
@@ -231,7 +230,8 @@
             <div>The string was not accepted</div>
         {/if}
     </div>
-    <canvas style="width: {width}; height: {height};" width={width} height={height} bind:this={canvas} on:mousemove={handleMove} on:click={handleClick} >
+    <canvas style="width: 100vw; height: 100vh;" width={width} height={height}
+    bind:this={canvas} on:mousemove={handleMove} on:click={handleClick}>
     </canvas>
     <div class="text-center select-none flex flex-col justify-between gap-3 bg-opacity-100 w-32 h-fit absolute right-4 top-0 bottom-0 my-auto border-black border-2 rounded-md px-2 py-4 mr-0.5 z-50">
         <div class="flex flex-col gap-2">
@@ -245,7 +245,8 @@
                 <div class="self-center bg-orange-600 rounded-full w-14 h-14 border-black border-[1px]">
                 </div>
             </button>
-            <button on:click={()=>{isStartStateSelected = false; isFinalStateSelected = true; lineSelected = false;}} class="flex flex-col self-center" style="line-height: 15px;">
+            <button on:click={()=>{isStartStateSelected = false; isFinalStateSelected = true; lineSelected = false;}} 
+                class="flex flex-col self-center" style="line-height: 15px;">
                 New Final State
                 <div  class="mt-2 self-center bg-blue-600 rounded-full w-14 h-14 border-black border-[1px]">
                 </div>
