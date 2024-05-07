@@ -10,6 +10,7 @@ export interface Arrow {
     x2_pos: number,
     y2_pos: number,
     element: "Connection"
+    character: string;
 };
 
 export interface StateConnection {
