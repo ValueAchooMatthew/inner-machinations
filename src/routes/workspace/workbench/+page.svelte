@@ -2,7 +2,9 @@
     import { onMount, tick } from "svelte";
     import { invoke } from "@tauri-apps/api";
     import { closestLineToPoint, draw, roundToNearest} from "../../../lib/utils";
-    import type { State, Arrow, StateConnection } from "../../../lib/interfaces";
+    import type { State, Arrow } from "../../../lib/interfaces";
+
+    // Spaghettiest spaghetti code to every spaghetti
 
     // DO NOT CHANGE ANY CODE IN FORM FOO = [...FOO, BAR]
     // Necessary to trigger sveltekit rerender of dynamic variables and draw to screen
@@ -12,8 +14,9 @@
     let connections: Array<Arrow> = [];
     let elements: Array<State | Arrow> = [];
     let startStateIndex: number = -1;
-    let finalStateIndices: Array<number> = []; 
-    let stateConnections: {[key: string]: StateConnection | undefined} = {};
+    // Hashing every coordinate to a state for use when user click on a given coordinate point
+    // Allows for O(1) access without having to search for the state which was clicked in the State array
+    let stateConnections: {[key: string]: State | undefined} = {};
     let startStateCoordinates: string | null = null;
     let previouslySelectedNodeKey: string | null = null; 
     let dialogue = "";
@@ -40,16 +43,18 @@
             isStringAccepted = await invoke("test_string", {stateConnections: stateConnections, 
                 startStateCoordinates: startStateCoordinates, stringToCheck: stringToCheck});
         }
-        check_string();
+        check_string().catch((e)=>{
+            console.log(e);
+        });
     }};
 
     $: {if(context){
-        draw(context, width, height, states, connections, startStateIndex, finalStateIndices, selectedArrowIndex);
+        draw(context, width, height, states, connections, startStateIndex, selectedArrowIndex);
     }} 
 
     onMount(()=>{
         width = window.screen.availWidth;
-        height = window.innerHeight;
+        height = window.screen.height - 300;
         const ctx = canvas?.getContext("2d");
         if(ctx){
             context = ctx
@@ -64,16 +69,26 @@
             return;
         }else{
             if(element.element === "State"){
+
                 const state = states.pop();
                 if(!state){
                     return;
-                }else{
-                    stateConnections[`${state.x_pos},${state.y_pos}`] = undefined;
                 }
+                if(state.is_final == true){
+                    state.is_final = false;
+                    states = [...states, state];
+                    return;
+                }
+                if(states.length == startStateIndex){
+                    startStateIndex = -1;
+                    startStateCoordinates = null;
+                }
+                stateConnections[`${state.x_pos},${state.y_pos}`] = undefined;
+                
             }else{
                 connections.pop();
-                const nodeOne: StateConnection | undefined = stateConnections[`${element.x1_pos},${element.y1_pos}`];
-                const nodeTwo: StateConnection | undefined = stateConnections[`${element.x2_pos},${element.y2_pos}`];
+                const nodeOne: State | undefined = stateConnections[`${element.x1_pos},${element.y1_pos}`];
+                const nodeTwo: State | undefined = stateConnections[`${element.x2_pos},${element.y2_pos}`];
                 if(!nodeOne || !nodeTwo){
                     return;
                 }
@@ -98,7 +113,7 @@
 
             }
         }
-        states = states
+        states = states;
     }
 
     const handleTrash = () => {
@@ -106,7 +121,6 @@
         connections = [];
         elements = [];
         startStateIndex = -1;
-        finalStateIndices = [];
         stateConnections = {};
         startStateCoordinates = null;
         previouslySelectedNodeKey = null;
@@ -138,27 +152,37 @@
         const cursor_x_pos = roundToNearest(event.x + window.scrollX, 100);
         const cursor_y_pos = roundToNearest(event.y + window.scrollY, 100);
 
-        const selectedState: StateConnection | undefined = stateConnections[`${cursor_x_pos},${cursor_y_pos}`];
+        let selectedState: State | undefined = stateConnections[`${cursor_x_pos},${cursor_y_pos}`];
 
-        if(!lineSelected && addingStates){
-            if(selectedState){
+        if(addingStates){
+            dialogue = "";
+            if(selectedState && !isFinalStateSelected){
                 dialogue = "You cannot place a Node on top of another Node";
                 return;
-            }   
-            dialogue = "";
-            const node: State = {x_pos: cursor_x_pos, y_pos: cursor_y_pos, element: "State"};
-            let nodeConnection: StateConnection = {nodes_connected_from: [], nodes_connected_to: [], connection_chars: [], is_final_state: false};
-            elements = [...elements, node];
-            states = [...states, node];
+            }else if(isFinalStateSelected){
+                if(selectedState === undefined){
+                    dialogue = "You must make an existing Node a final Node";
+                    return;
+                }if(selectedState.is_final){
+                    dialogue = "The Node is already a final Node";
+                    return;
+                }
+                selectedState.is_final = true;
+                states = states;
+
+            }else{
+                selectedState = {x_pos: cursor_x_pos, y_pos: cursor_y_pos, nodes_connected_to: new Array<string>(), 
+                nodes_connected_from: new Array<string>(), connection_chars: new Array<string>(), element: "State", is_final: false};
+                elements = [...elements, selectedState];
+                states = [...states, selectedState];
+
+            }
             if(isStartStateSelected){
                 startStateIndex = states.length - 1;
                 startStateCoordinates = `${cursor_x_pos},${cursor_y_pos}`;
                 isStartStateSelected = false;
-            }else if(isFinalStateSelected){
-                finalStateIndices = [...finalStateIndices, states.length - 1];
-                nodeConnection.is_final_state = true;
             }
-            stateConnections[`${cursor_x_pos},${cursor_y_pos}`] = nodeConnection;
+            stateConnections[`${cursor_x_pos},${cursor_y_pos}`] = selectedState;
 
         }else if(lineSelected && !drawingLine){
             if(!selectedState){
@@ -241,8 +265,8 @@
             selectedArrow.character = event.key;
             const startNodeHash = selectedArrow.x1_pos + "," + selectedArrow.y1_pos;
             const endNodeHash = selectedArrow.x2_pos + "," + selectedArrow.y2_pos;
-            const startState: StateConnection | undefined = stateConnections[startNodeHash];
-            const endState: StateConnection | undefined = stateConnections[endNodeHash];
+            const startState: State | undefined = stateConnections[startNodeHash];
+            const endState: State | undefined = stateConnections[endNodeHash];
 
             if(!startState || !endState){
                 return;
@@ -296,7 +320,7 @@ on:resize={async ()=>{states = states;}}/>
             <button on:click={()=>{clearCursor(); addingStates = true; isFinalStateSelected = true;}} 
                 class="flex flex-col self-center" style="line-height: 15px;">
                 New Final State
-                <div  class="mt-2 self-center bg-blue-600 rounded-full w-14 h-14 border-black border-[1px]">
+                <div  class="mt-2 self-center  rounded-full w-[4.5rem] h-[4.5rem] border-black border-[1px]">
                 </div>
             </button>
             <button on:click={()=>{clearCursor(); lineSelected = true; selectedArrowIndex = null;}} class="flex flex-col " style="line-height: 15px;">
@@ -336,4 +360,6 @@ on:resize={async ()=>{states = states;}}/>
     </div>
 
 </div>
-<a href="/">Home</a>
+<div class="p-4 flex justify-center font-semibold">
+    <a class="text-4xl " href="/">Home</a>
+</div>

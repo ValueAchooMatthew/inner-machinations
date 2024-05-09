@@ -143,6 +143,7 @@ fn test_string(state_connections: HashMap<String, Node>, start_state_coordinates
   let mut current_node: &Node = start_node;
 
   for c in string_to_check.chars(){
+    
     let next_node_index = match current_node.connection_chars.iter().position(|character| {character == &c.to_string()}) {
       Some(index) => index,
       None => {is_string_accepted = false; break;} 
@@ -159,7 +160,8 @@ fn test_string(state_connections: HashMap<String, Node>, start_state_coordinates
     };
     
     current_node = next_node;
-    if current_node.is_final_state == true {
+
+    if current_node.is_final == true {
       is_string_accepted = true;
     } else {
       is_string_accepted = false;
