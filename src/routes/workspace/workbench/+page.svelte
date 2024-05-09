@@ -63,6 +63,8 @@
         }
     })
 
+
+
     const undo = (): void => {
         const element: State | Arrow | undefined = elements.pop();
         if(!element){
@@ -77,6 +79,7 @@
                 if(state.is_final == true){
                     state.is_final = false;
                     states = [...states, state];
+                    elements = [...elements, element];
                     return;
                 }
                 if(states.length == startStateIndex){
@@ -273,10 +276,10 @@
             }
             const connectionIndex = startState.nodes_connected_to.indexOf(endNodeHash);
             startState.connection_chars[connectionIndex] = event.key;
-            console.log(startState.connection_chars);
         }
         selectedArrowIndex = null;
     }
+
 
 
 </script>
@@ -299,11 +302,15 @@ on:resize={async ()=>{states = states;}}/>
     {/if}
     <!-- Setting tableindex is necessary so element is focusable and can thus listen to keydown events -->
     <!-- svelte-ignore a11y-positive-tabindex -->
-    <canvas tabindex="1"
+    <canvas tabindex="1" draggable="true"
     style={`width: ${width}px; height: ${height}px;`} width={width} height={height}
-    bind:this={canvas} on:mousemove={handleMove} on:click={handleClick}
+    bind:this={canvas} 
+    on:mousemove={handleMove} 
+    on:click={handleClick}
     on:dblclick={(event)=>{clearCursor(); selectedArrowIndex = closestLineToPoint(event.clientX, event.clientY, connections)}}
-    on:keyup={handleCharChange}>
+    on:keyup={handleCharChange}
+    <!-- on:drag={}
+    on:dragend={handleDrag}> -->
     </canvas>
     <div class="text-center select-none flex flex-col justify-between gap-3 bg-opacity-100 w-32 h-fit absolute right-4 top-0 bottom-0 my-auto border-black border-2 rounded-md px-2 py-4 mr-0.5 z-50">
         <div class="flex flex-col gap-2">

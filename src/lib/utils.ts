@@ -58,7 +58,6 @@ const drawNode = (context: CanvasRenderingContext2D, index: number, startStatePo
     // For some reason fills with the wrong colour unless I do this, no idea why
     if(index === startStatePosition){
         context.fillStyle = "rgb(22, 163, 74)";
-        console.log(node, index, startStatePosition, context.fillStyle);
         context.beginPath();
         context.arc(node.x_pos, node.y_pos, 35, 0, 2*Math.PI);
         context.fill();
