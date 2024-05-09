@@ -4,10 +4,14 @@
     import { closestLineToPoint, draw, roundToNearest} from "../../../lib/utils";
     import type { State, Arrow } from "../../../lib/interfaces";
 
-    // Spaghettiest spaghetti code to every spaghetti
+    // Spaghettiest spaghetti code to every spaghetti, must refactor
 
     // DO NOT CHANGE ANY CODE IN FORM FOO = [...FOO, BAR]
     // Necessary to trigger sveltekit rerender of dynamic variables and draw to screen
+
+    // Necessary for removing ghost image when dragging canvas
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
 
     // Consider refactoring into rust backend for faster performance in future
     let states: Array<State> = [];
@@ -29,12 +33,13 @@
     let canvas: HTMLCanvasElement | null;
     let selectedArrowIndex: number | null = null;
     let context: CanvasRenderingContext2D;
-    let lineSelected = false;
-    let drawingLine = false;
-    let addingStates = false;
+    let lineSelected: boolean = false;
+    let drawingLine: boolean = false;
+    let addingStates: boolean = false;
     let linkStart: [number, number] = [0, 0];
-    let isStartStateSelected = false;
-    let isFinalStateSelected = false;
+    let isStartStateSelected: boolean = false;
+    let isFinalStateSelected: boolean = false;
+    let dragging: boolean = false;
 
     let isStringAccepted: boolean;
 
@@ -194,7 +199,7 @@
             }
             dialogue = "";
             const connection: Arrow = {x1_pos: cursor_x_pos, y1_pos: cursor_y_pos, x2_pos: cursor_x_pos, y2_pos: cursor_y_pos, 
-            element: "Connection", character: "a"}
+            cp_x1: cursor_x_pos, cp_y1: cursor_y_pos, element: "Connection", character: "a"}
             connections = [...connections, connection];
             drawingLine = true;
             linkStart = [cursor_x_pos, cursor_y_pos];
@@ -211,9 +216,9 @@
                 dialogue = "The arrow must point to a valid Node";
                 return;
             }
-            previousNode.nodes_connected_to.push(`${cursor_x_pos},${cursor_y_pos}`);
-            previousNode.connection_chars.push("a");
-            currentNode.nodes_connected_from.push( previouslySelectedNodeKey);
+            previousNode.nodes_connected_to = [...previousNode.nodes_connected_to, `${cursor_x_pos},${cursor_y_pos}`];
+            previousNode.connection_chars = [...previousNode.connection_chars, "a"];
+            currentNode.nodes_connected_from = [...currentNode.nodes_connected_from, previouslySelectedNodeKey];
             stateConnections = stateConnections;
             const line = connections.pop();
             if(line){
@@ -229,18 +234,30 @@
     // Decent start
     // Try and draw without redrawing whole canvas
     const handleMove = (event: MouseEvent) =>{
-        const cursor_x_pos = roundToNearest(event.x + window.scrollX, 20);
-        const cursor_y_pos = roundToNearest(event.y + window.scrollY, 20);
-        if(lineSelected && drawingLine){
-            const line = connections.pop();
-            if(line){
-                line.x2_pos = cursor_x_pos;
-                line.y2_pos = cursor_y_pos;
-                connections = [...connections, line];
+        if(!dragging){
+            const cursor_x_pos = roundToNearest(event.x + window.scrollX, 20);
+            const cursor_y_pos = roundToNearest(event.y + window.scrollY, 20);
+            if(lineSelected && drawingLine){
+                const line = connections.pop();
+                if(line){
+                    line.cp_x1
+                    line.x2_pos = cursor_x_pos;
+                    line.y2_pos = cursor_y_pos;
+                    connections = [...connections, line];
+                }
+            }else{
+                return;
             }
         }else{
-            return;
+            if(selectedArrowIndex === null){
+                return;
+            }
+            const connection = connections[selectedArrowIndex];
+            connection.cp_x1 = event.clientX;
+            connection.cp_y1 = event.clientY;
+            connections[selectedArrowIndex] = connection;
         }
+
     }
 
     const handleUndoEvent = (event: KeyboardEvent): void =>{
@@ -277,15 +294,32 @@
             const connectionIndex = startState.nodes_connected_to.indexOf(endNodeHash);
             startState.connection_chars[connectionIndex] = event.key;
         }
+        stateConnections = stateConnections;
         selectedArrowIndex = null;
     }
 
+    const handleDragStart = (event: MouseEvent): void => {
+        if(selectedArrowIndex === null){
+            return;
+        }
+        dragging = true;
+
+    }
+
+    const handleDragEnd = (event: MouseEvent): void => {
+        // if(selectedArrowIndex === null){
+        //     return;
+        // }
+        if(selectedArrowIndex === null){
+            return;
+        }
+        dragging = false;
+    }
 
 
 </script>
 
-<svelte:window on:keydown={handleUndoEvent} 
-on:resize={async ()=>{states = states;}}/> 
+<svelte:window on:keydown={handleUndoEvent} on:resize={async ()=>{states = states;}}/> 
 <div class="w-fit h-fit relative font-semibold overflow-scroll">
     {#if isStringAccepted}
         <div class="text-center flex flex-col justify-center absolute top-5 right-5 bg-green-800 rounded-full border-black border-2 w-28 h-28">
@@ -302,15 +336,16 @@ on:resize={async ()=>{states = states;}}/>
     {/if}
     <!-- Setting tableindex is necessary so element is focusable and can thus listen to keydown events -->
     <!-- svelte-ignore a11y-positive-tabindex -->
-    <canvas tabindex="1" draggable="true"
+    <canvas tabindex="1" draggable="false"
     style={`width: ${width}px; height: ${height}px;`} width={width} height={height}
     bind:this={canvas} 
     on:mousemove={handleMove} 
     on:click={handleClick}
     on:dblclick={(event)=>{clearCursor(); selectedArrowIndex = closestLineToPoint(event.clientX, event.clientY, connections)}}
     on:keyup={handleCharChange}
-    <!-- on:drag={}
-    on:dragend={handleDrag}> -->
+    on:mousedown={handleDragStart}
+    on:mouseup={handleDragEnd}
+    >
     </canvas>
     <div class="text-center select-none flex flex-col justify-between gap-3 bg-opacity-100 w-32 h-fit absolute right-4 top-0 bottom-0 my-auto border-black border-2 rounded-md px-2 py-4 mr-0.5 z-50">
         <div class="flex flex-col gap-2">

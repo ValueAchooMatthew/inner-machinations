@@ -20,9 +20,6 @@ const drawArrow = (context: CanvasRenderingContext2D, connection: Arrow, index: 
     const endY = connection.y2_pos;
     
     const headSize = 30;
-    const deltaX = endX - startX;
-    const deltaY = endY - startY;
-    const angle = Math.atan2(deltaY, deltaX);
 
     context.lineWidth = 5;
     if(selectedArrowIndex === index){
@@ -32,19 +29,61 @@ const drawArrow = (context: CanvasRenderingContext2D, connection: Arrow, index: 
     }
     context.beginPath();
     context.moveTo(startX, startY);
-    context.lineTo(endX, endY);
+    // context.lineTo(endX, endY);
+    context.bezierCurveTo(connection.cp_x1, connection.cp_y1, connection.cp_x1, connection.cp_y1, endX, endY);
+    context.stroke();
+    const angleOfCurve = getArrowHeadAngle([startX, startY], [connection.cp_x1, connection.cp_y1], 
+    [connection.cp_x1, connection.cp_y1], [endX, endY])
     context.moveTo(endX, endY);
-    context.lineTo(endX - headSize * Math.cos(angle - Math.PI / 6), endY - headSize * Math.sin(angle - Math.PI / 6));
+    context.lineTo(endX - headSize * Math.cos((angleOfCurve) - Math.PI / 6), endY - headSize * Math.sin((angleOfCurve) - Math.PI / 6));
     context.moveTo(endX, endY);
-    context.lineTo(endX - headSize * Math.cos(angle + Math.PI / 6), endY - headSize * Math.sin(angle + Math.PI / 6));
+    context.lineTo(endX - headSize * Math.cos((angleOfCurve) + Math.PI / 6), endY - headSize * Math.sin((angleOfCurve) + Math.PI / 6));
     context.stroke();
     context.font = "40px Arial";
     context.fillStyle = "black";
-;
+
     // Needed since text is drawn from bottom left
-    context.fillText(connection.character, startX + (endX - startX)/2 + 50 * Math.sin(angle), startY + (endY - startY)/2 - 50 * Math.cos(angle));
+    context.fillText(connection.character, (endX  + startX + connection.cp_x1)/3 + 50 * Math.sin(angleOfCurve), 
+    (endY + startY + connection.cp_y1)/3 - 50 * Math.cos(angleOfCurve));
 
 }
+
+
+// The formulas used to calculate the angle of the arrowhead are taken from this stackoverflow answer
+// https://stackoverflow.com/a/21053913
+// Gigantic help and incredibly impressive
+
+const getArrowHeadAngle = (startPoint: [number, number], controlOne: [number, number],
+    controlTwo: [number, number], endPoint: [number, number]): number => {
+    
+    const pointNearEnd = getPointOnCurveAtDistance(startPoint, controlOne, controlTwo, endPoint, 0.99);
+    const distanceToEndX = endPoint[0] - pointNearEnd[0];
+    const distanceToEndY = endPoint[1] - pointNearEnd[1];
+    const angle = Math.atan2(distanceToEndY, distanceToEndX);
+    return angle;
+}
+
+const getPointOnCurveAtDistance = (startPoint: [number, number], controlOne: [number, number],
+controlTwo: [number, number], endPoint: [number, number], distance: number): [number, number] => {
+
+    const x = getCubic(distance, startPoint[0], controlOne[0], controlTwo[0], endPoint[0]);
+    const y = getCubic(distance, startPoint[1], controlOne[1], controlTwo[1], endPoint[1]);
+    return [x, y]
+
+}
+
+const getCubic = (t: number, a: number, b: number, c: number, d: number) => {
+    const tSquared = t*t;
+    const tCubed = tSquared*t;
+
+    return a + (-a * 3 + t * (3 * a - a * t)) * t
+    + (3 * b + t * (-6 * b + b * 3 * t)) * t
+    + (c * 3 - c * 3 * t) * tSquared
+    + d * tCubed;
+
+}
+
+
 
 const drawNode = (context: CanvasRenderingContext2D, index: number, startStatePosition: number, node: State) => {
     context.lineWidth = 3;

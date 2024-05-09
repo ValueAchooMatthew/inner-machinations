@@ -15,6 +15,9 @@ export interface State {
 export interface Arrow {
     x1_pos: number,
     y1_pos: number,
+    // Coordinates for control points for drawing bezier curves
+    cp_x1: number,
+    cp_y1: number,
     x2_pos: number,
     y2_pos: number,
     character: string;
