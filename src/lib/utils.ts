@@ -11,17 +11,38 @@ export const roundToNearest = (numberToRound: number, roundTo: number): number =
 
 }
 
+export const getClosestPointIndex = (possiblePoints: Array<[number, number]>, origin: [number, number]): number => {
+    let closestPointIndex = 0;
+    let closestPointDistance = distanceBetweenTwoPoints(possiblePoints[0], origin);
+    possiblePoints.forEach((point, index)=>{
+        const distance = distanceBetweenTwoPoints(point, origin);
+        if(distance < closestPointDistance){
+            closestPointIndex = index;
+            closestPointDistance = distance;
+        }
+    })
+    return closestPointIndex;
+
+}
+
+const distanceBetweenTwoPoints = (pointA: [number, number], pointB: [number, number]): number => {
+
+    return Math.sqrt((pointA[0] - pointB[0])**2 + (pointA[1] - pointB[1])**2)
+
+}
+
+
 const drawArrow = (context: CanvasRenderingContext2D, connection: Arrow, index: number, selectedArrowIndex: number | null): void =>{
     context.lineCap = 'round';
 
     const startX = connection.x1_pos;
     const startY = connection.y1_pos;
+    // +1 to make self loops easier to draw
     const endX = connection.x2_pos;
     const endY = connection.y2_pos;
-    
     const headSize = 30;
-
     context.lineWidth = 5;
+
     if(selectedArrowIndex === index){
         context.strokeStyle = "#00008B"
     }else{
@@ -30,10 +51,12 @@ const drawArrow = (context: CanvasRenderingContext2D, connection: Arrow, index: 
     context.beginPath();
     context.moveTo(startX, startY);
     // context.lineTo(endX, endY);
-    context.bezierCurveTo(connection.cp_x1, connection.cp_y1, connection.cp_x1, connection.cp_y1, endX, endY);
+
+    context.bezierCurveTo(connection.cp_x1, connection.cp_y1, connection.cp_x2, connection.cp_y2, endX, endY);
+    
     context.stroke();
     const angleOfCurve = getArrowHeadAngle([startX, startY], [connection.cp_x1, connection.cp_y1], 
-    [connection.cp_x1, connection.cp_y1], [endX, endY])
+    [connection.cp_x2, connection.cp_y2], [endX, endY])
     context.moveTo(endX, endY);
     context.lineTo(endX - headSize * Math.cos((angleOfCurve) - Math.PI / 6), endY - headSize * Math.sin((angleOfCurve) - Math.PI / 6));
     context.moveTo(endX, endY);
@@ -43,8 +66,8 @@ const drawArrow = (context: CanvasRenderingContext2D, connection: Arrow, index: 
     context.fillStyle = "black";
 
     // Needed since text is drawn from bottom left
-    context.fillText(connection.character, (endX  + startX + connection.cp_x1)/3 + 50 * Math.sin(angleOfCurve), 
-    (endY + startY + connection.cp_y1)/3 - 50 * Math.cos(angleOfCurve));
+    context.fillText(connection.character, (endX  + startX + connection.cp_x1 + connection.cp_x2)/4 + 50 * Math.sin(angleOfCurve), 
+    (endY + startY + connection.cp_y1 + connection.cp_y2)/4 - 50 * Math.cos(angleOfCurve));
 
 }
 

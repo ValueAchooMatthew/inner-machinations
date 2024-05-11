@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
     import { invoke } from "@tauri-apps/api";
-    import { closestLineToPoint, draw, roundToNearest} from "../../../lib/utils";
+    import { closestLineToPoint, draw, getClosestPointIndex, roundToNearest} from "../../../lib/utils";
     import type { State, Arrow } from "../../../lib/interfaces";
 
     // Spaghettiest spaghetti code to every spaghetti, must refactor
@@ -32,6 +32,7 @@
     let charToSet: String;
     let canvas: HTMLCanvasElement | null;
     let selectedArrowIndex: number | null = null;
+    let controlPointIndex: number | null = null;
     let context: CanvasRenderingContext2D;
     let lineSelected: boolean = false;
     let drawingLine: boolean = false;
@@ -67,8 +68,6 @@
             context.imageSmoothingQuality = "high";
         }
     })
-
-
 
     const undo = (): void => {
         const element: State | Arrow | undefined = elements.pop();
@@ -199,7 +198,7 @@
             }
             dialogue = "";
             const connection: Arrow = {x1_pos: cursor_x_pos, y1_pos: cursor_y_pos, x2_pos: cursor_x_pos, y2_pos: cursor_y_pos, 
-            cp_x1: cursor_x_pos, cp_y1: cursor_y_pos, element: "Connection", character: "a"}
+            cp_x1: cursor_x_pos, cp_y1: cursor_y_pos, cp_x2: cursor_x_pos, cp_y2: cursor_y_pos, element: "Connection", character: "a"}
             connections = [...connections, connection];
             drawingLine = true;
             linkStart = [cursor_x_pos, cursor_y_pos];
@@ -220,14 +219,28 @@
             previousNode.connection_chars = [...previousNode.connection_chars, "a"];
             currentNode.nodes_connected_from = [...currentNode.nodes_connected_from, previouslySelectedNodeKey];
             stateConnections = stateConnections;
-            const line = connections.pop();
-            if(line){
-                line.x2_pos = cursor_x_pos;
-                line.y2_pos = cursor_y_pos;
-                connections = [...connections, line];
-                elements = [...elements, line];
-                drawingLine = false;
+            const connection = connections.pop();
+            if(!connection){
+                return;
             }
+            connection.x2_pos = cursor_x_pos;
+            connection.y2_pos = cursor_y_pos;
+            connection.cp_x2 = cursor_x_pos;
+            connection.cp_y2 = cursor_y_pos;
+            // If the connection is supposed to be a loop, the control points are changed so it doesn't look like
+            // A single point and instead form a circle like shape
+            if(previousNode === currentNode){
+                connection.cp_x1 = connection.x1_pos + 150;
+                connection.cp_y1 = connection.y1_pos + 150;
+                connection.cp_x2 = connection.x2_pos - 150;
+                connection.cp_y2 = connection.y2_pos + 150;
+
+            }
+
+
+            connections = [...connections, connection];
+            elements = [...elements, connection];
+            drawingLine = false;
         }
     }
 
@@ -248,16 +261,7 @@
             }else{
                 return;
             }
-        }else{
-            if(selectedArrowIndex === null){
-                return;
-            }
-            const connection = connections[selectedArrowIndex];
-            connection.cp_x1 = event.clientX;
-            connection.cp_y1 = event.clientY;
-            connections[selectedArrowIndex] = connection;
         }
-
     }
 
     const handleUndoEvent = (event: KeyboardEvent): void =>{
@@ -303,13 +307,37 @@
             return;
         }
         dragging = true;
+        const connection = connections[selectedArrowIndex];
+        const controlPoints: Array<[number, number]> = [[connection.cp_x1, connection.cp_y1], [connection.cp_x2, connection.cp_y2]];
+        const indexOfClosestControlPoint = getClosestPointIndex(controlPoints, [event.clientX, event.clientY]);
+        controlPointIndex = indexOfClosestControlPoint;
+    }
 
+    const handleDrag = (event: MouseEvent) =>{
+        if(!dragging){
+            return;
+        }
+        if(selectedArrowIndex === null || controlPointIndex === null){
+                return;
+        }
+
+        const connection = connections[selectedArrowIndex];
+        if(controlPointIndex === 0){
+            // First control point is closest
+            connection.cp_x1 = event.clientX;
+            connection.cp_y1 = event.clientY;
+        }else if(controlPointIndex === 1){
+            // Second control point is closest
+            connection.cp_x2 = event.clientX;
+            connection.cp_y2 = event.clientY;
+        }else{
+            // unreachable
+            return;
+        }
+        connections[selectedArrowIndex] = connection;
     }
 
     const handleDragEnd = (event: MouseEvent): void => {
-        // if(selectedArrowIndex === null){
-        //     return;
-        // }
         if(selectedArrowIndex === null){
             return;
         }
@@ -319,7 +347,7 @@
 
 </script>
 
-<svelte:window on:keydown={handleUndoEvent} on:resize={async ()=>{states = states;}}/> 
+<svelte:window on:keydown={handleUndoEvent} on:mousedown={handleDragStart} on:mouseup={handleDragEnd} on:mousemove={handleDrag} /> 
 <div class="w-fit h-fit relative font-semibold overflow-scroll">
     {#if isStringAccepted}
         <div class="text-center flex flex-col justify-center absolute top-5 right-5 bg-green-800 rounded-full border-black border-2 w-28 h-28">

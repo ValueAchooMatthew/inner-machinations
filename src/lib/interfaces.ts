@@ -18,6 +18,8 @@ export interface Arrow {
     // Coordinates for control points for drawing bezier curves
     cp_x1: number,
     cp_y1: number,
+    cp_x2: number,
+    cp_y2: number,
     x2_pos: number,
     y2_pos: number,
     character: string;
