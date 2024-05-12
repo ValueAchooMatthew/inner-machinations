@@ -2,8 +2,7 @@
 // In both drawing states to the canvas and connecting data in the rust
 export interface State {
     // Specifying coordinates of node as an identification for a node
-    x_pos: number,
-    y_pos: number
+    position: Coordinate,
     nodes_connected_to: Array<string>,
     nodes_connected_from: Array<string>,
     connection_chars: Array<string>,
@@ -12,16 +11,22 @@ export interface State {
 };
 
 
-export interface Arrow {
-    x1_pos: number,
-    y1_pos: number,
-    // Coordinates for control points for drawing bezier curves
-    cp_x1: number,
-    cp_y1: number,
-    cp_x2: number,
-    cp_y2: number,
-    x2_pos: number,
-    y2_pos: number,
-    character: string;
+export interface Connection {
+    curve: BezierCurve,
+    character: string,
     element: "Connection"
+};
+
+export interface BezierCurve {
+    start_point: Coordinate,
+    // Coordinates for control points for drawing bezier curves
+    control_point_one: Coordinate,
+    control_point_two: Coordinate,
+    end_point: Coordinate
+
+};
+
+export interface Coordinate {
+    x: number,
+    y: number
 };
