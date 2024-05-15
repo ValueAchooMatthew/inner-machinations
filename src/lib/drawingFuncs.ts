@@ -12,12 +12,13 @@ export const draw = (context: CanvasRenderingContext2D,
     context.textAlign = "center"
     context.strokeStyle = "black"
     context.clearRect(0, 0, width, height);
+
     nodes.forEach((node, index)=>{
         drawNode(context, index, start_statePosition, node);
-    })
+    });
     connections.forEach((connection, index)=>{
         drawConnection(context, connection, index, selected_connection_index);
-    })
+    });
 
 }
 
@@ -59,11 +60,10 @@ const drawConnection = (context: CanvasRenderingContext2D, connection: Connectio
     context.font = "40px Arial";
     context.fillStyle = "black";
 
-    // const halfway_x = getPointOnBezierCurveAtDistance
+    const halfway_point = getPointOnBezierCurveAtDistance(curve, .5);
 
-    context.fillText(connection.character, 
-    (start_coord.x + curve.control_point_one.x + curve.control_point_two.x + end_coord.x)/4 + 50 * Math.sin(angle_of_curve_at_end), 
-    (start_coord.y + curve.control_point_one.y + curve.control_point_two.y + end_coord.y)/4 - 50 * Math.cos(angle_of_curve_at_end));
+    context.fillText(connection.character, halfway_point.x + 50 * Math.sin(angle_of_curve_at_end), 
+    halfway_point.y - 50 * Math.cos(angle_of_curve_at_end));
 
 }
 
@@ -84,8 +84,7 @@ const drawNode = (context: CanvasRenderingContext2D, index: number, start_state_
         context.fill();
         context.stroke();
         context.closePath();
-    }
-    else{
+    }else{
         context.fillStyle = "rgb(234, 88, 12)";
         context.beginPath();
         context.arc(node.position.x, node.position.y, 35, 0, 2*Math.PI);

@@ -2,14 +2,14 @@
     import { onMount } from "svelte";
     import { invoke } from "@tauri-apps/api";
     import { draw } from "../../../lib/drawingFuncs";
-    import { roundToNearest, getClosestPointIndex, indexOfClosestLineToPoint } from "$lib/mathFuncs";
+    import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/mathFuncs";
     import type { State, Connection, Coordinate, BezierCurve } from "$lib/interfaces";
     import { Action } from "$lib/enums";
 
-    $: {if(start_state_coordinates && stringToCheck){
+    $: {if(start_state_coordinates && string_to_check){
         const check_string = async () => {
-            isStringAccepted = await invoke("test_string", {stateConnections: state_connections, 
-                startStateCoordinates: start_state_coordinates, stringToCheck: stringToCheck});
+            is_string_accepted = await invoke("test_string", {stateConnections: state_connections, 
+                startStateCoordinates: start_state_coordinates, stringToCheck: string_to_check});
         };
         check_string().catch((e)=>{
             console.log(e);
@@ -18,7 +18,7 @@
 
     $: {if(context){
         draw(context, width, height, states, connections, start_state_index, selected_connection_index);
-    }} 
+    }};
 
 
     // Spaghettiest spaghetti code to every spaghetti, must refactor
@@ -40,7 +40,7 @@
     let state_connections: {[key: string]: State | undefined} = {};
     let start_state_coordinates: string | null = null;
     let dialogue = "";
-    let stringToCheck: String;
+    let string_to_check: String;
     
     $: width = 900;
     $: height = 900;
@@ -51,7 +51,7 @@
     let context: CanvasRenderingContext2D;
     let current_action: Action = Action.ADDING_REGULAR_STATE;
 
-    let isStringAccepted: boolean;
+    let is_string_accepted: boolean;
 
     onMount(()=>{
         width = window.screen.availWidth;
@@ -68,7 +68,8 @@
         const element: State | Connection | undefined = elements.pop();
         if(!element){
             return;
-        }else if(element.element === "State"){
+        }
+        if(element.element === "State"){
             const state = states.pop();
             if(!state){
                 return;
@@ -84,30 +85,31 @@
             }else{
                 state_connections[`${state.position.x},${state.position.y}`] = undefined;
             }
-        }else{
-            connections.pop();
-            const node_one_key = `${element.curve.start_point.x},${element.curve.start_point.y}`;
-            const node_two_key = `${element.curve.end_point.x},${element.curve.end_point.y}`
-            const node_one: State | undefined = state_connections[node_one_key];
-            const node_two: State | undefined = state_connections[node_two_key];
-            if(!node_one || !node_two){
-                return;
-            }
-            node_one.nodes_connected_to = node_one.nodes_connected_to.filter((connected_node_position)=>{
-                return !(connected_node_position === node_two_key);
-            });
-            
-            node_two.nodes_connected_from = node_two.nodes_connected_from.filter((connected_node_position)=>{
-                return !(connected_node_position === node_one_key);
-            });
+            return;
+        }
 
-            node_one.connection_chars.pop();
-            
-            state_connections[node_one_key] = node_one;
-            state_connections[node_two_key] = node_two;
+        connections.pop();
+        const node_one_key = `${element.curve.start_point.x},${element.curve.start_point.y}`;
+        const node_two_key = `${element.curve.end_point.x},${element.curve.end_point.y}`
+        
+        const node_one: State | undefined = state_connections[node_one_key];
+        const node_two: State | undefined = state_connections[node_two_key];
+        if(!node_one || !node_two){
+            return;
+        }
+        node_one.nodes_connected_to = node_one.nodes_connected_to.filter((connected_node_position)=>{
+            return !(connected_node_position === node_two_key);
+        });
+        
+        node_two.nodes_connected_from = node_two.nodes_connected_from.filter((connected_node_position)=>{
+            return !(connected_node_position === node_one_key);
+        });
+        node_one.connection_chars.pop();
+        
+        state_connections[node_one_key] = node_one;
+        state_connections[node_two_key] = node_two;
 
-            }
-            states = states;
+        states = states;
         }
     
     const handleTrash = () => {
@@ -117,7 +119,7 @@
         start_state_index = -1;
         state_connections = {};
         start_state_coordinates = null;
-        current_action = Action.ADDING_REGULAR_STATE;
+        current_action = Action.CLICKING;
     }
 
     const handleSubmit = (event: SubmitEvent)=> {
@@ -133,7 +135,7 @@
             dialogue = "You must specify at least one start state"
             return;
         }
-        stringToCheck = inputted_string.toString();
+        string_to_check = inputted_string.toString();
     }
 
     const handleClick = (event: MouseEvent): void => {
@@ -204,7 +206,7 @@
                 const last_connection = connections.pop();
                 // Starting node's key will be at the x, y coordinates of the connection's start point
                 // The selected node will treated as our "ending" node
-                const starting_state_key = last_connection?.curve.start_point.x + "," + last_connection?.curve.start_point.y
+                const starting_state_key = last_connection?.curve.start_point.x + "," + last_connection?.curve.start_point.y;
                 const starting_state = state_connections[starting_state_key];
                 if(last_connection === undefined || starting_state === undefined){
                     return;
@@ -217,23 +219,25 @@
                 // Makes drawing for user easier if control points are spread apart
                 last_connection.curve.end_point = selected_state.position;
                 last_connection.curve.control_point_two = selected_state.position;
-                console.log(selected_state.position)
-                console.log(last_connection.curve.end_point);
                 if(selected_state === starting_state){
                     // If the connection is supposed to be a loop, the control points are automatically changed so it doesn't look like
                     // A single point when drawn and instead forms a circle like shape
-                    last_connection.curve.control_point_one = {x: cursor_coords.x + 150, y: cursor_coords.y + 150};
-                    last_connection.curve.control_point_two = {x: cursor_coords.x - 150, y: cursor_coords.y + 150};
+                    last_connection.curve.control_point_one = {x: cursor_coords.x - 200, y: cursor_coords.y + 200};
+                    last_connection.curve.control_point_two = {x: cursor_coords.x - 200, y: cursor_coords.y - 200};
                 }
                 connections.push(last_connection);
                 elements.push(last_connection);
                 current_action = Action.CLICKING;
                 break;
+
             case Action.DRAGGING_LINE:
+                selected_connection_index = null;
                 current_action = Action.CLICKING;
                 break;
+
             default:
                 return;
+            
         }
         states = states;
     }
@@ -273,7 +277,7 @@
     
     // Used when an arrow is selected and the character of its transition is being changed by the user
     const handleCharChange = (event: KeyboardEvent): void => {
-        if(selected_connection_index == null || event.ctrlKey || event.altKey || event.shiftKey){
+        if(selected_connection_index == null || event.ctrlKey || event.altKey || event.shiftKey || event.key == "Tab"){
             return;
         }
         const selected_connection = connections[selected_connection_index];
@@ -341,13 +345,13 @@
 
 <svelte:window on:keydown={handleUndoEvent} on:mousedown={handleDragStart} on:mouseup={handleDragEnd} on:mousemove={handleDrag} /> 
 <div class="w-fit h-fit relative font-semibold overflow-scroll">
-    {#if isStringAccepted}
+    {#if is_string_accepted}
         <div class="text-center flex flex-col justify-center absolute top-5 right-5 bg-green-800 rounded-full border-black border-2 w-28 h-28">
             <div class="text-sm">
                 The string was accepted!!
             </div>
         </div>
-    {:else if isStringAccepted !== undefined}
+    {:else if is_string_accepted !== undefined}
         <div class="text-center flex flex-col justify-center absolute top-5 right-5 bg-[#e03c3c] rounded-full border-black border-2 w-28 h-28">
             <div class="text-sm">
                 The string was not accepted
@@ -361,11 +365,11 @@
     bind:this={canvas} 
     on:mousemove={handleMove} 
     on:click={handleClick}
-    on:dblclick={(event)=>{clearCursor(); selected_connection_index = indexOfClosestLineToPoint(event.clientX, event.clientY, connections)}}
+    on:dblclick={(event)=>{clearCursor(); 
+        selected_connection_index = indexOfClosestBezierCurveToPoint({x: event.x, y: event.y}, connections)}}
     on:keyup={handleCharChange}
     on:mousedown={handleDragStart}
-    on:mouseup={handleDragEnd}
-    >
+    on:mouseup={handleDragEnd}>
     </canvas>
     <div class="text-center select-none flex flex-col justify-between gap-3 bg-opacity-100 w-32 h-fit absolute right-4 top-0 bottom-0 my-auto border-black border-2 rounded-md px-2 py-4 mr-0.5 z-50">
         <div class="flex flex-col gap-2">

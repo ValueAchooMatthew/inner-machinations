@@ -30,16 +30,18 @@ const distanceBetweenTwoPoints = (point_a: Coordinate, point_b: Coordinate): num
 
 }
 
-// Returns index of line in array of the line closest to the given x, y coords
-// TODO: change to work with bezier curves instead
-export const indexOfClosestLineToPoint = (x_pos: number, y_pos: number, connections: Array<Connection>): number => {
+// Returns index of connection in array of the curve closest to the given x, y coords
+// The math for finding the exact closest curve would be too computationally intensive, and instead, and average of all of the points
+// Making up the curve is used to roughly estimate its position
+export const indexOfClosestBezierCurveToPoint = (origin: Coordinate, connections: Array<Connection>): number => {
     let indexOfClosestLine = 0;
-    let minimumDistance = distanceFromLineToPoint(x_pos, y_pos, connections[0].curve);
+    let minimumDistance = distanceFromBezierCurveToPoint(origin, connections[0].curve, 10);
     connections.forEach((connection, index)=>{
-        const distance = distanceFromLineToPoint(x_pos, y_pos, connection.curve);
+        const distance = distanceFromBezierCurveToPoint(origin, connection.curve, 10);
+        console.log(distance);
         if(distance < minimumDistance){
             indexOfClosestLine = index;
-            minimumDistance = distance
+            minimumDistance = distance;
         };
     });
 
@@ -47,31 +49,34 @@ export const indexOfClosestLineToPoint = (x_pos: number, y_pos: number, connecti
 
 }
 
-const distanceFromLineToPoint = (x_pos: number, y_pos: number, curve: BezierCurve): number => {
-    // y = mx + b (slope intercept form)
-    // Ax + By + C = 0 (standard form) (C = -b, A = -slope)
-    // Gigantic thanks  to this answer from stackoverflow answer https://stackoverflow.com/a/1501725 for easy to follow solution
-    // To this problem
-    const x1 = curve.start_point.x;
-    const y1 = curve.start_point.y;
-    const x2 = curve.end_point.x;
-    const y2 = curve.end_point.y;
+// Roughly estimate's a curve's distance to a given point by taking small slices of the bezier curve and returning the distance of the point
+// of the slice to the given coordinate
+// https://stackoverflow.com/a/34520607 Done with help of this stackoverflow answer
+const distanceFromBezierCurveToPoint = (origin: Coordinate, curve: BezierCurve, slices: number): number => {
+    const tick =  1/slices;
+    let minimum_distance = Infinity;
+    for(let i = 0; i <= slices; i++){
+        const t = i*tick;
+        // Should be refactored into separate function later
+        const x = getCoordOnBezierCurve(t, curve.start_point.x, curve.control_point_one.x, 
+            curve.control_point_two.x, curve.end_point.x);
 
-    const l2 = (x1 - x2)**2 + (y1 - y2)**2;
-    if (l2 == 0){
-        return Math.sqrt((x1 - x_pos)**2 + (y1 - y_pos)**2);
+        const y = getCoordOnBezierCurve(t, curve.start_point.y, curve.control_point_one.y, 
+            curve.control_point_two.y, curve.end_point.y);
+        
+        const distance = Math.sqrt((origin.x - x)**2 + (origin.y - y)**2);
+        if(distance < minimum_distance){
+            minimum_distance = distance;
+        }
     }
-    let t = ((x_pos - x1) * (x2 - x1) + (y_pos - y1) * (y2 - y1)) / l2;
-    t = Math.max(0, Math.min(1, t));
+    return minimum_distance;
 
-    return Math.sqrt((x_pos - (x1 + t*(x2 - x1)))**2 + (y_pos - (y1 + t*(y2 - y1)))**2); 
 
 }
 
 // The formulas used to calculate the angle of the arrowhead are taken from this stackoverflow answer
 // https://stackoverflow.com/a/21053913
 // Gigantic help and incredibly impressive
-
 export const getBezierCurveAngleAtPoint = (curve: BezierCurve, distance_along_curve: number): number => {
     const pointNearEnd = getPointOnBezierCurveAtDistance(curve, distance_along_curve);
     const distanceToEndX = curve.end_point.x - pointNearEnd.x;
