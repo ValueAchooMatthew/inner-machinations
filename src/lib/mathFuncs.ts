@@ -38,7 +38,6 @@ export const indexOfClosestBezierCurveToPoint = (origin: Coordinate, connections
     let minimumDistance = distanceFromBezierCurveToPoint(origin, connections[0].curve, 10);
     connections.forEach((connection, index)=>{
         const distance = distanceFromBezierCurveToPoint(origin, connection.curve, 10);
-        console.log(distance);
         if(distance < minimumDistance){
             indexOfClosestLine = index;
             minimumDistance = distance;

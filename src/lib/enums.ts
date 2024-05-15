@@ -7,3 +7,8 @@ export enum Action {
     DRAGGING_LINE,
     CLICKING
 };
+
+export enum Automata {
+    DFA,
+    NFA
+};
