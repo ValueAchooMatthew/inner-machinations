@@ -4,13 +4,14 @@
     import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/mathFuncs";
     import type { State, Connection, Coordinate, BezierCurve } from "$lib/interfaces";
     import { Action } from "$lib/enums";
-    import Sidebar from "./sidebar.svelte";
+    import Sidebar from "./selections.svelte";
 
-    export let start_state_coordinates: string | null;
-    export let state_connections: {[key: string]: State | undefined};
+    export let start_state_coordinates: String | null;
+    export let state_connections: Map<String, State>;
     export let dialogue: string;
     export let start_state_index: number;
- 
+    export let default_connection_char: string = "a";
+
 
     $: {if(context){
         draw(context, width, height, states, connections, start_state_index, selected_connection_index);
@@ -62,44 +63,38 @@
             if(states.length == start_state_index){
                 start_state_index = -1;
                 start_state_coordinates = null;
-                state_connections[`${state.position.x},${state.position.y}`] = undefined;
-            }else{
-                state_connections[`${state.position.x},${state.position.y}`] = undefined;
             }
+            state_connections.delete(element.position.x + "," + element.position.y);
             states = states;
             return;
         }
 
         connections.pop();
-        const node_one_key = `${element.curve.start_point.x},${element.curve.start_point.y}`;
-        const node_two_key = `${element.curve.end_point.x},${element.curve.end_point.y}`
+        const node_one_coords = element.curve.start_point;
 
-        const node_one: State | undefined = state_connections[node_one_key];
-        const node_two: State | undefined = state_connections[node_two_key];
-        if(!node_one || !node_two){
+        const node_one: State | undefined = state_connections.get(node_one_coords.x + "," + node_one_coords.y);
+        if(!node_one){
             return;
         }
-        node_one.nodes_connected_to = node_one.nodes_connected_to.filter((connected_node_position)=>{
-            return !(connected_node_position === node_two_key);
-        });
-
-        node_two.nodes_connected_from = node_two.nodes_connected_from.filter((connected_node_position)=>{
-            return !(connected_node_position === node_one_key);
-        });
-        node_one.connection_chars.pop();
-
-        state_connections[node_one_key] = node_one;
-        state_connections[node_two_key] = node_two;
+        let connected_states = node_one.states_connected_to.get(element.character);
+        const end_state_coords = element.curve.end_point;
+        if(connected_states === undefined){
+            return;
+        }
+        const index = connected_states.indexOf(end_state_coords.x + "," + end_state_coords.y);
+        connected_states = connected_states.splice(index, 1);
+        node_one.states_connected_to.set(element.character, connected_states);
+        state_connections.set(end_state_coords.x + "," + end_state_coords.y, node_one);
 
         states = states;
-        }
+    }
 
     const handleTrash = () => {
         states = [];
         connections = [];
         elements = [];
         start_state_index = -1;
-        state_connections = {};
+        state_connections.clear();
         start_state_coordinates = null;
         current_action = Action.CLICKING;
     }
@@ -108,25 +103,26 @@
         const cursor_x_pos = roundToNearest(event.offsetX, 100);
         const cursor_y_pos = roundToNearest(event.offsetY, 100);
         const cursor_coords: Coordinate = {x: cursor_x_pos, y: cursor_y_pos};
+        const cursor_coords_string: String = cursor_x_pos + "," + cursor_y_pos
 
-        let selected_state: State | undefined = state_connections[`${cursor_x_pos},${cursor_y_pos}`];
+        let selected_state: State | undefined = state_connections.get(cursor_coords_string);
         dialogue = "";
         // Really needs to be refactored
         switch(current_action){
             case Action.ADDING_REGULAR_STATE:
-                if(selected_state !== undefined){
+                if(selected_state){
                     dialogue = "You cannot place a Node on top of another Node";
                     return;
                 }
-                selected_state = {position: cursor_coords, nodes_connected_to: new Array<string>(), 
-                nodes_connected_from: new Array<string>(), connection_chars: new Array<string>(), element: "State", is_final: false};
+                selected_state = {position: cursor_coords, states_connected_to: new Map<string, Array<String>>(), 
+                element: "State", is_final: false};
                 elements.push(selected_state);
                 states.push(selected_state);
-                state_connections[`${cursor_x_pos},${cursor_y_pos}`] = selected_state;
+                state_connections.set(cursor_coords_string, selected_state);
                 break;
 
             case Action.ADDING_FINAL_STATE:
-                if(selected_state === undefined){
+                if(!selected_state){
                     dialogue = "You must make an existing Node a final Node";
                     return;
                 }else if(selected_state.is_final){
@@ -134,51 +130,59 @@
                     return;
                 }
                 selected_state.is_final = true;
+                state_connections.set(cursor_coords_string, selected_state);
                 break;
             
             case Action.ADDING_START_STATE:
-                if(selected_state !== undefined){
+                if(selected_state){
                     dialogue = "You cannot place a Node on top of another Node";
                     return;
                 }
                 start_state_index = states.length;
-                start_state_coordinates = `${cursor_x_pos},${cursor_y_pos}`;
-                selected_state = {position: cursor_coords, nodes_connected_to: new Array<string>(), 
-                nodes_connected_from: new Array<string>(), connection_chars: new Array<string>(), element: "State", is_final: false};
+                start_state_coordinates = cursor_coords_string;
+                selected_state = {position: cursor_coords, states_connected_to: new Map<string, Array<String>>(), element: "State", is_final: false};
                 elements.push(selected_state);
                 states.push(selected_state);
-                state_connections[`${cursor_x_pos},${cursor_y_pos}`] = selected_state;
+                state_connections.set(cursor_coords_string, selected_state);
+                current_action = Action.ADDING_REGULAR_STATE;
                 break;
 
             case Action.PLACING_LINE:
-                if(selected_state === undefined){
+                if(!selected_state){
                     dialogue = "You must place an arrow on top of another Node";
                     return;
                 }
                 const curve: BezierCurve = {start_point: cursor_coords, control_point_one: cursor_coords, 
                 control_point_two: cursor_coords, end_point: cursor_coords};
 
-                const connection: Connection = {curve: curve, element: "Connection", character: "a"};
+                const connection: Connection = {curve: curve, element: "Connection", character: default_connection_char};
                 connections.push(connection);
                 current_action = Action.DRAWING_LINE;
                 break;
 
             case Action.DRAWING_LINE:
-                if(selected_state === undefined){
+                if(!selected_state){
                     dialogue = "The arrow must point to a valid Node";
                     return;
                 }
                 const last_connection = connections.pop();
-                // Starting node's key will be at the x, y coordinates of the connection's start point
-                // The selected node will treated as our "ending" node
-                const starting_state_key = last_connection?.curve.start_point.x + "," + last_connection?.curve.start_point.y;
-                const starting_state = state_connections[starting_state_key];
-                if(last_connection === undefined || starting_state === undefined){
+                if(!last_connection){
                     return;
                 }
-                starting_state.nodes_connected_to.push(cursor_x_pos + "," + cursor_y_pos);
-                starting_state.connection_chars.push("a");
-                selected_state.nodes_connected_from.push(starting_state_key);
+                // Starting node's key will be at the x, y coordinates of the connection's start point
+                // The selected node will treated as our "ending" node
+                const starting_state_key = last_connection.curve.start_point;
+                const starting_state = state_connections.get(starting_state_key.x + "," +starting_state_key.y);
+                if(!starting_state){
+                    return;
+                }
+                const previous_connections = starting_state.states_connected_to.get(default_connection_char);
+                if(previous_connections === undefined){
+                    starting_state.states_connected_to.set(default_connection_char, new Array<String>(cursor_coords_string));
+                }else{
+                    previous_connections.push(cursor_coords_string);
+                    starting_state.states_connected_to.set(default_connection_char, previous_connections);
+                }
 
                 // First control point starts at the start coordinate, the second control point moves to follow the end coordinates
                 // Makes drawing for user easier if control points are spread apart
@@ -205,6 +209,7 @@
             
         }
         states = states;
+        state_connections = state_connections;
     }
 
     // Decent start
@@ -237,7 +242,6 @@
 
     const clearCursor = (): void => {
         selected_connection_index = null;
-        current_action = Action.CLICKING;
     }
 
     // Used when an arrow is selected and the character of its transition is being changed by the user
@@ -245,20 +249,35 @@
         if(selected_connection_index == null || event.ctrlKey || event.altKey || event.shiftKey || event.key == "Tab"){
             return;
         }
-        const selected_connection = connections[selected_connection_index];
-        selected_connection.character = event.key;
 
-        const start_node_key = selected_connection.curve.start_point.x + "," + selected_connection.curve.start_point.y;
-        const end_node_key = selected_connection.curve.end_point.x + "," + selected_connection.curve.end_point.y;
-        const start_state: State | undefined = state_connections[start_node_key];
-        const end_state: State | undefined = state_connections[end_node_key];
+        const selected_connection = connections[selected_connection_index];
+        const old_character = selected_connection.character;
+        const new_character = event.key;
+        selected_connection.character = new_character;
+
+        const start_state_key = selected_connection.curve.start_point.x + "," + selected_connection.curve.start_point.y;
+        const end_state_key = selected_connection.curve.end_point.x + "," + selected_connection.curve.end_point.y;
+        const start_state: State | undefined = state_connections.get(start_state_key);
+        const end_state: State | undefined = state_connections.get(end_state_key);
 
         if(!start_state || !end_state){
             return;
         }
+        let previous_state_connection = start_state.states_connected_to.get(old_character);
+        let new_state_connection = start_state.states_connected_to.get(new_character);
+        if(previous_state_connection === undefined){
+            return;
+        }
+        // Removing the end state from the old connection character's hashmap
+        const index = previous_state_connection.indexOf(end_state_key);
+        previous_state_connection = previous_state_connection.splice(index, 1);
 
-        const connectionIndex = start_state.nodes_connected_to.indexOf(end_node_key);
-        start_state.connection_chars[connectionIndex] = event.key;
+        // Adding end state to new connection character's hashmap
+        if(new_state_connection === undefined){
+            start_state.states_connected_to.set(new_character, new Array<String>(end_state_key));
+        }else{
+            new_state_connection.push(end_state_key);
+        }
 
         state_connections = state_connections;
         selected_connection_index = null;
@@ -308,7 +327,7 @@
 </script>
 
 <svelte:window on:keydown={handleUndoEvent} on:mousedown={handleDragStart} on:mouseup={handleDragEnd} on:mousemove={handleDrag} /> 
-<div class="w-fit h-fit relative font-semibold overflow-scroll">
+<div class="w-fit h-fit relative font-semibold">
 
     <!-- Setting tabindex is necessary so element is focusable and can thus listen to keydown events -->
     <!-- svelte-ignore a11y-positive-tabindex -->
@@ -323,8 +342,7 @@
     on:mousedown={handleDragStart}
     on:mouseup={handleDragEnd}>
     </canvas>
-    <Sidebar bind:current_action={current_action} undo={undo} 
-    handleTrash={handleTrash} clearCursor={clearCursor} bind:selected_connection_index={selected_connection_index}/>
-
+    <Sidebar bind:current_action={current_action} undo={undo} handleTrash={handleTrash} 
+    clearCursor={clearCursor} bind:selected_connection_index={selected_connection_index}/>
     
 </div>

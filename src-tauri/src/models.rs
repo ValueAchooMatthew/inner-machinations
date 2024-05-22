@@ -22,19 +22,24 @@ pub struct Register<'a> {
 
 use serde::Deserialize;
 use serde::Serialize;
-#[derive(Debug)]
-#[derive(Deserialize, Serialize)]
-pub struct Node{ 
+use std::collections::HashMap;
+#[derive(Debug, Deserialize, Serialize)]
+pub struct State { 
     pub position: Coordinate,
-    pub nodes_connected_to: Vec<String>,
-    pub nodes_connected_from: Vec<String>,
-    pub connection_chars: Vec<String>,
+    pub states_connected_to: HashMap<String, Vec<String>>,
     pub is_final: bool,
     pub element: String
 }
-#[derive(Debug)]
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Hash)]
 pub struct Coordinate {
     x: i32,
     y: i32
+}
+
+
+pub struct Stae {
+
+    
+
+
 }

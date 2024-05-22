@@ -4,20 +4,20 @@
 extern crate diesel;
 pub mod schema;
 pub mod models;
-use dotenv::dotenv;
-use std::collections::HashMap;
-use std::env;
-
+pub mod testing_funcs;
 pub mod db;
+use dotenv::dotenv;
+use std::env;
 
 use db::register_user;
 use db::is_correct_log_in;
+use testing_funcs::{test_string_dfa, test_string_nfa};
 
 // Fixed Opsec but should refactor key getting and setting into separate func in lib
 fn main() {
   tauri::Builder::default()
   .invoke_handler(tauri::generate_handler![register_user, is_user_registered, is_correct_log_in,
-    send_email, verify_user, is_user_verified, test_string])
+    send_email, verify_user, is_user_verified, test_string_dfa, test_string_nfa])
   .run(tauri::generate_context!())
   .expect("error while running tauri application");
 }
@@ -126,48 +126,4 @@ fn verify_user(email_address: &str) -> (){
     .set(verified.eq(true))
     .execute(&mut conn)
     .expect("There was an error assigning a code for the user");
-}
-
-// use crate::models::Node;
-use crate::models::Node;
-#[tauri::command]
-fn test_string(state_connections: HashMap<String, Node>, start_state_coordinates: String, string_to_check: String) -> bool {
-
-  let mut is_string_accepted: bool = false;
-
-  let start_node: &Node = match state_connections.get(&start_state_coordinates){
-    Some(node) => node,
-    None => return false
-  };
-
-  let mut current_node: &Node = start_node;
-
-  for c in string_to_check.chars(){
-    
-    let next_node_index = match current_node.connection_chars.iter().position(|character| {character == &c.to_string()}) {
-      Some(index) => index,
-      None => {is_string_accepted = false; break;} 
-    };
-
-    let next_node_position = match current_node.nodes_connected_to.get(next_node_index){
-      Some(position) => position,
-      None => {is_string_accepted = false; break;} 
-    };
-
-    let next_node: &Node = match state_connections.get(next_node_position){
-      Some(node) => node,
-      None => return false
-    };
-    
-    current_node = next_node;
-
-    if current_node.is_final == true {
-      is_string_accepted = true;
-    } else {
-      is_string_accepted = false;
-    }
-  }
-
-  is_string_accepted
-
 }

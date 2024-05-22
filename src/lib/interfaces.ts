@@ -3,13 +3,10 @@
 export interface State {
     // Specifying coordinates of node as an identification for a node
     position: Coordinate,
-    nodes_connected_to: Array<string>,
-    nodes_connected_from: Array<string>,
-    connection_chars: Array<string>,
+    states_connected_to: Map<String, Array<String>>,
     is_final: boolean,
     element: "State"
 };
-
 
 export interface Connection {
     curve: BezierCurve,
