@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Automata } from "$lib/enums";
+    import Sidebar from "./sidebar.svelte";
     import type { State } from "$lib/interfaces";
     import Whiteboard from "./whiteboard.svelte";
     import { invoke } from "@tauri-apps/api";
@@ -38,18 +39,8 @@
     let state_connections:  Map<String, State> = new Map<String, State>();
     let default_connection_char: string;
     let sidebar_open: boolean = false;
-
-    const handleCharChange = (event: Event) => {
-        if(!(event instanceof InputEvent)){
-            return;
-        }
-        const data = event.data;
-        if(!data){
-            return;
-        }
-        default_connection_char = event.data;
-    }
-
+    let is_strict_checking: boolean = false;
+    let input_alphabet: Array<string>;
 
     const handleSubmit = (event: SubmitEvent)=> {
         if(!(event.target instanceof HTMLFormElement)){
@@ -71,25 +62,7 @@
 </script>
 <div class="relative flex font-semibold overflow-x-hidden w-full h-full ">
     <div class="bg-gray-200 p-4 text-center w-min-fit h-min-fit flex flex-col rounded-r-md h-full absolute transition-all duration-300 overflow-hidden z-50 w-full"  class:left-0={sidebar_open} class:-left-full={!sidebar_open}>
-        <div class="flex justify-start">
-            <button class="w-12 h-12 z-10 self-center" on:click={()=>{sidebar_open = !sidebar_open;}}>
-                <svg data-slot="icon" aria-hidden="true" fill="none" stroke-width="1.5" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-            </button>
-        </div>
-        <div class="font-bold">
-            Input Alphabet (works for DFA's only):
-            <input on:input={handleCharChange} class="border-black border-2 rounded-md" type="text">
-        </div>
-        <div>
-            Strict Checking (works for DFA's only):
-        </div>
-        <div>
-            Specify default connection character (default: a):
-            <input on:input={handleCharChange} class="border-black border-2 rounded-md" type="text">
-        </div>
-    
+        <Sidebar bind:input_alphabet={input_alphabet} bind:is_strict_checking={is_strict_checking} bind:default_connection_char={default_connection_char} bind:sidebar_open={sidebar_open}/>
     </div>
        
     <div class="w-full flex-1 min-w-0">
@@ -112,7 +85,7 @@
             </div>
     
         </div>
-    
+        <!-- Definitely can make nicer in future -->
         {#if (dialogue)}
             <div class="absolute top-0 right-0 left-0 w-fit h-fit mx-auto transition-all duration-300 bg-pink-400 px-5 py-1 rounded-md text-center">
                 {dialogue}
@@ -132,7 +105,8 @@
             </div>
         {/if}
         <Whiteboard bind:start_state_coordinates={start_state_coordinates} bind:dialogue={dialogue} 
-        bind:state_connections={state_connections} bind:start_state_index={start_state_index} default_connection_char={default_connection_char}/>
+        bind:state_connections={state_connections} bind:start_state_index={start_state_index} 
+        default_connection_char={default_connection_char} is_strict_checking={is_strict_checking} input_alphabet={input_alphabet}/>
     
         <div class="flex flex-col justify-center">
             <form class="flex self-center" on:submit|preventDefault={handleSubmit}>

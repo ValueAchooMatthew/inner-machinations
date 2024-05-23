@@ -5,7 +5,8 @@ export enum Action {
     PLACING_LINE,
     DRAWING_LINE,
     DRAGGING_LINE,
-    CLICKING
+    CLICKING,
+    PLACING_EPSILON_LINE
 };
 
 export enum Automata {

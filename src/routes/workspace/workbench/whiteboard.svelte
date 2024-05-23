@@ -11,6 +11,8 @@
     export let dialogue: string;
     export let start_state_index: number;
     export let default_connection_char: string = "a";
+    export let input_alphabet: Array<String>;
+    export let is_strict_checking: boolean;
 
 
     $: {if(context){
@@ -160,6 +162,19 @@
                 current_action = Action.DRAWING_LINE;
                 break;
 
+            case Action.PLACING_EPSILON_LINE:
+                if(!selected_state){
+                    dialogue = "You must place an arrow on top of another Node";
+                    return;
+                }
+                const ep_curve: BezierCurve = {start_point: cursor_coords, control_point_one: cursor_coords, 
+                control_point_two: cursor_coords, end_point: cursor_coords};
+
+                const ep_connection: Connection = {curve: ep_curve, element: "Connection", character: "ϵ"};
+                connections.push(ep_connection);
+                current_action = Action.DRAWING_LINE;
+                break;
+
             case Action.DRAWING_LINE:
                 if(!selected_state){
                     dialogue = "The arrow must point to a valid Node";
@@ -176,12 +191,12 @@
                 if(!starting_state){
                     return;
                 }
-                const previous_connections = starting_state.states_connected_to.get(default_connection_char);
+                const previous_connections = starting_state.states_connected_to.get(last_connection.character);
                 if(previous_connections === undefined){
-                    starting_state.states_connected_to.set(default_connection_char, new Array<String>(cursor_coords_string));
+                    starting_state.states_connected_to.set(last_connection.character, new Array<String>(cursor_coords_string));
                 }else{
                     previous_connections.push(cursor_coords_string);
-                    starting_state.states_connected_to.set(default_connection_char, previous_connections);
+                    starting_state.states_connected_to.set(last_connection.character, previous_connections);
                 }
 
                 // First control point starts at the start coordinate, the second control point moves to follow the end coordinates
@@ -317,7 +332,7 @@
         connections[selected_connection_index] = connection;
     }
 
-    const handleDragEnd = (event: MouseEvent): void => {
+    const handleDragEnd = (): void => {
         if(selected_connection_index === null){
             return;
         }
@@ -342,7 +357,7 @@
     on:mousedown={handleDragStart}
     on:mouseup={handleDragEnd}>
     </canvas>
-    <Sidebar bind:current_action={current_action} undo={undo} handleTrash={handleTrash} 
-    clearCursor={clearCursor} bind:selected_connection_index={selected_connection_index}/>
+    <Sidebar bind:current_action={current_action} undo={undo} 
+    handleTrash={handleTrash} clearCursor={clearCursor}/>
     
 </div>

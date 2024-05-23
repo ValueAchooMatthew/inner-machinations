@@ -51,11 +51,40 @@ fn dfa_delta_function<'a>(state_connections: &'a HashMap<String, State>, s: &'a 
 
 }
 
-fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state: &State,string_to_check: &str) -> bool {
+fn nfa_looping(state_connections: &HashMap<String, State>, keys: &Vec<String>, string_to_check: &str) -> bool {
+  for key in keys {
+
+    let state =  match state_connections.get(key) {
+      Some(state) => state,
+      None => return false
+    };
+
+    let result = nfa_delta_function(state_connections, state, string_to_check);
+    if result {
+      return true;
+    } else {
+      continue;
+    }
+  };
+  return false;
+
+}
+
+
+fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state: &State, string_to_check: &str) -> bool {
 
   if string_to_check.len() == 0 && current_state.is_final {
     return true;
   }
+
+  // Checking through epsilon transitions if no regular character transition exists
+  // We are doing it separate from the regular character connections because the string to be checked
+  // Must be different
+  let binding = vec![];
+  let epsilon_keys = match current_state.states_connected_to.get("ϵ") {
+    Some(states) => states,
+    None => &binding
+  };
 
   let next_char = match &string_to_check.chars().nth(0){
     Some(char) => char.to_string(),
@@ -63,7 +92,7 @@ fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state:
       if current_state.is_final {
         return true;
       }else{
-        return false;
+        return nfa_looping(state_connections, &epsilon_keys, &string_to_check);
       }
     }
   };
@@ -73,31 +102,19 @@ fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state:
     None => return false
   };
 
-  for key in connection_keys {
+  let rest_of_string = &string_to_check[1..];
 
-    let state =  match state_connections.get(key) {
-      Some(state) => state,
-      None => return false
-    };
+  // For connections corresponding to the next character in the string to be checked
+  // If the looping returns true, the NFA is guarenteed to accept the string, otherwise we must check
+  // The epsilon transitions
+  let does_connections_accept = nfa_looping(state_connections, connection_keys, &rest_of_string);
+  if does_connections_accept {
+    return true;
+  }
 
-    let string_to_check = &string_to_check[1..];
-    // println!("state: {:?} string: {}", state, string_to_check);
-
-    let result = nfa_delta_function(state_connections, state, string_to_check);
-    // println!("{result}");
-    if result {
-      return true;
-    } else {
-      continue;
-    }
-  };
-
-  return false;
+  return nfa_looping(state_connections, &epsilon_keys, &string_to_check);
 
 }
-
-
-
 
 #[tauri::command]
 pub fn test_string_nfa(state_connections: HashMap<String, State>, start_state_coordinates: String, string_to_check: String) -> bool {
