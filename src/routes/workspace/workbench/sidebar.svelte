@@ -1,5 +1,5 @@
 <script lang="ts">
-    export let default_connection_char: string;
+    export let default_connection_char: string = "a";
     export let sidebar_open: boolean;
     export let input_alphabet: Array<string> = new Array("a", "b");
     export let is_strict_checking: boolean = false;
@@ -13,7 +13,7 @@
             return;
         }
         default_connection_char = data;
-    }
+    };
 
     const handleSubmitAll = (event: SubmitEvent) => {
         event.preventDefault();
@@ -34,18 +34,16 @@
             input_alphabet.push(char);
         });
         input_alphabet = input_alphabet;
-
-    }
+    };
 
     const handleAddingNewCharInput = () => {
         input_alphabet = [...input_alphabet, ""];
-    }
+    };
 
     const handleRemovingCharInput = (index: number) => {
         input_alphabet.splice(index, 1);
         input_alphabet = input_alphabet;
-
-    }
+    };
     
 </script>
 
@@ -61,7 +59,7 @@
         <div class="flex justify-center gap-3">
 
             <label for="alphabet">
-                Input Alphabet (works for DFA's only) (input as comma separated values):
+                Input Alphabet (works for DFA's only):
             </label>
             <div class="flex flex-col gap-2">
                 <!-- Svelte way of itearting through an object with a length property, which I am using to place input elements in DOM -->
@@ -102,6 +100,6 @@
         <label for="char">
             Specify default connection character (default: a): 
         </label>
-        <input maxlength="1" on:input={handleDefaultCharChange} class="border-black border-2 rounded-md" type="text" name="char" id="char">
+        <input value={default_connection_char} maxlength="1" on:input={handleDefaultCharChange} class="border-black border-2 rounded-md" type="text" name="char" id="char">
     </form>
 </div>

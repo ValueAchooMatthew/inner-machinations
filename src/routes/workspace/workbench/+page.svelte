@@ -5,11 +5,23 @@
     import Whiteboard from "./whiteboard.svelte";
     import { invoke } from "@tauri-apps/api";
 
-    $: {if(start_state_coordinates && string_to_check){
+    $: {if(start_state_coordinates && string_to_check !== undefined){
         let check_string: () => Promise<void>;
         switch(automata_selected){
             case Automata.DFA:
                 check_string = async () => {
+                let result = await invoke("verify_valid_dfa", {stateConnections: state_connections, 
+                    inputAlphabet: input_alphabet});
+
+                if(!result && is_strict_checking){
+                    dialogue = `Your DFA either does not specify every connection provided in the input alphabet, or specifies them more than once.
+                    Update the model or disable strict checking`;
+                    is_string_accepted = null;
+                    return;
+                };
+
+                dialogue="";
+                
                 is_string_accepted = await invoke("test_string_dfa", {stateConnections: state_connections, 
                     startStateCoordinates: start_state_coordinates, stringToCheck: string_to_check});
                 };
@@ -30,8 +42,8 @@
 
     let dialogue: string = "";
     let start_state_index: number = -1;
-    let string_to_check: string = "";
-    let is_string_accepted: boolean;
+    let string_to_check: string;
+    let is_string_accepted: boolean | null = null;
     let start_state_coordinates: String | null = null;
     let automata_selected: Automata = Automata.DFA;
     // hashing every coordinate to a state for use when user click on a given coordinate point
@@ -97,7 +109,7 @@
                     The string was accepted!!
                 </div>
             </div>
-        {:else if is_string_accepted !== undefined}
+        {:else if is_string_accepted !== null}
             <div class="text-center flex flex-col justify-center absolute top-5 right-5 bg-[#e03c3c] rounded-full border-black border-2 w-28 h-28">
                 <div class="text-sm">
                     The string was not accepted
@@ -106,7 +118,7 @@
         {/if}
         <Whiteboard bind:start_state_coordinates={start_state_coordinates} bind:dialogue={dialogue} 
         bind:state_connections={state_connections} bind:start_state_index={start_state_index} 
-        default_connection_char={default_connection_char} is_strict_checking={is_strict_checking} input_alphabet={input_alphabet}/>
+        default_connection_char={default_connection_char}/>
     
         <div class="flex flex-col justify-center">
             <form class="flex self-center" on:submit|preventDefault={handleSubmit}>
@@ -121,6 +133,4 @@
             <a class="text-4xl" href="/">Home</a>
         </div>
     </div>
-
-
 </div>

@@ -11,8 +11,6 @@
     export let dialogue: string;
     export let start_state_index: number;
     export let default_connection_char: string = "a";
-    export let input_alphabet: Array<String>;
-    export let is_strict_checking: boolean;
 
 
     $: {if(context){
@@ -84,7 +82,7 @@
             return;
         }
         const index = connected_states.indexOf(end_state_coords.x + "," + end_state_coords.y);
-        connected_states = connected_states.splice(index, 1);
+        connected_states.splice(index, 1);
         node_one.states_connected_to.set(element.character, connected_states);
         state_connections.set(end_state_coords.x + "," + end_state_coords.y, node_one);
 

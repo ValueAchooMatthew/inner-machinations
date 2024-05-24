@@ -5,6 +5,7 @@ extern crate diesel;
 pub mod schema;
 pub mod models;
 pub mod testing_funcs;
+pub mod validation_funcs;
 pub mod db;
 use dotenv::dotenv;
 use std::env;
@@ -12,12 +13,13 @@ use std::env;
 use db::register_user;
 use db::is_correct_log_in;
 use testing_funcs::{test_string_dfa, test_string_nfa};
+use validation_funcs::verify_valid_dfa;
 
 // Fixed Opsec but should refactor key getting and setting into separate func in lib
 fn main() {
   tauri::Builder::default()
   .invoke_handler(tauri::generate_handler![register_user, is_user_registered, is_correct_log_in,
-    send_email, verify_user, is_user_verified, test_string_dfa, test_string_nfa])
+    send_email, verify_user, is_user_verified, test_string_dfa, test_string_nfa, verify_valid_dfa])
   .run(tauri::generate_context!())
   .expect("error while running tauri application");
 }

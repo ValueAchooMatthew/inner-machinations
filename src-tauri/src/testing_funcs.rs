@@ -67,9 +67,7 @@ fn nfa_looping(state_connections: &HashMap<String, State>, keys: &Vec<String>, s
     }
   };
   return false;
-
 }
-
 
 fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state: &State, string_to_check: &str) -> bool {
 
@@ -125,8 +123,4 @@ pub fn test_string_nfa(state_connections: HashMap<String, State>, start_state_co
   };
 
   return nfa_delta_function(&state_connections, start_state, &string_to_check);
-
-
 }
-
-
