@@ -1,8 +1,9 @@
 <script lang="ts">
     import { Automata } from "$lib/enums";
-    import Sidebar from "./sidebar.svelte";
+    import Sidebar from "./Sidebar.svelte";
     import type { State } from "$lib/interfaces";
-    import Whiteboard from "./whiteboard.svelte";
+    import Whiteboard from "./Whiteboard.svelte";
+    import NavHead from "./NavHead.svelte";
     import { invoke } from "@tauri-apps/api";
 
     $: {if(start_state_coordinates && string_to_check !== undefined){
@@ -21,13 +22,13 @@
                 };
 
                 dialogue="";
-                
                 is_string_accepted = await invoke("test_string_dfa", {stateConnections: state_connections, 
                     startStateCoordinates: start_state_coordinates, stringToCheck: string_to_check});
                 };
                 break;
 
             case Automata.NFA:
+                console.log(state_connections)
                 check_string = async () => {
                 is_string_accepted = await invoke("test_string_nfa", {stateConnections: state_connections, 
                     startStateCoordinates: start_state_coordinates, stringToCheck: string_to_check});
@@ -50,8 +51,8 @@
     // Allows for O(1) access without having to search for the state which was clicked in the State array
     let state_connections:  Map<String, State> = new Map<String, State>();
     let default_connection_char: string;
-    let sidebar_open: boolean = false;
-    let is_strict_checking: boolean = false;
+    let sidebar_open: boolean;
+    let is_strict_checking: boolean
     let input_alphabet: Array<string>;
 
     const handleSubmit = (event: SubmitEvent)=> {
@@ -76,27 +77,11 @@
     <div class="bg-gray-200 p-4 text-center w-min-fit h-min-fit flex flex-col rounded-r-md h-full absolute transition-all duration-300 overflow-hidden z-50 w-full"  class:left-0={sidebar_open} class:-left-full={!sidebar_open}>
         <Sidebar bind:input_alphabet={input_alphabet} bind:is_strict_checking={is_strict_checking} bind:default_connection_char={default_connection_char} bind:sidebar_open={sidebar_open}/>
     </div>
-       
-    <div class="w-full flex-1 min-w-0">
-        <div class="flex shadow-lg py-4 px-2 bg-gray-200 w-full">
-            <div class="flex justify-start align-middle w-full gap-6">
-                <button class="w-12 h-12 z-10 self-center" on:click={()=>{sidebar_open = !sidebar_open;}}>
-                    <svg data-slot="icon" aria-hidden="true" fill="none" stroke-width="1.5" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                </button>
-                <div class="flex gap-2 text-4xl font-bold self-center">
-                    <button class={automata_selected === Automata.DFA ? "text-orange-500":""} on:click={()=>{automata_selected = Automata.DFA}}>
-                        DFA
-                    </button>
-                    <span class="text-orange-500">|</span>
-                    <button class={automata_selected === Automata.NFA ? "text-orange-500":""} on:click={()=>{automata_selected = Automata.NFA}}>
-                        NFA
-                    </button>
-                </div>
-            </div>
+
     
-        </div>
+    <div class="w-full flex-1 min-w-0">
+        <NavHead bind:sidebar_open={sidebar_open} bind:automata_selected={automata_selected}/>
+        
         <!-- Definitely can make nicer in future -->
         {#if (dialogue)}
             <div class="absolute top-0 right-0 left-0 w-fit h-fit mx-auto transition-all duration-300 bg-pink-400 px-5 py-1 rounded-md text-center">
@@ -121,16 +106,14 @@
         default_connection_char={default_connection_char}/>
     
         <div class="flex flex-col justify-center">
-            <form class="flex self-center" on:submit|preventDefault={handleSubmit}>
-                <label for="string">
+            <form class="flex self-center gap-2 align-middle" on:submit|preventDefault={handleSubmit}>
+                <label class="w-24 self-center" for="string">
                     Check String:
-                    <input class="border-black border-2 text-3xl rounded-md px-2 py-1" type="text" name="string">
                 </label>
+                <input class="border-black border-2 text-3xl rounded-md px-2 py-1" type="text" name="string" id="string">
+                <div class="w-24">
+                </div>
             </form>
-        </div>
-    
-        <div class="p-4 flex justify-center font-semibold">
-            <a class="text-4xl" href="/">Home</a>
         </div>
     </div>
 </div>

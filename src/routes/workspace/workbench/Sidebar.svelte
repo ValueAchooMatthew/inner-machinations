@@ -54,7 +54,7 @@
         </svg>
     </button>
 </div>
-<div class="font-bold">
+<div class="font-bold gap-2 flex flex-col">
     <form id="alphabetChange" on:submit={handleSubmitAll}>
         <div class="flex justify-center gap-3">
 
@@ -90,7 +90,7 @@
 
     </form>
 
-    <form>
+    <form class="self-center">
         <label for="strict">
             Strict Checking (works for DFA's only):
         </label>

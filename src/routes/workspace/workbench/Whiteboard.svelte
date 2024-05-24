@@ -4,7 +4,7 @@
     import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/mathFuncs";
     import type { State, Connection, Coordinate, BezierCurve } from "$lib/interfaces";
     import { Action } from "$lib/enums";
-    import Sidebar from "./selections.svelte";
+    import Sidebar from "./Selections.svelte";
 
     export let start_state_coordinates: String | null;
     export let state_connections: Map<String, State>;
