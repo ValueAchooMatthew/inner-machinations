@@ -3,6 +3,7 @@ extern crate dotenv;
 
 pub mod schema;
 pub mod models;
+pub mod testing_funcs;
 
 use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
