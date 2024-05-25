@@ -4,13 +4,15 @@
     import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/mathFuncs";
     import type { State, Connection, Coordinate, BezierCurve } from "$lib/interfaces";
     import { Action } from "$lib/enums";
-    import Sidebar from "./Selections.svelte";
+    import Selections from "./Sidebar.svelte";
+  import TestFeedback from "./TestFeedback.svelte";
 
     export let start_state_coordinates: String | null;
     export let state_connections: Map<String, State>;
     export let dialogue: string;
     export let start_state_index: number;
     export let default_connection_char: string = "a";
+    export let is_string_accepted: boolean | null;
 
 
     $: {if(context){
@@ -40,7 +42,7 @@
 
 
     onMount(()=>{
-        width = window.screen.availWidth;
+        width = window.screen.availWidth -200;
         height = window.screen.height - 300;
         const ctx = canvas?.getContext("2d");
         if(ctx){
@@ -340,11 +342,11 @@
 </script>
 
 <svelte:window on:keydown={handleUndoEvent} on:mousedown={handleDragStart} on:mouseup={handleDragEnd} on:mousemove={handleDrag} /> 
-<div class="w-fit h-fit relative font-semibold">
+<div class="w-full h-fit font-semibold flex align-middle justify-around">
 
     <!-- Setting tabindex is necessary so element is focusable and can thus listen to keydown events -->
     <!-- svelte-ignore a11y-positive-tabindex -->
-    <canvas tabindex="1" draggable="false"
+    <canvas tabindex="1" draggable="false" class="border-black border-2 rounded-md mx-2 my-2 bg-white mr-0 flex-shrink-0"
     style={`width: ${width}px; height: ${height}px;`} width={width} height={height}
     bind:this={canvas} 
     on:mousemove={handleMove} 
@@ -355,7 +357,11 @@
     on:mousedown={handleDragStart}
     on:mouseup={handleDragEnd}>
     </canvas>
-    <Sidebar bind:current_action={current_action} undo={undo} 
-    handleTrash={handleTrash} clearCursor={clearCursor}/>
+    <div class="flex flex-col justify-start gap-3 py-3">
+        <TestFeedback is_string_accepted={is_string_accepted}/>
+        <Selections bind:current_action={current_action} undo={undo} 
+        handleTrash={handleTrash} clearCursor={clearCursor}/>
+    </div>
+
     
 </div>

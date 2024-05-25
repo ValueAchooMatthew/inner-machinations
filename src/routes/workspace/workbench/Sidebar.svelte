@@ -1,105 +1,64 @@
 <script lang="ts">
-    export let default_connection_char: string = "a";
-    export let sidebar_open: boolean;
-    export let input_alphabet: Array<string> = new Array("a", "b");
-    export let is_strict_checking: boolean = false;
-
-    const handleDefaultCharChange = (event: Event) => {
-        if(!(event instanceof InputEvent)){
-            return;
-        }
-        const data = event.data;
-        if(data === null || data === ""){
-            return;
-        }
-        default_connection_char = data;
-    };
-
-    const handleSubmitAll = (event: SubmitEvent) => {
-        event.preventDefault();
-        if(!(event.target instanceof HTMLFormElement)){
-            return;
-        }
-        input_alphabet = [];
-        const form_data = new FormData(event.target);
-        let i = 0;
-        form_data.forEach((entry)=>{
-            i++;
-            const char = entry.toString();
-            if(input_alphabet.includes(char)){
-                return;
-            }else if(input_alphabet.includes("")){
-                return;
-            }
-            input_alphabet.push(char);
-        });
-        input_alphabet = input_alphabet;
-    };
-
-    const handleAddingNewCharInput = () => {
-        input_alphabet = [...input_alphabet, ""];
-    };
-
-    const handleRemovingCharInput = (index: number) => {
-        input_alphabet.splice(index, 1);
-        input_alphabet = input_alphabet;
-    };
     
+    import { Action } from "$lib/enums";
+    export let current_action: Action;
+    export let clearCursor: () => void;
+    export let undo: () => void;
+    export let handleTrash: () => void;
+
 </script>
 
-<div class="flex justify-start">
-    <button class="w-12 h-12 z-10 self-center" on:click={()=>{sidebar_open = !sidebar_open;}}>
-        <svg data-slot="icon" aria-hidden="true" fill="none" stroke-width="1.5" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round"></path>
-        </svg>
-    </button>
-</div>
-<div class="font-bold gap-2 flex flex-col">
-    <form id="alphabetChange" on:submit={handleSubmitAll}>
-        <div class="flex justify-center gap-3">
-
-            <label for="alphabet">
-                Input Alphabet (works for DFA's only):
-            </label>
-            <div class="flex flex-col gap-2">
-                <!-- Svelte way of itearting through an object with a length property, which I am using to place input elements in DOM -->
-                {#each input_alphabet as value, i}
-                    <div class="flex gap-1">
-                        <input maxlength="1" value={value} class="border-black border-2 rounded-md px-1" type="text" name="alphabet" id="alphabet">
-                        <button class="w-6 h-6">
-                            <svg on:click={()=>{handleRemovingCharInput(i)}} data-slot="icon" aria-hidden="true" fill="none" stroke-width="1.5" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" stroke-linecap="round" stroke-linejoin="round"></path>
-                              </svg>
-                        </button>
-                    </div>
-
-                {/each}
-                <button on:submit={handleSubmitAll} class="bg-green-300 w-fit h-fit self-center px-2 py-1 border-black border-2 rounded-md" form="alphabetChange">
-                    Submit All
-                </button>
+<nav class="text-center select-none flex flex-col justify-between self-end
+gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 py-4 mr-0.5 z-10">
+    <div class="flex flex-col gap-2">
+        <button on:click={()=>{clearCursor(); current_action = Action.ADDING_START_STATE;}} class="flex flex-col self-center" style="line-height: 15px;">
+            New Start State
+            <div class="mt-2 self-center bg-green-600 rounded-full w-14 h-14 border-black border-[1px]">
             </div>
+        </button>
+        <button on:click={()=>{clearCursor(); current_action = Action.ADDING_REGULAR_STATE;}}  class="flex flex-col self-center">
+            New State
+            <div class="self-center bg-orange-600 rounded-full w-14 h-14 border-black border-[1px]">
+            </div>
+        </button>
+        <button on:click={()=>{clearCursor(); current_action = Action.ADDING_FINAL_STATE;}} 
+            class="flex flex-col self-center" style="line-height: 15px;">
+            New Final State
+            <div class="bg-white mt-2 self-center rounded-full w-[4.5rem] h-[4.5rem] border-black border-[1px]">
+            </div>
+        </button>
+        <button on:click={()=>{clearCursor(); current_action = Action.PLACING_LINE;}} class="flex flex-col " style="line-height: 15px;">
+            New Connection
+            <svg class="hover:cursor-pointer w-10 self-center" data-slot="icon" fill="none" stroke-width="1.5" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3"></path>
+            </svg>
+        </button>
+        <button on:click={()=>{clearCursor(); current_action = Action.PLACING_EPSILON_LINE;}} class="flex flex-col " style="line-height: 15px;">
+            New Epsilon Connection
+            <br>
+            <span class=" -mb-3 self-center">
+                ϵ
+            </span>
+            <svg class="hover:cursor-pointer w-10 self-center" data-slot="icon" fill="none" stroke-width="1.5" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 
-            <button class="self-end mb-1" on:click={handleAddingNewCharInput}>
-                <svg class="w-6 h-6 " data-slot="icon" aria-hidden="true" fill="none" stroke-width="1.5" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 4.5v15m7.5-7.5h-15" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-            </button>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3"></path>
+            </svg>
+        </button>
+    </div>
+    <div class="flex justify-center mt-2">
+        <svg on:click={()=>{clearCursor(); undo();}} class="hover:cursor-pointer w-6" data-slot="icon" fill="currentColor"
+             viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path clip-rule="evenodd" fill-rule="evenodd" d="M2.515 10.674a1.875 1.875 0 0 0 0 2.652L8.89 19.7c.352.351.829.549 1.326.549H19.5a3 3 0 0 0 3-3V6.75a3 3 0 
+            0 0-3-3h-9.284c-.497 0-.974.198-1.326.55l-6.375 6.374ZM12.53 9.22a.75.75 0 1 0-1.06 1.06L13.19 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 1 0 1.06-1.06L15.31 12l1.72-1.72a.75.75 0 1 0-1.06-1.06l-1.72 1.72-1.72-1.72Z"></path>
+          </svg>
+        <svg on:click={()=>{clearCursor(); handleTrash();}} class="hover:cursor-pointer w-6" data-slot="icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path clip-rule="evenodd" fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 
+            0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"></path>
+        </svg>
+        <svg on:click={()=>{clearCursor();}} aria-hidden="true" class="hover:cursor-pointer w-6 mb-0.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path clip-rule="evenodd" d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 
+            0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415zm3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z" fill-rule="evenodd"></path>
+          </svg>
+    </div>
+</nav>
 
-        </div>
-
-
-    </form>
-
-    <form class="self-center">
-        <label for="strict">
-            Strict Checking (works for DFA's only):
-        </label>
-        <input on:change={()=>{is_strict_checking = !is_strict_checking}} type="checkbox" name="strict" id = "strict">
-    </form>
-    <form>
-        <label for="char">
-            Specify default connection character (default: a): 
-        </label>
-        <input value={default_connection_char} maxlength="1" on:input={handleDefaultCharChange} class="border-black border-2 rounded-md" type="text" name="char" id="char">
-    </form>
-</div>

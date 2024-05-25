@@ -73,9 +73,6 @@ fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state:
     Some(connections) => connections,
     None => &binding
   };
-  println!("{:?}", current_state);
-  println!("{:?}", connection_keys_with_char);
-  println!("{:?}", connection_keys_with_epsilon);
 
 
   for connection_key in connection_keys_with_char {
