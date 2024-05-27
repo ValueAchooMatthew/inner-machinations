@@ -4,6 +4,7 @@ export interface State {
     // Specifying coordinates of node as an identification for a node
     position: Coordinate,
     states_connected_to: Map<String, Array<String>>,
+    is_start: boolean,
     is_final: boolean,
     element: "State"
 };

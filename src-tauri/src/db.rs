@@ -37,11 +37,9 @@ pub fn is_correct_log_in(email_address: &str, pwrd: &str) -> bool{
     .filter(password.eq(encrypted_password))
     .get_result::<User>(&mut conn);
 
-
-  // Eventually, I will need to implement either a JWT or cookie system to persist user log-in but for now this is okay as a
-  // minimum viable product 
   match person.ok(){
     Some(_) => true,
     None => false
   }
 }
+

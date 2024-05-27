@@ -24,10 +24,10 @@ pub fn retrieve_registered_user(em: &str) -> Option<User> {
 
   let mut connection =  establish_connection();
   let mut result: Vec<User> = users
-  .filter(email.eq(em))
-  .limit(1)
-  .load(&mut connection)
-  .expect("whoops, there was an error checking for the user!");
+    .filter(email.eq(em))
+    .limit(1)
+    .load(&mut connection)
+    .expect("whoops, there was an error checking for the user!");
 
   match result.pop() {
       Some(user) => Some(user),
@@ -36,11 +36,10 @@ pub fn retrieve_registered_user(em: &str) -> Option<User> {
 }
 
 use diesel::RunQueryDsl;
-use crate::models::Register;
 use crate::schema::users;
 pub fn add_user_to_db(email: &str, password: &str) -> () {
   let mut conn: MysqlConnection = establish_connection();
-  let new_user = Register { email, password };
+  let new_user = (users::email.eq(email), users::password.eq(password));
   diesel::insert_into(users::table)
       .values(&new_user)
       .execute(&mut conn)

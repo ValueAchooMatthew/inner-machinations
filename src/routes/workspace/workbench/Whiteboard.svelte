@@ -4,8 +4,8 @@
     import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/mathFuncs";
     import type { State, Connection, Coordinate, BezierCurve } from "$lib/interfaces";
     import { Action } from "$lib/enums";
-    import Selections from "./Sidebar.svelte";
-  import TestFeedback from "./TestFeedback.svelte";
+    import Sidebar from "./Sidebar.svelte";
+    import TestFeedback from "./TestFeedback.svelte";
 
     export let start_state_coordinates: String | null;
     export let state_connections: Map<String, State>;
@@ -117,7 +117,7 @@
                     return;
                 }
                 selected_state = {position: cursor_coords, states_connected_to: new Map<string, Array<String>>(), 
-                element: "State", is_final: false};
+                is_start: false, is_final: false, element: "State"};
                 elements.push(selected_state);
                 states.push(selected_state);
                 state_connections.set(cursor_coords_string, selected_state);
@@ -142,7 +142,8 @@
                 }
                 start_state_index = states.length;
                 start_state_coordinates = cursor_coords_string;
-                selected_state = {position: cursor_coords, states_connected_to: new Map<string, Array<String>>(), element: "State", is_final: false};
+                selected_state = {position: cursor_coords, states_connected_to: new Map<string, Array<String>>(),
+                is_start: true , is_final: false, element: "State"};
                 elements.push(selected_state);
                 states.push(selected_state);
                 state_connections.set(cursor_coords_string, selected_state);
@@ -359,8 +360,8 @@
     </canvas>
     <div class="flex flex-col justify-start gap-3 py-3">
         <TestFeedback is_string_accepted={is_string_accepted}/>
-        <Selections bind:current_action={current_action} undo={undo} 
-        handleTrash={handleTrash} clearCursor={clearCursor}/>
+        <Sidebar bind:current_action={current_action} undo={undo} 
+        handleTrash={handleTrash} clearCursor={clearCursor} state_connections={state_connections}/>
     </div>
 
     

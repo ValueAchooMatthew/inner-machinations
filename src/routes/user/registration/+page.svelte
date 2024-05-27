@@ -1,42 +1,46 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
 	import { invoke } from "@tauri-apps/api/tauri";
-	import { user_email, user_password } from "../../../lib/user";
+	import { user_email, is_a_user_logged_in } from "../../../lib/user";
 
 	let response = "";
 
 	const handleSubmit = async (event: SubmitEvent): Promise<void> =>{
 		event.preventDefault();
-		if(event.target instanceof HTMLFormElement){
-			const data = new FormData(event.target);
-			const email =  data.get("email")?.toString();
-			const password = data.get("password")?.toString();
-			if(!email || !password){
-				return;
-			}
-			user_email.set(email);
-			user_password.set(password);
-			const isRegistered: boolean = await invoke("is_user_registered", {email: email, password: password});
-			if(!isRegistered){
-				invoke("register_user", {email: email, password: password});
-				goto("verification");	
-			}else{
-				const isCorrectLogin: boolean = await invoke("is_correct_log_in", {emailAddress: email, pwrd: password});
-				const isVerified: boolean = await invoke("is_user_verified", {emailAddress: email, pwrd: password});
-				if(!isCorrectLogin){
-					response = "Sorry, you've entered an incorrect password"
-				}else{
-					if(!isVerified){
-						goto("verification");
-					}else{
-						goto("../workspace/dashboard");
-					}
-				}
-			}
-		}else{
-			console.log("There was an error parsing user information")
+		if(!(event.target instanceof HTMLFormElement)){
+			console.log("There was an error submitting user information");
 			return;
-		}	
+		}
+		const data = new FormData(event.target);
+		const email =  data.get("email")?.toString();
+		const password = data.get("password")?.toString();
+		if(!email || !password){
+			return;
+		}
+		// The store for the user is empty unless they successfully log in
+		is_a_user_logged_in.set(false);
+		user_email.set("");
+		const isRegistered: boolean = await invoke("is_user_registered", {email: email, password: password});
+		if(!isRegistered){
+			invoke("register_user", {email: email, password: password});
+			goto("verification");	
+			return;
+		}
+		const isCorrectLogin: boolean = await invoke("is_correct_log_in", {emailAddress: email, pwrd: password});
+		const isVerified: boolean = await invoke("is_user_verified", {emailAddress: email, pwrd: password});
+		if(!isCorrectLogin){
+			response = "Sorry, you've entered an incorrect password";
+			return;
+		}
+		if(!isVerified){
+			goto("verification");
+			return;
+		}
+		is_a_user_logged_in.set(true);
+		user_email.set(email);
+		goto("../workspace/dashboard");
+		return;
+		
 	}
 </script>
 
