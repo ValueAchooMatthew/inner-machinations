@@ -11,7 +11,7 @@ export interface State {
 
 export interface Connection {
     curve: BezierCurve,
-    character: string,
+    connection_character: string,
     element: "Connection"
 };
 

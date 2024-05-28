@@ -62,7 +62,7 @@ const drawConnection = (context: CanvasRenderingContext2D, connection: Connectio
 
     const halfway_point = getPointOnBezierCurveAtDistance(curve, .5);
 
-    context.fillText(connection.character, halfway_point.x + 50 * Math.sin(angle_of_curve_at_end), 
+    context.fillText(connection.connection_character, halfway_point.x + 50 * Math.sin(angle_of_curve_at_end), 
     halfway_point.y - 50 * Math.cos(angle_of_curve_at_end));
 
 }

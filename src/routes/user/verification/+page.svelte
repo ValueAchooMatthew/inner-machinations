@@ -10,11 +10,11 @@
     });
 
     $: code = "";
-    let isRegistered = false;
+    let is_verified = false;
     let response = "";
     onMount(async () =>{
-        isRegistered = await invoke("is_user_verified", {emailAddress: email});
-        if(!isRegistered){
+        is_verified = await invoke("is_user_verified", {emailAddress: email});
+        if(!is_verified){
             code = await invoke("send_email", {emailAddress: email});
         }
 
@@ -45,7 +45,7 @@
         A desktop application to create your very own DFA's and NFA's
     </h2>
 </div>
-{#if !isRegistered }
+{#if !is_verified }
 <main class="h-screen text-orange-600 font-semibold py-10 relative">
     <div class="flex flex-wrap justify-center h-full text-center content-center">
         <div class="font-Nunito text-2xl text-center">

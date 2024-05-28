@@ -19,7 +19,7 @@
 		}
 		// The store for the user is empty unless they successfully log in
 		is_a_user_logged_in.set(false);
-		user_email.set("");
+		user_email.set(email);
 		const isRegistered: boolean = await invoke("is_user_registered", {email: email, password: password});
 		if(!isRegistered){
 			invoke("register_user", {email: email, password: password});

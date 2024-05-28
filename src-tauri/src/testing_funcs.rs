@@ -15,18 +15,14 @@ pub fn test_string_dfa(state_connections: HashMap<String, State>, start_state_co
 
   for connection_char in string_to_check.chars(){
 
-    let next_state = match dfa_delta_function(&state_connections, &current_state, connection_char.to_string()) {
+    let next_state = match dfa_delta_function(&state_connections, current_state, connection_char.to_string()) {
       Some(state) => state,
       None => return false
     };
 
     current_state = next_state;
 
-    if current_state.is_final == true {
-      is_string_accepted = true;
-    } else {
-      is_string_accepted = false;
-    }
+    is_string_accepted = current_state.is_final;
   }
 
   is_string_accepted
@@ -54,11 +50,11 @@ fn dfa_delta_function<'a>(state_connections: &'a HashMap<String, State>, s: &'a 
 
 fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state: &State, string_to_check: &str) -> bool {
 
-  if string_to_check.len() == 0 && current_state.is_final {
+  if string_to_check.is_empty() && current_state.is_final {
     return true;
   }
 
-  let next_char = match string_to_check.chars().nth(0) {
+  let next_char = match string_to_check.chars().next() {
     Some(char) => char.to_string(),
     None => String::new()
   };
@@ -84,7 +80,7 @@ fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state:
     // Even after exhausting all the regular character options, the nfa may still be valid depending on the results of the epsilon connections, 
     // hence we are not returning unless it returns true
     let result = nfa_delta_function(state_connections, next_state, &string_to_check[1..]);
-    if result == true {
+    if result {
       return true;
     }
   }
@@ -94,13 +90,13 @@ fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state:
       Some(state)  => state,
       None => return false
     };
-    let result = nfa_delta_function(state_connections, next_state, &string_to_check);
-    if result == true {
+    let result = nfa_delta_function(state_connections, next_state, string_to_check);
+    if result {
       return true;
     }
 
   }
-  return false;
+  false
 
 }
 
@@ -112,5 +108,5 @@ pub fn test_string_nfa(state_connections: HashMap<String, State>, start_state_co
     None => return false
   };
 
-  return nfa_delta_function(&state_connections, start_state, &string_to_check);
+  nfa_delta_function(&state_connections, start_state, &string_to_check)
 }

@@ -1,6 +1,9 @@
 use diesel::prelude::*;
 use diesel::query_builder::QueryId;
-use diesel::sql_types::{Integer, Bool, VarChar, Nullable};
+use diesel::sql_types::{Integer, Bool, VarChar};
+
+// Any instances of a character being typed as a string is done due to the fact the deserialized datatype coming from the
+// type scripty back-end, despite being a single character is always of type string since typescript does not have a character data type
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = crate::schema::users)]
@@ -38,10 +41,6 @@ pub struct SavedState {
     pub automata_id: i32,
     #[diesel(sql_type = VarChar)]
     pub position: String,
-    #[diesel(sql_type = Nullable<Integer>)]
-    pub connected_state: Option<i32>,
-    #[diesel(sql_type = VarChar)]
-    pub connection_character: String,
     #[diesel(sql_type = Bool)]
     pub is_start: bool,
     #[diesel(sql_type = Bool)]
@@ -55,10 +54,10 @@ pub struct SavedState {
 pub struct SavedConnection {
     pub id: i32,
     pub automata_id: i32,
-    pub start_coords: String,
+    pub start_point: String,
     pub control_point_one: String,
     pub control_point_two: String,
-    pub end_coords: String
+    pub end_point: String
 }
 
 
@@ -75,6 +74,34 @@ pub struct State {
 }
 #[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Hash)]
 pub struct Coordinate {
-    x: i32,
-    y: i32
+    pub x: i32,
+    pub y: i32
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Connection {
+    pub curve: BezierCurve,
+    pub connection_character: String,
+    pub element: String
+
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct BezierCurve {
+    pub start_point: Coordinate,
+    pub control_point_one: Coordinate,
+    pub control_point_two: Coordinate,
+    pub end_point: Coordinate
+
+}
+
+impl Coordinate{
+    pub fn convert_coords_to_string(&self) -> String {
+        let mut built_string = self.x.to_string();
+        built_string.push(',');
+        // Using reference here since push_str takes in &str as param
+        built_string.push_str(&self.y.to_string());
+        return built_string;
+    }
+
 }

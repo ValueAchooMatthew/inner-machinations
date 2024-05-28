@@ -78,14 +78,14 @@
         if(!node_one){
             return;
         }
-        let connected_states = node_one.states_connected_to.get(element.character);
+        let connected_states = node_one.states_connected_to.get(element.connection_character);
         const end_state_coords = element.curve.end_point;
         if(connected_states === undefined){
             return;
         }
         const index = connected_states.indexOf(end_state_coords.x + "," + end_state_coords.y);
         connected_states.splice(index, 1);
-        node_one.states_connected_to.set(element.character, connected_states);
+        node_one.states_connected_to.set(element.connection_character, connected_states);
         state_connections.set(end_state_coords.x + "," + end_state_coords.y, node_one);
 
         states = states;
@@ -158,7 +158,7 @@
                 const curve: BezierCurve = {start_point: cursor_coords, control_point_one: cursor_coords, 
                 control_point_two: cursor_coords, end_point: cursor_coords};
 
-                const connection: Connection = {curve: curve, element: "Connection", character: default_connection_char};
+                const connection: Connection = {curve: curve, element: "Connection", connection_character: default_connection_char};
                 connections.push(connection);
                 current_action = Action.DRAWING_LINE;
                 break;
@@ -171,7 +171,7 @@
                 const ep_curve: BezierCurve = {start_point: cursor_coords, control_point_one: cursor_coords, 
                 control_point_two: cursor_coords, end_point: cursor_coords};
 
-                const ep_connection: Connection = {curve: ep_curve, element: "Connection", character: "ϵ"};
+                const ep_connection: Connection = {curve: ep_curve, element: "Connection", connection_character: "ϵ"};
                 connections.push(ep_connection);
                 current_action = Action.DRAWING_LINE;
                 break;
@@ -192,12 +192,12 @@
                 if(!starting_state){
                     return;
                 }
-                const previous_connections = starting_state.states_connected_to.get(last_connection.character);
+                const previous_connections = starting_state.states_connected_to.get(last_connection.connection_character);
                 if(previous_connections === undefined){
-                    starting_state.states_connected_to.set(last_connection.character, new Array<String>(cursor_coords_string));
+                    starting_state.states_connected_to.set(last_connection.connection_character, new Array<String>(cursor_coords_string));
                 }else{
                     previous_connections.push(cursor_coords_string);
-                    starting_state.states_connected_to.set(last_connection.character, previous_connections);
+                    starting_state.states_connected_to.set(last_connection.connection_character, previous_connections);
                 }
 
                 // First control point starts at the start coordinate, the second control point moves to follow the end coordinates
@@ -267,9 +267,9 @@
         }
 
         const selected_connection = connections[selected_connection_index];
-        const old_character = selected_connection.character;
+        const old_character = selected_connection.connection_character;
         const new_character = event.key;
-        selected_connection.character = new_character;
+        selected_connection.connection_character = new_character;
 
         const start_state_key = selected_connection.curve.start_point.x + "," + selected_connection.curve.start_point.y;
         const end_state_key = selected_connection.curve.end_point.x + "," + selected_connection.curve.end_point.y;
@@ -361,7 +361,7 @@
     <div class="flex flex-col justify-start gap-3 py-3">
         <TestFeedback is_string_accepted={is_string_accepted}/>
         <Sidebar bind:current_action={current_action} undo={undo} 
-        handleTrash={handleTrash} clearCursor={clearCursor} state_connections={state_connections}/>
+        handleTrash={handleTrash} clearCursor={clearCursor} state_connections={state_connections} connections={connections}/>
     </div>
 
     

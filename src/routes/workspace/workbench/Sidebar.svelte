@@ -1,7 +1,8 @@
 <script lang="ts">
     
     import { Action } from "$lib/enums";
-    import type { State } from "$lib/interfaces";
+    import { get } from "svelte/store";
+    import type { Connection, State } from "$lib/interfaces";
     import { user_email, is_a_user_logged_in } from "$lib/user";
     import { invoke } from "@tauri-apps/api";
     export let current_action: Action;
@@ -9,13 +10,14 @@
     export let undo: () => void;
     export let handleTrash: () => void;
     export let state_connections: Map<String, State>;
+    export let connections: Array<Connection>;
 
     const saveWorkspace = async () => {
-        if(!is_a_user_logged_in){
+        if(!get(is_a_user_logged_in)){
             return;
         }
 
-        await invoke("save_workspace", {states: state_connections, workspaceName: "nevin", email: user_email});
+        await invoke("save_workspace", {states: state_connections, workspaceName: "nevin", email: get(user_email), connections: connections});
     }
 
 </script>

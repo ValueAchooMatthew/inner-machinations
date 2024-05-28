@@ -15,7 +15,7 @@ pub fn establish_connection() -> MysqlConnection {
     let database_url = env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
       MysqlConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
+        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
 use models::User;
@@ -29,15 +29,12 @@ pub fn retrieve_registered_user(em: &str) -> Option<User> {
     .load(&mut connection)
     .expect("whoops, there was an error checking for the user!");
 
-  match result.pop() {
-      Some(user) => Some(user),
-      None => None
-  }
+  result.pop()
 }
 
 use diesel::RunQueryDsl;
 use crate::schema::users;
-pub fn add_user_to_db(email: &str, password: &str) -> () {
+pub fn add_user_to_db(email: &str, password: &str) {
   let mut conn: MysqlConnection = establish_connection();
   let new_user = (users::email.eq(email), users::password.eq(password));
   diesel::insert_into(users::table)
@@ -66,13 +63,13 @@ pub fn generate_code() -> String {
     .take(6)
     .map(char::from)
     .collect();
-  return code;
+  code
 }
 
-pub fn set_user_code(cipher: &MagicCrypt256, generated_code: &str, email_address: &str) -> (){
+pub fn set_user_code(cipher: &MagicCrypt256, generated_code: &str, email_address: &str){
   use crate::users::dsl::*;
 
-  let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
+  let [encrypted_email, _] = encrypt_user_data(cipher, email_address, "");
 
   let mut conn: MysqlConnection = establish_connection();
   diesel::update(users)

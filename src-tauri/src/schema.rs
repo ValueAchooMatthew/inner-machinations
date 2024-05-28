@@ -14,13 +14,15 @@ diesel::table! {
         id -> Integer,
         automata_id -> Integer,
         #[max_length = 255]
-        start_coords -> Varchar,
+        start_point -> Varchar,
         #[max_length = 255]
         control_point_one -> Varchar,
         #[max_length = 255]
         control_point_two -> Varchar,
         #[max_length = 255]
-        end_coords -> Varchar,
+        end_point -> Varchar,
+        #[max_length = 1]
+        connection_character -> Varchar,
     }
 }
 
@@ -30,9 +32,6 @@ diesel::table! {
         automata_id -> Integer,
         #[max_length = 255]
         position -> Varchar,
-        connected_state -> Nullable<Integer>,
-        #[max_length = 1]
-        connection_character -> Varchar,
         is_start -> Bool,
         is_final -> Bool,
     }
@@ -53,6 +52,7 @@ diesel::table! {
 
 diesel::joinable!(saved_automata -> users (u_id));
 diesel::joinable!(saved_connections -> saved_automata (automata_id));
+diesel::joinable!(saved_states -> saved_automata (automata_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     saved_automata,
