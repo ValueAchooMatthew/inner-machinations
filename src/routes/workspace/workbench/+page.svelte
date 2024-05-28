@@ -53,6 +53,7 @@
     let sidebar_open: boolean;
     let is_strict_checking: boolean
     let input_alphabet: Array<string>;
+    let workspace_name: string;
 
     const handleSubmit = (event: SubmitEvent)=> {
         if(!(event.target instanceof HTMLFormElement)){
@@ -79,7 +80,7 @@
         <OptionsMenu bind:input_alphabet={input_alphabet} bind:is_strict_checking={is_strict_checking} bind:default_connection_char={default_connection_char} bind:sidebar_open={sidebar_open}/>
     </aside>
     <div class="w-full min-w-0">
-        <Banner bind:sidebar_open={sidebar_open} bind:automata_selected={automata_selected}/>
+        <Banner bind:workspace_name={workspace_name} bind:sidebar_open={sidebar_open} bind:automata_selected={automata_selected}/>
         <main class="flex">
             <!-- Definitely can make nicer in future -->
             {#if (dialogue)}
@@ -88,7 +89,7 @@
                 </div>
             {/if}
 
-            <Whiteboard bind:start_state_coordinates={start_state_coordinates} bind:dialogue={dialogue} 
+            <Whiteboard workspace_name={workspace_name} bind:start_state_coordinates={start_state_coordinates} bind:dialogue={dialogue} 
             bind:state_connections={state_connections} bind:start_state_index={start_state_index} 
             default_connection_char={default_connection_char} is_string_accepted={is_string_accepted}/>
             </main>

@@ -13,6 +13,7 @@
     export let start_state_index: number;
     export let default_connection_char: string = "a";
     export let is_string_accepted: boolean | null;
+    export let workspace_name: string;
 
 
     $: {if(context){
@@ -360,7 +361,7 @@
     </canvas>
     <div class="flex flex-col justify-start gap-3 py-3">
         <TestFeedback is_string_accepted={is_string_accepted}/>
-        <Sidebar bind:current_action={current_action} undo={undo} 
+        <Sidebar workspace_name={workspace_name} bind:current_action={current_action} undo={undo} 
         handleTrash={handleTrash} clearCursor={clearCursor} state_connections={state_connections} connections={connections}/>
     </div>
 

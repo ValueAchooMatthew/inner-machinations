@@ -11,13 +11,14 @@
     export let handleTrash: () => void;
     export let state_connections: Map<String, State>;
     export let connections: Array<Connection>;
+    export let workspace_name;
 
     const saveWorkspace = async () => {
         if(!get(is_a_user_logged_in)){
             return;
         }
 
-        await invoke("save_workspace", {states: state_connections, workspaceName: "nevin", email: get(user_email), connections: connections});
+        await invoke("save_workspace", {states: state_connections, workspaceName: workspace_name, email: get(user_email), connections: connections});
     }
 
 </script>
