@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use app::encrypt_user_data;
-use app::models::{Connection, User};
+use app::models::{BezierCurve, Connection, Coordinate, SavedConnection, SavedState, User};
 
 use app::schema::saved_connections::{self};
 use app::schema::users;
@@ -47,7 +47,22 @@ fn get_workspace(workspace_name: &String, user_id: &i32, conn: &mut MysqlConnect
     return workspace;
 }
 
+fn get_user_id(email: &String, conn: &mut MysqlConnection) -> i32 {
+    let key = std::env::var("ENCRYPTION_KEY")
+        .expect("Encryption Key must be set as a .env variable");
+    let cipher = new_magic_crypt!(&key, 256);
 
+    let [encrypted_user_email, _ ] = encrypt_user_data(&cipher, &email, "");
+
+    let user: User = users::dsl::users
+        .filter(users::dsl::email.eq(&encrypted_user_email))
+        .limit(1)
+        .get_result::<User>(conn)
+        .expect("There was an error finding the user's profile");
+
+    user.id
+
+}
 
 fn save_states_to_db(workspace_id: &i32, states: &HashMap<String, State>, conn: &mut MysqlConnection) {
     // First step is to remove all existing states corresponding to the workspace
@@ -115,24 +130,13 @@ fn save_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, con
 }
 
 
+
 #[tauri::command]
 pub fn save_workspace(workspace_name: String, states: HashMap<String, State>, email: String, connections: Vec<Connection>){
 
     let mut conn = establish_connection();
-    let key = std::env::var("ENCRYPTION_KEY")
-        .expect("Encryption Key must be set as a .env variable");
-    let cipher = new_magic_crypt!(&key, 256);
 
-    let [encrypted_user_email, _ ] = encrypt_user_data(&cipher, &email, "");
-
-
-    let user: User = users::dsl::users
-        .filter(users::dsl::email.eq(&encrypted_user_email))
-        .limit(1)
-        .get_result::<User>(&mut conn)
-        .expect("There was an error finding the user's profile");
-
-    let user_id = user.id;
+    let user_id = get_user_id(&email, &mut conn);
 
     let workspace: SavedAutomata = get_workspace(&workspace_name, &user_id, &mut conn);
 
@@ -140,5 +144,137 @@ pub fn save_workspace(workspace_name: String, states: HashMap<String, State>, em
     save_connections_to_db(&workspace.id, &connections, &mut conn);
     println!("Saved!");
 
+}
+
+#[tauri::command]
+pub fn delete_workspace(workspace_name: String, email: String){
+
+    let mut conn: MysqlConnection = establish_connection();
+
+    let user_id = get_user_id(&email, &mut conn);
+
+    let workspace: SavedAutomata = get_workspace(&workspace_name, &user_id, &mut conn);
+
+    diesel::delete(saved_states::table)
+        .filter(saved_states::automata_id.eq(workspace.id))
+        .execute(&mut conn)
+        .expect("There was an error deleting the old workspace's previous states");
+
+    diesel::delete(saved_connections::table)
+        .filter(saved_connections::automata_id.eq(workspace.id))
+        .execute(&mut conn)
+        .expect("There was an error deleting the old workspace's previous connections");
+
+    diesel::delete(saved_automata::table)
+        .filter(saved_automata::u_id.eq(&user_id))
+        .filter(saved_automata::name.eq(workspace_name))
+        .execute(&mut conn)
+        .expect("There was an error deleting the workspace from the db");
+
+}
+
+pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (usize, Vec<State>, Vec<Connection>, HashMap<String, State>) {
+    
+    let mut conn: MysqlConnection = establish_connection();
+    
+    let user_id = get_user_id(&email, &mut conn);
+
+    let workspace = get_workspace(&workspace_name, &user_id, &mut conn);
+    
+    // First get the states and connections from the database
+    let states_in_database: Vec<SavedState> = saved_states::dsl::saved_states
+        .filter(saved_states::automata_id.eq(&workspace.id))
+        .get_results::<SavedState>(&mut conn)
+        .expect("There was an issue getting the workspace's states");
+
+
+    let mut start_state_index: usize = 0;
+    let mut state_connections: HashMap<String, State> = HashMap::new();
+    let mut connections: Vec<Connection> = vec![];
+    let mut states: Vec<State> = vec![];
+
+    for (index, state) in states_in_database.iter().enumerate() {
+        if state.is_start {
+            start_state_index = index;
+        }
+        let parsed_state = parse_saved_state_to_regular_state(state, &workspace, &mut conn);
+        state_connections.insert(state.position.to_owned(), parsed_state.to_owned());
+        states.push(parsed_state.to_owned());
+    }
+
+    let connections_in_database: Vec<SavedConnection> = saved_connections::dsl::saved_connections
+        .filter(saved_connections::dsl::automata_id.eq(&workspace.id))
+        .get_results::<SavedConnection>(&mut conn)
+        .expect("There was an issue getting the workspace's states");
+
+    for connection in connections_in_database {
+        let parsed_connection = Connection {
+            curve: BezierCurve {
+                start_point: parse_position_key_to_coordinate(&connection.start_point),
+                control_point_one: parse_position_key_to_coordinate(&connection.control_point_one),
+                control_point_two: parse_position_key_to_coordinate(&connection.control_point_two),
+                end_point: parse_position_key_to_coordinate(&connection.end_point),
+            },
+            connection_character: connection.connection_character,
+            element: "Connection".to_owned()
+        };
+        connections.push(parsed_connection);
+    };
+
+    return (start_state_index, states, connections, state_connections);
+
+
+}
+
+
+fn parse_saved_state_to_regular_state(state: &SavedState, workspace: &SavedAutomata, conn: &mut MysqlConnection) -> State {
+    let mut parsed_state = State {
+        position: parse_position_key_to_coordinate(&state.position), 
+        states_connected_to: HashMap::<String, Vec<String>>::new(),
+        is_start: state.is_start,
+        is_final: state.is_final,
+        element: "State".to_owned()
+    };
+
+    let states_connected_to_given_state: Vec<SavedConnection> = saved_connections::dsl::saved_connections
+        .filter(saved_connections::dsl::automata_id.eq(&workspace.id))
+        .filter(saved_connections::dsl::start_point.eq(&state.position))
+        .get_results::<SavedConnection>(conn)
+        .expect("There was an issue getting the workspace's states");
+
+    for connected_state in states_connected_to_given_state {
+
+        let mut current_connections = parsed_state.states_connected_to
+            .get_mut(&connected_state.connection_character)
+            .expect("There was a problem getting the connected states to the current states")
+            .to_owned();
+
+        current_connections.push(connected_state.end_point);
+
+        parsed_state.states_connected_to.insert(
+            connected_state.connection_character, 
+            current_connections);
+    }
+    parsed_state
+}
+
+
+fn parse_position_key_to_coordinate(key: &String) -> Coordinate {
+
+    let split_key: Vec<&str> = key.split(",").collect();
+    let coord_x = split_key
+        .get(0)
+        .expect("There was an error parsing the state's coordinates")
+        .to_owned();
+
+    let coord_y = split_key
+        .get(0)
+        .expect("There was an error parsing the state's coordinates")
+        .to_owned();
+
+    Coordinate { 
+        x: coord_x.parse::<i32>().unwrap(), 
+        y: coord_y.parse::<i32>().unwrap()  
+    }
 
 }

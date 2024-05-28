@@ -30,7 +30,7 @@ pub struct SavedAutomata {
     pub name: String
 }
 
-#[derive(Queryable, Selectable, QueryableByName)]
+#[derive(Queryable, Selectable, QueryableByName, Insertable)]
 #[diesel(table_name = crate::schema::saved_states)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 #[derive(Debug)]
@@ -47,24 +47,32 @@ pub struct SavedState {
     pub is_final: bool
 }
 
-#[derive(Queryable, Selectable, Insertable)]
+#[derive(Queryable, Selectable, QueryableByName, Insertable)]
 #[diesel(table_name = crate::schema::saved_connections)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 #[derive(Debug)]
 pub struct SavedConnection {
+    #[diesel(sql_type = Integer)]
     pub id: i32,
+    #[diesel(sql_type = Integer)]
     pub automata_id: i32,
+    #[diesel(sql_type = VarChar)]
     pub start_point: String,
+    #[diesel(sql_type = VarChar)]
     pub control_point_one: String,
+    #[diesel(sql_type = VarChar)]
     pub control_point_two: String,
-    pub end_point: String
+    #[diesel(sql_type = VarChar)]
+    pub end_point: String,
+    #[diesel(sql_type = VarChar)]
+    pub connection_character: String
 }
 
 
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct State { 
     pub position: Coordinate,
     pub states_connected_to: HashMap<String, Vec<String>>,
@@ -72,7 +80,7 @@ pub struct State {
     pub is_final: bool,
     pub element: String
 }
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Hash)]
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Hash, Clone)]
 pub struct Coordinate {
     pub x: i32,
     pub y: i32

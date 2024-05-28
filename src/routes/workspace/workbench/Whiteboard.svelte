@@ -9,6 +9,7 @@
 
     export let start_state_coordinates: String | null;
     export let state_connections: Map<String, State>;
+    export let connections: Array<Connection> = [];;
     export let dialogue: string;
     export let start_state_index: number;
     export let default_connection_char: string = "a";
@@ -29,7 +30,6 @@
 
     // Consider refactoring into rust backend for faster performance in future
     let states: Array<State> = [];
-    let connections: Array<Connection> = [];
     let elements: Array<State | Connection> = [];
 
     $: width = 900;

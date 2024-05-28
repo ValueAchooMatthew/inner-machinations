@@ -1,8 +1,33 @@
 <script lang="ts">
     import { Automata } from "$lib/enums";
+    import type { Connection, State } from "$lib/interfaces";
+    import { user_email, is_a_user_logged_in } from "$lib/user";
+    import { invoke } from "@tauri-apps/api";
+    import { get } from "svelte/store";
     export let sidebar_open: boolean = false;
     export let automata_selected: Automata = Automata.DFA;
     export let workspace_name: String = "Untitled Project";
+    export let state_connections: Map<String, State>;
+    export let connections: Array<Connection>;
+
+
+    const email = get(user_email);
+
+    const handleSubmit = async (event: SubmitEvent) => {
+        if(!(event.target instanceof HTMLFormElement) || !is_a_user_logged_in){
+            return;
+        }
+        const form_data = new FormData(event.target);
+        let new_workspace_name = form_data.get("renamedWorkspace");
+        if(!new_workspace_name){
+            return;
+        }
+        new_workspace_name = new_workspace_name.toString();
+
+        await invoke("delete_workspace", {workspaceName: workspace_name, email: email});
+        await invoke("save_workspace", {workspaceName: new_workspace_name, email: email, states: state_connections, connections: connections});
+        workspace_name = new_workspace_name;
+    }
 
 </script>
 
@@ -15,7 +40,10 @@
                 </svg>
             </button>
             <div>
-                <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12" value={workspace_name} type="text">
+                <form on:submit={handleSubmit} action="">
+                    <input name="renamedWorkspace" id="renamedWorkspace" 
+                    class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12" value={workspace_name} type="text">
+                </form>
             </div>
         </div>
 

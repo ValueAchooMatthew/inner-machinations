@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Automata } from "$lib/enums";
     import OptionsMenu from "./OptionsMenu.svelte";
-    import type { State } from "$lib/interfaces";
+    import type { Connection, State } from "$lib/interfaces";
     import Whiteboard from "./Whiteboard.svelte";
     import Banner from "./Banner.svelte";
     import { invoke } from "@tauri-apps/api";
@@ -48,7 +48,8 @@
     let automata_selected: Automata = Automata.DFA;
     // hashing every coordinate to a state for use when user click on a given coordinate point
     // Allows for O(1) access without having to search for the state which was clicked in the State array
-    let state_connections:  Map<String, State> = new Map<String, State>();
+    let state_connections: Map<String, State> = new Map<String, State>();
+    let connections: Array<Connection>;
     let default_connection_char: string;
     let sidebar_open: boolean;
     let is_strict_checking: boolean
@@ -80,7 +81,7 @@
         <OptionsMenu bind:input_alphabet={input_alphabet} bind:is_strict_checking={is_strict_checking} bind:default_connection_char={default_connection_char} bind:sidebar_open={sidebar_open}/>
     </aside>
     <div class="w-full min-w-0">
-        <Banner bind:workspace_name={workspace_name} bind:sidebar_open={sidebar_open} bind:automata_selected={automata_selected}/>
+        <Banner state_connections={state_connections} connections={connections} bind:workspace_name={workspace_name} bind:sidebar_open={sidebar_open} bind:automata_selected={automata_selected}/>
         <main class="flex">
             <!-- Definitely can make nicer in future -->
             {#if (dialogue)}
@@ -89,7 +90,7 @@
                 </div>
             {/if}
 
-            <Whiteboard workspace_name={workspace_name} bind:start_state_coordinates={start_state_coordinates} bind:dialogue={dialogue} 
+            <Whiteboard bind:connections={connections} workspace_name={workspace_name} bind:start_state_coordinates={start_state_coordinates} bind:dialogue={dialogue} 
             bind:state_connections={state_connections} bind:start_state_index={start_state_index} 
             default_connection_char={default_connection_char} is_string_accepted={is_string_accepted}/>
             </main>
