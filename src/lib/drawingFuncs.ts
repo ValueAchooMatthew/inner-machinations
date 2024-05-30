@@ -4,7 +4,7 @@ import { getBezierCurveAngleAtPoint, getPointOnBezierCurveAtDistance } from "./m
 export const draw = (context: CanvasRenderingContext2D, 
     width: number, height: number, nodes: Array<State>,
     connections: Array<Connection>, 
-    start_statePosition: number, selected_connection_index: number | null) => {
+    start_state_position: number, selected_connection_index: number | null) => {
     
     // Needed so position specified for where characters are drawn is not drawn differently depending on if its offset is above/below or
     // left/right of the Connection
@@ -13,8 +13,8 @@ export const draw = (context: CanvasRenderingContext2D,
     context.strokeStyle = "black"
     context.clearRect(0, 0, width, height);
 
-    nodes.forEach((node, index)=>{
-        drawNode(context, index, start_statePosition, node);
+    nodes.forEach((node)=>{
+        drawNode(context, node);
     });
     connections.forEach((connection, index)=>{
         drawConnection(context, connection, index, selected_connection_index);
@@ -67,7 +67,7 @@ const drawConnection = (context: CanvasRenderingContext2D, connection: Connectio
 
 }
 
-const drawNode = (context: CanvasRenderingContext2D, index: number, start_state_position: number, node: State) => {
+const drawNode = (context: CanvasRenderingContext2D, node: State) => {
     context.lineWidth = 3;
     if(node.is_final){
         context.beginPath();
@@ -77,7 +77,7 @@ const drawNode = (context: CanvasRenderingContext2D, index: number, start_state_
         context.closePath();
     }
     // For some reason fills with the wrong colour unless I do this, no idea why
-    if(index === start_state_position){
+    if(node.is_start){
         context.fillStyle = "rgb(22, 163, 74)";
         context.beginPath();
         context.arc(node.position.x, node.position.y, 35, 0, 2*Math.PI);

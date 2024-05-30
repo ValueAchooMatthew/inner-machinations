@@ -1,20 +1,18 @@
 <script lang="ts">
     import { Automata } from "$lib/enums";
     import type { Connection, State } from "$lib/interfaces";
-    import { user_email, is_a_user_logged_in } from "$lib/user";
     import { invoke } from "@tauri-apps/api";
-    import { get } from "svelte/store";
+
     export let sidebar_open: boolean = false;
     export let automata_selected: Automata = Automata.DFA;
-    export let workspace_name: String = "Untitled Project";
+    export let workspace_name: string | undefined;
     export let state_connections: Map<String, State>;
     export let connections: Array<Connection>;
 
-
-    const email = get(user_email);
+    export let email: string | undefined;
 
     const handleSubmit = async (event: SubmitEvent) => {
-        if(!(event.target instanceof HTMLFormElement) || !is_a_user_logged_in){
+        if(!(event.target instanceof HTMLFormElement) || !email){
             return;
         }
         const form_data = new FormData(event.target);
@@ -42,7 +40,7 @@
             <div>
                 <form on:submit={handleSubmit} action="">
                     <input name="renamedWorkspace" id="renamedWorkspace" 
-                    class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12" value={workspace_name} type="text">
+                    class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2" value={workspace_name} type="text">
                 </form>
             </div>
         </div>

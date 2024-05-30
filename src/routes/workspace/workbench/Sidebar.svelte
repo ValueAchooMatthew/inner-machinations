@@ -1,25 +1,18 @@
 <script lang="ts">
     
     import { Action } from "$lib/enums";
-    import { get } from "svelte/store";
     import type { Connection, State } from "$lib/interfaces";
-    import { user_email, is_a_user_logged_in } from "$lib/user";
     import { invoke } from "@tauri-apps/api";
+
     export let current_action: Action;
     export let clearCursor: () => void;
     export let undo: () => void;
     export let handleTrash: () => void;
     export let state_connections: Map<String, State>;
     export let connections: Array<Connection>;
-    export let workspace_name;
-
-    const saveWorkspace = async () => {
-        if(!get(is_a_user_logged_in)){
-            return;
-        }
-
-        await invoke("save_workspace", {states: state_connections, workspaceName: workspace_name, email: get(user_email), connections: connections});
-    }
+    export let workspace_name: string | undefined;
+    export let email: string | undefined
+    export let saveWorkspace: () => Promise<void>;
 
 </script>
 

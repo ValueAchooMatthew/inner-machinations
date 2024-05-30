@@ -5,6 +5,9 @@
     import Whiteboard from "./Whiteboard.svelte";
     import Banner from "./Banner.svelte";
     import { invoke } from "@tauri-apps/api";
+    import Notifications from "./Notifications.svelte";
+
+    export let data;
 
     $: {if(start_state_coordinates && string_to_check !== undefined){
         let check_string: () => Promise<void>;
@@ -20,7 +23,6 @@
                     is_string_accepted = null;
                     return;
                 };
-
                 dialogue="";
                 is_string_accepted = await invoke("test_string_dfa", {stateConnections: state_connections, 
                     startStateCoordinates: start_state_coordinates, stringToCheck: string_to_check});
@@ -44,19 +46,19 @@
     let start_state_index: number = -1;
     let string_to_check: string;
     let is_string_accepted: boolean | null = null;
-    let start_state_coordinates: String | null = null;
+    let start_state_coordinates: string | null = null;
     let automata_selected: Automata = Automata.DFA;
     // hashing every coordinate to a state for use when user click on a given coordinate point
     // Allows for O(1) access without having to search for the state which was clicked in the State array
-    let state_connections: Map<String, State> = new Map<String, State>();
+    let state_connections: Map<string, State> = new Map<string, State>();
     let connections: Array<Connection>;
     let default_connection_char: string;
     let sidebar_open: boolean;
     let is_strict_checking: boolean
     let input_alphabet: Array<string>;
-    let workspace_name: string;
+    let workspace_name: string | undefined = data.workspace_name;
 
-    const handleSubmit = (event: SubmitEvent)=> {
+    const handleSubmit = (event: SubmitEvent) => {
         if(!(event.target instanceof HTMLFormElement)){
             return;
         }
@@ -77,26 +79,17 @@
 
 <div class="relative flex font-semibold overflow-x-hidden w-full h-full bg-gray-200 min-h-screen">
     <aside class=" bg-orange-500 flex flex-col top-0
-    absolute transition-all duration-300 overflow-hidden z-50 w-full h-full"  class:left-0={sidebar_open} class:-left-full={!sidebar_open}>
+    absolute transition-all duration-300 overflow-hidden z-50 w-full h-full" class:left-0={sidebar_open} class:-left-full={!sidebar_open}>
         <OptionsMenu bind:input_alphabet={input_alphabet} bind:is_strict_checking={is_strict_checking} bind:default_connection_char={default_connection_char} bind:sidebar_open={sidebar_open}/>
     </aside>
     <div class="w-full min-w-0">
-        <Banner state_connections={state_connections} connections={connections} bind:workspace_name={workspace_name} bind:sidebar_open={sidebar_open} bind:automata_selected={automata_selected}/>
+        <Banner email={data.email} state_connections={state_connections} connections={connections} bind:workspace_name={workspace_name} bind:sidebar_open={sidebar_open} bind:automata_selected={automata_selected}/>
         <main class="flex">
-            <!-- Definitely can make nicer in future -->
-            {#if (dialogue)}
-                <div class="absolute top-0 right-0 left-0 w-fit h-fit mx-auto transition-all duration-300 bg-pink-400 px-5 py-1 rounded-md text-center">
-                    {dialogue}
-                </div>
-            {/if}
-
-            <Whiteboard bind:connections={connections} workspace_name={workspace_name} bind:start_state_coordinates={start_state_coordinates} bind:dialogue={dialogue} 
+            <Whiteboard email={data.email} bind:connections={connections} workspace_name={workspace_name} bind:start_state_coordinates={start_state_coordinates} bind:dialogue={dialogue} 
             bind:state_connections={state_connections} bind:start_state_index={start_state_index} 
             default_connection_char={default_connection_char} is_string_accepted={is_string_accepted}/>
-            </main>
-
-    
-        <div class="flex flex-col justify-center mt-3">
+        </main>
+        <div class="flex justify-center mt-3">
             <form class="flex self-center gap-2 align-middle" on:submit|preventDefault={handleSubmit}>
                 <label class="w-40 text-2xl self-center" for="string">
                     Check String:
@@ -105,6 +98,7 @@
                 <div class="w-40">
                 </div>
             </form>
+            <Notifications dialogue={dialogue} />
         </div>
     </div>
 </div>

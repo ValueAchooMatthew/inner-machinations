@@ -1,21 +1,23 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { draw } from "../../../lib/drawingFuncs";
+    import { onMount, tick } from "svelte";
+    import { draw } from "$lib/drawingFuncs";
     import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/mathFuncs";
     import type { State, Connection, Coordinate, BezierCurve } from "$lib/interfaces";
     import { Action } from "$lib/enums";
     import Sidebar from "./Sidebar.svelte";
     import TestFeedback from "./TestFeedback.svelte";
+    import { invoke } from "@tauri-apps/api";
+    import { convertCoordinateToString } from "$lib/miscUtils";
 
-    export let start_state_coordinates: String | null;
-    export let state_connections: Map<String, State>;
+    export let start_state_coordinates: string | null;
+    export let state_connections: Map<string, State>;
     export let connections: Array<Connection> = [];;
     export let dialogue: string;
     export let start_state_index: number;
     export let default_connection_char: string = "a";
     export let is_string_accepted: boolean | null;
-    export let workspace_name: string;
-
+    export let workspace_name: string | undefined;
+    export let email: string | undefined;
 
     $: {if(context){
         draw(context, width, height, states, connections, start_state_index, selected_connection_index);
@@ -41,16 +43,48 @@
     let context: CanvasRenderingContext2D;
     let current_action: Action = Action.ADDING_REGULAR_STATE;
 
+    const saveWorkspace = async () => {
+        if(!email || !workspace_name){
+            return;
+        }
 
-    onMount(()=>{
+        await invoke("save_workspace", {states: state_connections, workspaceName: workspace_name, email: email, connections: connections});
+    }
+
+    onMount(async ()=>{
         width = window.screen.availWidth -200;
         height = window.screen.height - 300;
         const ctx = canvas?.getContext("2d");
-        if(ctx){
-            context = ctx;
-            context.strokeStyle = "black";
-            context.imageSmoothingQuality = "high";
+        if(!ctx){
+            return;
         }
+        context = ctx;
+        context.strokeStyle = "black";
+        context.imageSmoothingQuality = "high";
+
+        // For retrieving workspace
+        if(!email || !workspace_name){
+            return;
+        }
+        const retrieved_data: [number, 
+            Array<State>,
+            Array<Connection>, 
+            {[key: string]: State}] = await invoke("retrieve_workspace_data", {email: email, workspaceName: workspace_name});
+        start_state_index = retrieved_data[0];
+        states = retrieved_data[1];
+        start_state_coordinates = convertCoordinateToString(states[start_state_index].position);
+        connections = retrieved_data[2];
+
+        
+        // Needed as hashmaps get parsed into an object instead of a map when coming from backend
+        state_connections = new Map<string, State>(Object.entries(retrieved_data[3]));
+        states.forEach((state)=>{
+            state.states_connected_to = new Map<string, Array<string>>(Object.entries(state.states_connected_to));
+        })
+        state_connections.forEach((state)=>{
+            state.states_connected_to = new Map<string, Array<string>>(Object.entries(state.states_connected_to));
+        })
+
     })
 
     const undo = (): void => {
@@ -67,7 +101,7 @@
                 start_state_index = -1;
                 start_state_coordinates = null;
             }
-            state_connections.delete(element.position.x + "," + element.position.y);
+            state_connections.delete(convertCoordinateToString(element.position));
             states = states;
             return;
         }
@@ -75,7 +109,7 @@
         connections.pop();
         const node_one_coords = element.curve.start_point;
 
-        const node_one: State | undefined = state_connections.get(node_one_coords.x + "," + node_one_coords.y);
+        const node_one: State | undefined = state_connections.get(convertCoordinateToString(node_one_coords));
         if(!node_one){
             return;
         }
@@ -84,10 +118,10 @@
         if(connected_states === undefined){
             return;
         }
-        const index = connected_states.indexOf(end_state_coords.x + "," + end_state_coords.y);
+        const index = connected_states.indexOf(convertCoordinateToString(end_state_coords));
         connected_states.splice(index, 1);
         node_one.states_connected_to.set(element.connection_character, connected_states);
-        state_connections.set(end_state_coords.x + "," + end_state_coords.y, node_one);
+        state_connections.set(convertCoordinateToString(end_state_coords), node_one);
 
         states = states;
     }
@@ -106,8 +140,7 @@
         const cursor_x_pos = roundToNearest(event.offsetX, 100);
         const cursor_y_pos = roundToNearest(event.offsetY, 100);
         const cursor_coords: Coordinate = {x: cursor_x_pos, y: cursor_y_pos};
-        const cursor_coords_string: String = cursor_x_pos + "," + cursor_y_pos
-
+        const cursor_coords_string: string = convertCoordinateToString(cursor_coords);
         let selected_state: State | undefined = state_connections.get(cursor_coords_string);
         dialogue = "";
         // Really needs to be refactored
@@ -133,6 +166,11 @@
                     return;
                 }
                 selected_state.is_final = true;
+                states.forEach((state)=>{
+                    if(state.position.x === cursor_x_pos && state.position.y === cursor_y_pos){
+                        state.is_final = true;
+                    }
+                })
                 state_connections.set(cursor_coords_string, selected_state);
                 break;
             
@@ -189,7 +227,7 @@
                 // Starting node's key will be at the x, y coordinates of the connection's start point
                 // The selected node will treated as our "ending" node
                 const starting_state_key = last_connection.curve.start_point;
-                const starting_state = state_connections.get(starting_state_key.x + "," +starting_state_key.y);
+                const starting_state = state_connections.get(convertCoordinateToString(starting_state_key));
                 if(!starting_state){
                     return;
                 }
@@ -251,9 +289,11 @@
 
     }
 
-    const handleUndoEvent = (event: KeyboardEvent): void =>{
+    const handleUndoEvent = async (event: KeyboardEvent): Promise<void> =>{
         if(event.ctrlKey === true && event.key === "z"){
             undo();
+        }else if(event.ctrlKey === true && event.key === "s"){
+            saveWorkspace();
         }
     }
 
@@ -272,8 +312,8 @@
         const new_character = event.key;
         selected_connection.connection_character = new_character;
 
-        const start_state_key = selected_connection.curve.start_point.x + "," + selected_connection.curve.start_point.y;
-        const end_state_key = selected_connection.curve.end_point.x + "," + selected_connection.curve.end_point.y;
+        const start_state_key = convertCoordinateToString(selected_connection.curve.start_point);
+        const end_state_key =  convertCoordinateToString(selected_connection.curve.end_point);
         const start_state: State | undefined = state_connections.get(start_state_key);
         const end_state: State | undefined = state_connections.get(end_state_key);
 
@@ -361,9 +401,7 @@
     </canvas>
     <div class="flex flex-col justify-start gap-3 py-3">
         <TestFeedback is_string_accepted={is_string_accepted}/>
-        <Sidebar workspace_name={workspace_name} bind:current_action={current_action} undo={undo} 
+        <Sidebar saveWorkspace={saveWorkspace} email={email} workspace_name={workspace_name} bind:current_action={current_action} undo={undo} 
         handleTrash={handleTrash} clearCursor={clearCursor} state_connections={state_connections} connections={connections}/>
     </div>
-
-    
 </div>

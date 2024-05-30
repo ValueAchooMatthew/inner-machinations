@@ -1,34 +1,33 @@
 <script lang="ts">
-    import { user_email } from "$lib/user";
     import { invoke } from "@tauri-apps/api/tauri";
     import { onMount } from "svelte";
 
-    let email: string = "";
-
-    user_email.subscribe((inputted_email)=>{
-        email = inputted_email;
-    });
+    export let data;
 
     $: code = "";
     let is_verified = false;
     let response = "";
     onMount(async () =>{
-        is_verified = await invoke("is_user_verified", {emailAddress: email});
+        if(data === null || data.email === null){
+            console.log("The user's email is null");
+            return;
+        }
+        is_verified = await invoke("is_user_verified", {emailAddress: data.email});
         if(!is_verified){
-            code = await invoke("send_email", {emailAddress: email});
+            code = await invoke("send_email", {emailAddress: data.email});
         }
 
     })
 
     const handleSubmit = async (event: SubmitEvent) =>{
-        if(!(event.target instanceof HTMLFormElement)){
+        if(!(event.target instanceof HTMLFormElement) || !data || !data.email){
             return;
         }
-        const data = new FormData(event.target);
-        const enteredCode = data.get("code");
+        const form_data = new FormData(event.target);
+        const enteredCode = form_data.get("code");
         if(enteredCode != code){
             response = "The entered code was incorrect. Please ensure you are logging in with the correct email address. Another email has been sent with a code for verification to the provided email."
-            code = await invoke("send_email", {emailAddress: email});
+            code = await invoke("send_email", {emailAddress: data.email});
             return;
         }
         invoke("verify_user", {emailAddress: "matthewtamerfarah@gmail.com"})

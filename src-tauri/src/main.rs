@@ -15,7 +15,7 @@ use std::env;
 use db::register_user;
 use db::is_correct_log_in;
 use testing_funcs::{test_string_dfa, test_string_nfa};
-use saving_automata_funcs::{save_workspace, delete_workspace};
+use saving_automata_funcs::{save_workspace, delete_workspace, retrieve_workspace_data, get_users_saved_workspaces};
 use validation_funcs::verify_valid_dfa;
 
 // Fixed Opsec but should refactor key getting and setting into separate func in lib
@@ -24,7 +24,7 @@ fn main() {
   .invoke_handler(tauri::generate_handler![
     register_user, is_user_registered, is_correct_log_in,
     send_email, verify_user, is_user_verified, test_string_dfa,
-    test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace
+    test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, get_users_saved_workspaces
   ])
   .run(tauri::generate_context!())
   .expect("error while running tauri application");

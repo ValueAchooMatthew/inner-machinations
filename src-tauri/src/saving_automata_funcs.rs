@@ -129,8 +129,6 @@ fn save_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, con
 
 }
 
-
-
 #[tauri::command]
 pub fn save_workspace(workspace_name: String, states: HashMap<String, State>, email: String, connections: Vec<Connection>){
 
@@ -173,6 +171,7 @@ pub fn delete_workspace(workspace_name: String, email: String){
 
 }
 
+#[tauri::command]
 pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (usize, Vec<State>, Vec<Connection>, HashMap<String, State>) {
     
     let mut conn: MysqlConnection = establish_connection();
@@ -182,7 +181,7 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (usize,
     let workspace = get_workspace(&workspace_name, &user_id, &mut conn);
     
     // First get the states and connections from the database
-    let states_in_database: Vec<SavedState> = saved_states::dsl::saved_states
+    let retrieved_states: Vec<SavedState> = saved_states::dsl::saved_states
         .filter(saved_states::automata_id.eq(&workspace.id))
         .get_results::<SavedState>(&mut conn)
         .expect("There was an issue getting the workspace's states");
@@ -193,7 +192,7 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (usize,
     let mut connections: Vec<Connection> = vec![];
     let mut states: Vec<State> = vec![];
 
-    for (index, state) in states_in_database.iter().enumerate() {
+    for (index, state) in retrieved_states.iter().enumerate() {
         if state.is_start {
             start_state_index = index;
         }
@@ -202,12 +201,12 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (usize,
         states.push(parsed_state.to_owned());
     }
 
-    let connections_in_database: Vec<SavedConnection> = saved_connections::dsl::saved_connections
+    let retrieved_connections: Vec<SavedConnection> = saved_connections::dsl::saved_connections
         .filter(saved_connections::dsl::automata_id.eq(&workspace.id))
         .get_results::<SavedConnection>(&mut conn)
         .expect("There was an issue getting the workspace's states");
 
-    for connection in connections_in_database {
+    for connection in retrieved_connections {
         let parsed_connection = Connection {
             curve: BezierCurve {
                 start_point: parse_position_key_to_coordinate(&connection.start_point),
@@ -226,7 +225,6 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (usize,
 
 }
 
-
 fn parse_saved_state_to_regular_state(state: &SavedState, workspace: &SavedAutomata, conn: &mut MysqlConnection) -> State {
     let mut parsed_state = State {
         position: parse_position_key_to_coordinate(&state.position), 
@@ -244,9 +242,12 @@ fn parse_saved_state_to_regular_state(state: &SavedState, workspace: &SavedAutom
 
     for connected_state in states_connected_to_given_state {
 
-        let mut current_connections = parsed_state.states_connected_to
-            .get_mut(&connected_state.connection_character)
-            .expect("There was a problem getting the connected states to the current states")
+        let binding: Vec<String> = vec![];
+        let mut current_connections = match parsed_state.states_connected_to
+            .get_mut(&connected_state.connection_character){
+                Some(states) => states,
+                None => &binding
+            }
             .to_owned();
 
         current_connections.push(connected_state.end_point);
@@ -268,7 +269,7 @@ fn parse_position_key_to_coordinate(key: &String) -> Coordinate {
         .to_owned();
 
     let coord_y = split_key
-        .get(0)
+        .get(1)
         .expect("There was an error parsing the state's coordinates")
         .to_owned();
 
@@ -276,5 +277,26 @@ fn parse_position_key_to_coordinate(key: &String) -> Coordinate {
         x: coord_x.parse::<i32>().unwrap(), 
         y: coord_y.parse::<i32>().unwrap()  
     }
+
+}
+
+#[tauri::command]
+pub fn get_users_saved_workspaces(email: String) -> Vec<String> {
+
+    let mut conn = establish_connection();
+
+    let user_id = get_user_id(&email, &mut conn);
+
+    let retrieved_workspaces: Vec<SavedAutomata> = saved_automata::dsl::saved_automata
+        .filter(saved_automata::dsl::u_id.eq(&user_id))
+        .get_results(&mut conn)
+        .expect("There was an error retrieving the user's saved workspaces");
+
+    let workspace_names: Vec<String> = retrieved_workspaces
+        .iter()
+        .map(|workspace| workspace.name.to_owned())
+        .collect();
+
+    return workspace_names.to_owned();
 
 }

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
 	import { invoke } from "@tauri-apps/api/tauri";
-	import { user_email, is_a_user_logged_in } from "../../../lib/user";
 
 	let response = "";
 
@@ -17,9 +16,6 @@
 		if(!email || !password){
 			return;
 		}
-		// The store for the user is empty unless they successfully log in
-		is_a_user_logged_in.set(false);
-		user_email.set(email);
 		const isRegistered: boolean = await invoke("is_user_registered", {email: email, password: password});
 		if(!isRegistered){
 			invoke("register_user", {email: email, password: password});
@@ -36,8 +32,7 @@
 			goto("verification");
 			return;
 		}
-		is_a_user_logged_in.set(true);
-		user_email.set(email);
+		document.cookie = "email" +"=" +email +"; path=/";
 		goto("../workspace/dashboard");
 		return;
 		
