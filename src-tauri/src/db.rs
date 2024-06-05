@@ -9,15 +9,14 @@ use crate::diesel::RunQueryDsl;
 
 
 #[tauri::command]
-pub fn register_user(email: &str, password: &str) -> () {
+pub fn register_user(email: &str, password: &str) {
 
   dotenv().ok();
   let key = env::var("ENCRYPTION_KEY")
     .expect("Encryption Key must be set as a .env variable");
   let cipher = new_magic_crypt!(&key, 256);
   let [encrypted_email, encrypted_password] = encrypt_user_data(&cipher, email, password);
-  add_user_to_db(&encrypted_email, &encrypted_password)
-
+  add_user_to_db(&encrypted_email, &encrypted_password);
 }
 
 
@@ -37,11 +36,6 @@ pub fn is_correct_log_in(email_address: &str, pwrd: &str) -> bool{
     .filter(password.eq(encrypted_password))
     .get_result::<User>(&mut conn);
 
-
-  // Eventually, I will need to implement either a JWT or cookie system to persist user log-in but for now this is okay as a
-  // minimum viable product 
-  match person.ok(){
-    Some(_) => true,
-    None => false
-  }
+  person.ok().is_some()
 }
+

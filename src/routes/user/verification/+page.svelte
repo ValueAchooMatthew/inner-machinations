@@ -1,45 +1,37 @@
 <script lang="ts">
-    import { user_email, user_password } from "$lib/user";
     import { invoke } from "@tauri-apps/api/tauri";
     import { onMount } from "svelte";
 
-    let email: string = "";
-    let password: string = "";
-
-    user_email.subscribe((inputted_email)=>{
-        email = inputted_email;
-    });
-    user_password.subscribe((inputted_password)=>{
-        password = inputted_password;
-    })
+    export let data;
 
     $: code = "";
-    let isRegistered = false;
+    let is_verified = false;
     let response = "";
     onMount(async () =>{
-        isRegistered = await invoke("is_user_verified", {emailAddress: email, pwrd: password});
-        if(!isRegistered){
-            code = await invoke("send_email", {emailAddress: email, pwrd: password});
+        if(data === null || data.email === null){
+            console.log("The user's email is null");
+            return;
+        }
+        is_verified = await invoke("is_user_verified", {emailAddress: data.email});
+        if(!is_verified){
+            code = await invoke("send_email", {emailAddress: data.email});
         }
 
     })
-    // TODO: Prevent emails from being sent if an attempt hasnt yet been made
 
     const handleSubmit = async (event: SubmitEvent) =>{
-        if(event.target instanceof HTMLFormElement){
-            const data = new FormData(event.target);
-            const enteredCode = data.get("code");
-            if(enteredCode == code){
-                invoke("verify_user", {emailAddress: "matthewtamerfarah@gmail.com", pwrd: password})
-                response = "You were successfully verified!";
-
-            }else{
-                response = "The entered code was incorrect. Please ensure you are logging in with the correct email address. Another email has been sent with a code for verification to the provided email."
-                code = await invoke("send_email", {emailAddress: email, pwrd: password});
-            }
-        }else{
+        if(!(event.target instanceof HTMLFormElement) || !data || !data.email){
             return;
         }
+        const form_data = new FormData(event.target);
+        const enteredCode = form_data.get("code");
+        if(enteredCode != code){
+            response = "The entered code was incorrect. Please ensure you are logging in with the correct email address. Another email has been sent with a code for verification to the provided email."
+            code = await invoke("send_email", {emailAddress: data.email});
+            return;
+        }
+        invoke("verify_user", {emailAddress: "matthewtamerfarah@gmail.com"})
+            response = "You were successfully verified!";
     }
 
 </script>
@@ -52,7 +44,7 @@
         A desktop application to create your very own DFA's and NFA's
     </h2>
 </div>
-{#if !isRegistered }
+{#if !is_verified }
 <main class="h-screen text-orange-600 font-semibold py-10 relative">
     <div class="flex flex-wrap justify-center h-full text-center content-center">
         <div class="font-Nunito text-2xl text-center">

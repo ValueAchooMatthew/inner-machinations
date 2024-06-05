@@ -31,5 +31,5 @@ pub fn verify_valid_dfa(state_connections: HashMap<String, State>, input_alphabe
     };
 
   };
-  return true;
+  true
 }

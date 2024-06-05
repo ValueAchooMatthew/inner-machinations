@@ -29,7 +29,13 @@
 	"dependencies": {
 		"@auth/sveltekit": "^0.12.3",
 		"@tauri-apps/api": "^1.5.3",
+<<<<<<< HEAD
 		"mysql2": "^3.9.7",
 		"sequelize": "^6.37.0"
+=======
+		"mysql2": "^3.9.1",
+		"sequelize": "^6.37.0",
+		"tauri-plugin-store-api": "github:tauri-apps/tauri-plugin-store#v1"
+>>>>>>> Dashboard
 	}
 }
