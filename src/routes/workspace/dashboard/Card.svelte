@@ -1,8 +1,13 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
+  import { goto } from "$app/navigation";
+  import { draw } from "$lib/drawingFuncs";
+  import type { State, Connection } from "$lib/interfaces";
+  import { invoke } from "@tauri-apps/api";
+  import { onMount } from "svelte";
 
     export let workspace_name: string;
     export let workspace_to_delete: string | null;
+    export let email: string | null;
 
     const handleClick = () => {
         document.cookie = "workspace_name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
@@ -10,11 +15,31 @@
         goto("workbench");
     }
 
+    let canvas: HTMLCanvasElement | null;
+
+    onMount(async ()=>{
+        const context = canvas?.getContext("2d");
+        const width = canvas?.width;
+        const height = canvas?.height;
+        if(!context || !width || !height){
+            return;
+        }
+        const retrieved_data: [
+            number | null,
+            Array<State>,
+            Array<Connection>, 
+            {[key: string]: State}] = await invoke("retrieve_workspace_data", {email: email, workspaceName: workspace_name});
+
+        draw(context, width, height, retrieved_data[1], retrieved_data[2], retrieved_data[0], 5);
+    })
+
 </script>
 <div class="flex">
-    <button class="w-64 h-80 hover:w-80 hover:h-96 p-3 bg-orange-500 transition-all duration-300 rounded-md shadow-2xl flex flex-col justify-between" on:click={handleClick}>
-        <div class="bg-white w-full h-full">
-        </div>
+    <button class="w-64 h-80 hover:w-80 hover:h-96 p-3 bg-orange-500 
+    transition-all duration-300 rounded-md shadow-2xl flex flex-col justify-between overflow-hidden" on:click={handleClick}>
+        <canvas bind:this={canvas} class=" bg-white self-center">
+
+        </canvas>
 
         <span class="font-bold text-white text-2xl my-2 self-center">
             {workspace_name}

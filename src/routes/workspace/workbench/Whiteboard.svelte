@@ -20,7 +20,7 @@
     export let email: string | undefined;
 
     $: {if(context){
-        draw(context, width, height, states, connections, selected_connection_index);
+        draw(context, width, height, states, connections, selected_connection_index, 1);
     }};
 
     // DO NOT CHANGE ANY CODE IN FORM FOO = [...FOO, BAR]
@@ -28,7 +28,7 @@
 
     // Necessary for removing ghost image when dragging canvas
     const img = new Image();
-    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+    img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=";
 
     // Consider refactoring into rust backend for faster performance in future
     let states: Array<State> = [];

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import Banner from "./Banner.svelte";
   import Card from "./Card.svelte";
   import { invoke } from "@tauri-apps/api";
@@ -29,10 +28,8 @@
   <div class="flex gap-20 justify-center h-fit">
     {#if saved_workspace_names}
       {#each saved_workspace_names as workspace, _}
-        <Card bind:workspace_to_delete={workspace_to_delete} bind:workspace_name={workspace}/>
+        <Card email={data.email} bind:workspace_to_delete={workspace_to_delete} bind:workspace_name={workspace}/>
       {/each}
-    {:else}
-      <Card bind:workspace_to_delete={workspace_to_delete} workspace_name={"gabby"}/>
     {/if}
   </div>
   <div class="fixed bottom-12 right-12">

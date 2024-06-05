@@ -114,7 +114,7 @@ fn save_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, con
             saved_connections::start_point.eq(connection.curve.start_point.convert_coords_to_string()),
             saved_connections::control_point_one.eq(connection.curve.control_point_one.convert_coords_to_string()),
             saved_connections::control_point_two.eq(connection.curve.control_point_two.convert_coords_to_string()),
-            saved_connections::end_point.eq(connection.curve.control_point_two.convert_coords_to_string())
+            saved_connections::end_point.eq(connection.curve.end_point.convert_coords_to_string())
         );
 
         connections_to_be_inserted.push(connection_to_be_inserted);
