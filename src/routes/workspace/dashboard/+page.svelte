@@ -4,11 +4,12 @@
   import Card from "./Card.svelte";
   import { invoke } from "@tauri-apps/api";
   import SignOut from "./SignOut.svelte";
+  import ConfirmDelete from "./ConfirmDelete.svelte";
 
-  let saved_workspace_names: Array<String> = new Array();
+  let saved_workspace_names: Array<string> = new Array();
+  export let data: {email: string};
+  let workspace_to_delete: string | null = null;
 
-  export let data;
-  
   onMount(async () => {
     if(!data || !data.email){
       return;
@@ -19,17 +20,18 @@
 </script>
 
 <Banner/>
-<h1 class="text-center mt-40">
+<div class="text-center p-48 relative h-screen w-full flex flex-col">
   <div class="flex gap-20 justify-center h-fit">
     {#if saved_workspace_names}
       {#each saved_workspace_names as workspace, _}
-        <Card workspace_name={workspace}/>
+        <Card bind:workspace_to_delete={workspace_to_delete} bind:workspace_name={workspace}/>
       {/each}
     {:else}
-      <Card workspace_name={"gabby"}/>
+      <Card bind:workspace_to_delete={workspace_to_delete} workspace_name={"gabby"}/>
     {/if}
   </div>
-  <div class="absolute right-12 bottom-12">
+  <div class="fixed bottom-12 right-12">
     <SignOut/>
   </div>
-</h1>
+  <ConfirmDelete email={data.email} bind:workspace_to_delete={workspace_to_delete}/>
+</div>

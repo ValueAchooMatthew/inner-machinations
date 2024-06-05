@@ -43,7 +43,7 @@
     }};
 
     let dialogue: string = "";
-    let start_state_index: number = -1;
+    let start_state_index: number | null = null;
     let string_to_check: string;
     let is_string_accepted: boolean | null = null;
     let start_state_coordinates: string | null = null;
@@ -67,7 +67,7 @@
         if(!inputted_string){
             return;
         }
-        if(start_state_index === -1){
+        if(start_state_index === null){
             dialogue = "You must specify at least one start state"
             return;
         }

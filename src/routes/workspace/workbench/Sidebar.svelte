@@ -1,17 +1,12 @@
 <script lang="ts">
     
     import { Action } from "$lib/enums";
-    import type { Connection, State } from "$lib/interfaces";
-    import { invoke } from "@tauri-apps/api";
+
 
     export let current_action: Action;
     export let clearCursor: () => void;
     export let undo: () => void;
     export let handleTrash: () => void;
-    export let state_connections: Map<String, State>;
-    export let connections: Array<Connection>;
-    export let workspace_name: string | undefined;
-    export let email: string | undefined
     export let saveWorkspace: () => Promise<void>;
 
 </script>

@@ -1,9 +1,22 @@
-<div class="bg-orange-500 flex shadow-lg py-4 pl-2 pr-4 w-full text-gray-100 text-4xl font-bold justify-between align-middle">
+<script lang="ts">
+  import { goto } from "$app/navigation";
+
+
+    const handleClick = () => {
+        document.cookie = "workspace_name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie = "workspace_name" +"=" +"Untitled Project" +"; path=/";
+        goto("/workspace/workbench");
+    }
+
+</script>
+
+
+<div class="bg-orange-500 flex shadow-lg py-4 pl-2 pr-4 w-full text-gray-100 text-4xl font-bold justify-between align-middle z-50 fixed top-0">
+    
     <div class="flex justify-start w-64">
-        <svg class="ml-2 hover:cursor-pointer hover:-rotate-90 w-12 h-12 transition-all duration-200" data-slot="icon" fill="none" stroke-width="2.2" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <svg on:click={handleClick} class="ml-2 hover:cursor-pointer hover:-rotate-90 w-12 h-12 transition-all duration-200" data-slot="icon" fill="none" stroke-width="2.2" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
         </svg>
-
     </div>
     
     <div class="flex flex-col justify-center">
@@ -18,6 +31,5 @@
             Home
         </span>
     </a>
-
 
 </div>

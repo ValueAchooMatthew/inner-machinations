@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount, tick } from "svelte";
+    import { onMount } from "svelte";
     import { draw } from "$lib/drawingFuncs";
     import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/mathFuncs";
     import type { State, Connection, Coordinate, BezierCurve } from "$lib/interfaces";
@@ -13,14 +13,14 @@
     export let state_connections: Map<string, State>;
     export let connections: Array<Connection> = [];;
     export let dialogue: string;
-    export let start_state_index: number;
+    export let start_state_index: number | null;
     export let default_connection_char: string = "a";
     export let is_string_accepted: boolean | null;
     export let workspace_name: string | undefined;
     export let email: string | undefined;
 
     $: {if(context){
-        draw(context, width, height, states, connections, start_state_index, selected_connection_index);
+        draw(context, width, height, states, connections, selected_connection_index);
     }};
 
     // DO NOT CHANGE ANY CODE IN FORM FOO = [...FOO, BAR]
@@ -47,6 +47,11 @@
         if(!email || !workspace_name){
             return;
         }
+        if(workspace_name === "Untitled Project"){
+            dialogue = "You must change the name of the project to save.";
+            return;
+        }
+        dialogue = "";
 
         await invoke("save_workspace", {states: state_connections, workspaceName: workspace_name, email: email, connections: connections});
     }
@@ -66,16 +71,20 @@
         if(!email || !workspace_name){
             return;
         }
-        const retrieved_data: [number, 
+        const retrieved_data: [
+            number | null,
             Array<State>,
             Array<Connection>, 
             {[key: string]: State}] = await invoke("retrieve_workspace_data", {email: email, workspaceName: workspace_name});
-        start_state_index = retrieved_data[0];
-        states = retrieved_data[1];
-        start_state_coordinates = convertCoordinateToString(states[start_state_index].position);
-        connections = retrieved_data[2];
-
         
+        states = retrieved_data[1];
+        connections = retrieved_data[2];
+        // If the some value exists, there is a specified start state
+        if(retrieved_data[0] !== null) {
+            start_state_index = retrieved_data[0];
+            start_state_coordinates = convertCoordinateToString(states[start_state_index].position);
+        }
+
         // Needed as hashmaps get parsed into an object instead of a map when coming from backend
         state_connections = new Map<string, State>(Object.entries(retrieved_data[3]));
         states.forEach((state)=>{
@@ -97,8 +106,8 @@
             if(!state){
                 return;
             }
-            if(states.length == start_state_index){
-                start_state_index = -1;
+            if(states.length === start_state_index){
+                start_state_index = null;
                 start_state_coordinates = null;
             }
             state_connections.delete(convertCoordinateToString(element.position));
@@ -130,7 +139,7 @@
         states = [];
         connections = [];
         elements = [];
-        start_state_index = -1;
+        start_state_index = null;
         state_connections.clear();
         start_state_coordinates = null;
         current_action = Action.CLICKING;
@@ -147,7 +156,7 @@
         switch(current_action){
             case Action.ADDING_REGULAR_STATE:
                 if(selected_state){
-                    dialogue = "You cannot place a Node on top of another Node";
+                    dialogue = "You cannot place a Node on top of another Node.";
                     return;
                 }
                 selected_state = {position: cursor_coords, states_connected_to: new Map<string, Array<String>>(), 
@@ -159,10 +168,10 @@
 
             case Action.ADDING_FINAL_STATE:
                 if(!selected_state){
-                    dialogue = "You must make an existing Node a final Node";
+                    dialogue = "You must make an existing Node a final Node.";
                     return;
                 }else if(selected_state.is_final){
-                    dialogue = "The Node is already a final Node";
+                    dialogue = "The Node is already a final Node.";
                     return;
                 }
                 selected_state.is_final = true;
@@ -176,7 +185,7 @@
             
             case Action.ADDING_START_STATE:
                 if(selected_state){
-                    dialogue = "You cannot place a Node on top of another Node";
+                    dialogue = "You cannot place a Node on top of another Node.";
                     return;
                 }
                 start_state_index = states.length;
@@ -191,7 +200,7 @@
 
             case Action.PLACING_LINE:
                 if(!selected_state){
-                    dialogue = "You must place an arrow on top of another Node";
+                    dialogue = "You must place an arrow on top of another Node.";
                     return;
                 }
                 const curve: BezierCurve = {start_point: cursor_coords, control_point_one: cursor_coords, 
@@ -204,7 +213,7 @@
 
             case Action.PLACING_EPSILON_LINE:
                 if(!selected_state){
-                    dialogue = "You must place an arrow on top of another Node";
+                    dialogue = "You must place an arrow on top of another Node.";
                     return;
                 }
                 const ep_curve: BezierCurve = {start_point: cursor_coords, control_point_one: cursor_coords, 
@@ -217,7 +226,7 @@
 
             case Action.DRAWING_LINE:
                 if(!selected_state){
-                    dialogue = "The arrow must point to a valid Node";
+                    dialogue = "The arrow must point to a valid Node.";
                     return;
                 }
                 const last_connection = connections.pop();
@@ -401,7 +410,7 @@
     </canvas>
     <div class="flex flex-col justify-start gap-3 py-3">
         <TestFeedback is_string_accepted={is_string_accepted}/>
-        <Sidebar saveWorkspace={saveWorkspace} email={email} workspace_name={workspace_name} bind:current_action={current_action} undo={undo} 
-        handleTrash={handleTrash} clearCursor={clearCursor} state_connections={state_connections} connections={connections}/>
+        <Sidebar saveWorkspace={saveWorkspace} bind:current_action={current_action} undo={undo} 
+        handleTrash={handleTrash} clearCursor={clearCursor}/>
     </div>
 </div>

@@ -1,10 +1,13 @@
 import type { State, Connection, Coordinate, BezierCurve } from "./interfaces";
 import { getBezierCurveAngleAtPoint, getPointOnBezierCurveAtDistance } from "./mathFuncs";
 
-export const draw = (context: CanvasRenderingContext2D, 
-    width: number, height: number, nodes: Array<State>,
+export const draw = (
+    context: CanvasRenderingContext2D, 
+    width: number, 
+    height: number, 
+    nodes: Array<State>,
     connections: Array<Connection>, 
-    start_state_position: number, selected_connection_index: number | null) => {
+    selected_connection_index: number | null) => {
     
     // Needed so position specified for where characters are drawn is not drawn differently depending on if its offset is above/below or
     // left/right of the Connection

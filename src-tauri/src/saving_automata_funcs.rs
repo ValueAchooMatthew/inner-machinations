@@ -172,7 +172,7 @@ pub fn delete_workspace(workspace_name: String, email: String){
 }
 
 #[tauri::command]
-pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (usize, Vec<State>, Vec<Connection>, HashMap<String, State>) {
+pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (Option<usize>, Vec<State>, Vec<Connection>, HashMap<String, State>) {
     
     let mut conn: MysqlConnection = establish_connection();
     
@@ -187,14 +187,14 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (usize,
         .expect("There was an issue getting the workspace's states");
 
 
-    let mut start_state_index: usize = 0;
+    let mut start_state_index: Option<usize> = None;
     let mut state_connections: HashMap<String, State> = HashMap::new();
     let mut connections: Vec<Connection> = vec![];
     let mut states: Vec<State> = vec![];
 
     for (index, state) in retrieved_states.iter().enumerate() {
         if state.is_start {
-            start_state_index = index;
+            start_state_index = Some(index);
         }
         let parsed_state = parse_saved_state_to_regular_state(state, &workspace, &mut conn);
         state_connections.insert(state.position.to_owned(), parsed_state.to_owned());
