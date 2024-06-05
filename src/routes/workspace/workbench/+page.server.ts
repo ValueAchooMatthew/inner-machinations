@@ -1,4 +1,3 @@
-
 export const load = (async ({ cookies }) => {
 	const workspace_name = cookies.get("workspace_name");
 	const email = cookies.get("email");
@@ -6,4 +5,4 @@ export const load = (async ({ cookies }) => {
 		workspace_name,
 		email
 	};
-  });
+});

@@ -3,7 +3,7 @@
     import { draw } from "$lib/drawingFuncs";
     import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/mathFuncs";
     import type { State, Connection, Coordinate, BezierCurve } from "$lib/interfaces";
-    import { Action } from "$lib/enums";
+    import { Action, Automata } from "$lib/enums";
     import Sidebar from "./Sidebar.svelte";
     import TestFeedback from "./TestFeedback.svelte";
     import { invoke } from "@tauri-apps/api";
@@ -11,7 +11,7 @@
 
     export let start_state_coordinates: string | null;
     export let state_connections: Map<string, State>;
-    export let connections: Array<Connection> = [];;
+    export let connections: Array<Connection> = [];
     export let dialogue: string;
     export let start_state_index: number | null;
     export let default_connection_char: string = "a";
@@ -152,7 +152,6 @@
         const cursor_coords_string: string = convertCoordinateToString(cursor_coords);
         let selected_state: State | undefined = state_connections.get(cursor_coords_string);
         dialogue = "";
-        // Really needs to be refactored
         switch(current_action){
             case Action.ADDING_REGULAR_STATE:
                 if(selected_state){
@@ -188,12 +187,20 @@
                     dialogue = "You cannot place a Node on top of another Node.";
                     return;
                 }
-                start_state_index = states.length;
                 start_state_coordinates = cursor_coords_string;
+                // Only one start state is allowed, thus when the start state coordinates change, the old one becomes a regular state
+
+                if(start_state_index !== null){
+                    const old_start_state = states[start_state_index];
+                    old_start_state.is_start = false;
+                    states[start_state_index] = old_start_state;
+                }
+
                 selected_state = {position: cursor_coords, states_connected_to: new Map<string, Array<String>>(),
                 is_start: true , is_final: false, element: "State"};
                 elements.push(selected_state);
                 states.push(selected_state);
+                start_state_index = states.length - 1;
                 state_connections.set(cursor_coords_string, selected_state);
                 current_action = Action.ADDING_REGULAR_STATE;
                 break;
@@ -307,6 +314,7 @@
     }
 
     const clearCursor = (): void => {
+        current_action = Action.CLICKING;
         selected_connection_index = null;
     }
 

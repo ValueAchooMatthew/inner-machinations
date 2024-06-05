@@ -8,6 +8,7 @@
             return;
         }
         await invoke("delete_workspace", {email: email, workspaceName: workspace_to_delete});
+        workspace_to_delete = null;
     }
 </script>
 

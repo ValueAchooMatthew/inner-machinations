@@ -90,7 +90,7 @@
             default_connection_char={default_connection_char} is_string_accepted={is_string_accepted}/>
         </main>
         <div class="flex justify-center mt-3">
-            <form class="flex self-center gap-2 align-middle" on:submit|preventDefault={handleSubmit}>
+            <form class="flex self-center gap-2 align-middle select-none" on:submit|preventDefault={handleSubmit}>
                 <label class="w-40 text-2xl self-center" for="string">
                     Check String:
                 </label>

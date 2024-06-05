@@ -259,7 +259,6 @@ fn parse_saved_state_to_regular_state(state: &SavedState, workspace: &SavedAutom
     parsed_state
 }
 
-
 fn parse_position_key_to_coordinate(key: &String) -> Coordinate {
 
     let split_key: Vec<&str> = key.split(",").collect();

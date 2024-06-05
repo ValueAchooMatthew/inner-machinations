@@ -10,13 +10,18 @@
   export let data: {email: string};
   let workspace_to_delete: string | null = null;
 
-  onMount(async () => {
+  const getWorkspaces = async (data: {email: string}) => {
     if(!data || !data.email){
       return;
     }
     saved_workspace_names = await invoke("get_users_saved_workspaces", {email: data.email});
-  })
+  }
 
+  $: {
+    // Done to trigger a re-retrieval of the database whenever a workspace is deleted
+    workspace_to_delete = workspace_to_delete;
+    getWorkspaces(data);
+  }
 </script>
 
 <Banner/>
