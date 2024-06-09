@@ -1,5 +1,6 @@
 # Inner Machinations
-***Inner machinations is still in progress***
+
+**_Inner machinations is still in progress_**
 
 Inner Machination is a project built using Rust, Tauri, SvelteKit, and MySQL. I was inspired to make this project from my studies into discrete math at university, with the goal of being able to allow anybody, anyewhere to create and visualize deterministic/non-deterministic finite automata, which have immense and significant applications ranging from pattern matching to compiler theory.
 

@@ -1,9 +1,7 @@
-export const load = ({cookies}) => {
+export const load = ({ cookies }) => {
+  const email = cookies.get("email");
 
-    const email = cookies.get("email");
-
-    return{
-        email
-    };
-
-} 
+  return {
+    email,
+  };
+};

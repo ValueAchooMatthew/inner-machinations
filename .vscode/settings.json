@@ -1,7 +1,7 @@
 {
-    "sqltools.connections": [],
-    "rust-analyzer.linkedProjects": [
-        "./src-tauri/Cargo.toml",
-        "./src-tauri/Cargo.toml",
-    ]
+  "sqltools.connections": [],
+  "rust-analyzer.linkedProjects": [
+    "./src-tauri/Cargo.toml",
+    "./src-tauri/Cargo.toml"
+  ]
 }
