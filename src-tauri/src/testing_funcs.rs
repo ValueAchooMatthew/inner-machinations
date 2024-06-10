@@ -2,13 +2,14 @@ use crate::models::State;
 use std::collections::HashMap;
 
 #[tauri::command]
-pub fn test_string_dfa(state_connections: HashMap<String, State>, start_state_coordinates: String, string_to_check: String) -> bool {
+pub fn test_string_dfa(state_connections: HashMap<String, State>, start_state_coordinates: String, string_to_check: String) -> (bool, Vec<State>) {
 
   let mut is_string_accepted: bool = false;
+  let mut states_visited: Vec<State> = vec![];
 
   let start_state: &State = match state_connections.get(&start_state_coordinates){
     Some(state) => state,
-    None => return false
+    None => return (false, states_visited)
   };
 
   let mut current_state: &State = start_state;
@@ -17,16 +18,17 @@ pub fn test_string_dfa(state_connections: HashMap<String, State>, start_state_co
 
     let next_state = match dfa_delta_function(&state_connections, current_state, connection_char.to_string()) {
       Some(state) => state,
-      None => return false
+      None => return (false, states_visited)
     };
-
+    states_visited.push(next_state.to_owned());
+    
     current_state = next_state;
 
     is_string_accepted = current_state.is_final;
   }
 
-  is_string_accepted
-
+  (is_string_accepted, states_visited)
+  
 }
 
 // In a DFA, there can only be one (if any) state connected to a given state with a single connection char
@@ -46,7 +48,6 @@ fn dfa_delta_function<'a>(state_connections: &'a HashMap<String, State>, s: &'a 
   };
 
 }
-
 
 fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state: &State, string_to_check: &str) -> bool {
 
@@ -109,4 +110,5 @@ pub fn test_string_nfa(state_connections: HashMap<String, State>, start_state_co
   };
 
   nfa_delta_function(&state_connections, start_state, &string_to_check)
+
 }

@@ -153,6 +153,7 @@
       id="strict"
     />
   </form>
+
   <form class="self-start">
     <label for="char">
       Specify default connection character (default: a):

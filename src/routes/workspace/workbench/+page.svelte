@@ -1,66 +1,44 @@
 <script lang="ts">
   import { Automata } from "$lib/enums";
   import OptionsMenu from "./OptionsMenu.svelte";
-  import type { Connection, State } from "$lib/interfaces";
+  import type { CheckedStringResponse, Connection, State } from "$lib/interfaces";
   import Whiteboard from "./Whiteboard.svelte";
   import Banner from "./Banner.svelte";
-  import { invoke } from "@tauri-apps/api";
+  import { checkInputtedString } from "$lib/stringVerificationFuncs";
   import Notifications from "./Notifications.svelte";
 
   export let data;
 
   $: {
-    if (start_state_coordinates && string_to_check !== undefined) {
-      let check_string: () => Promise<void>;
-      switch (automata_selected) {
-        case Automata.DFA:
-          check_string = async () => {
-            let result = await invoke("verify_valid_dfa", {
-              stateConnections: state_connections,
-              inputAlphabet: input_alphabet,
-            });
-
-            if (!result && is_strict_checking) {
-              dialogue = `Your DFA either does not specify every connection provided in the input alphabet, or specifies them more than once.
-                    Update the model or disable strict checking`;
-              is_string_accepted = null;
-              return;
-            }
-            dialogue = "";
-            is_string_accepted = await invoke("test_string_dfa", {
-              stateConnections: state_connections,
-              startStateCoordinates: start_state_coordinates,
-              stringToCheck: string_to_check,
-            });
-          };
-          break;
-
-        case Automata.NFA:
-          check_string = async () => {
-            is_string_accepted = await invoke("test_string_nfa", {
-              stateConnections: state_connections,
-              startStateCoordinates: start_state_coordinates,
-              stringToCheck: string_to_check,
-            });
-          };
-          break;
-      }
-
-      check_string().catch((e) => {
-        console.log(e);
+    checkInputtedString(
+      start_state_coordinates, 
+      automata_selected, 
+      state_connections, 
+      string_to_check,
+      is_strict_checking,
+      input_alphabet
+    )
+      .then((result: CheckedStringResponse) => {
+        is_string_accepted = result.is_string_accepted;
+        states_traversed = result.states_traversed;
+        dialogue = result.dialogue;
+      })
+      .catch((err)=>{
+        console.log(err);
       });
-    }
   }
 
   let dialogue: string = "";
   let start_state_index: number | null = null;
   let string_to_check: string;
   let is_string_accepted: boolean | null = null;
+  let states_traversed: Array<State> = [];
   let start_state_coordinates: string | null = null;
   let automata_selected: Automata = Automata.DFA;
   // hashing every coordinate to a state for use when user click on a given coordinate point
   // Allows for O(1) access without having to search for the state which was clicked in the State array
   let state_connections: Map<string, State> = new Map<string, State>();
+  let highlighted_state: State | null = null;
   let connections: Array<Connection>;
   let default_connection_char: string;
   let sidebar_open: boolean;
@@ -121,6 +99,7 @@
         bind:dialogue
         bind:state_connections
         bind:start_state_index
+
         {default_connection_char}
         {is_string_accepted}
       />
@@ -141,6 +120,7 @@
         />
         <div class="w-40"></div>
       </form>
+      
       <Notifications {dialogue} />
     </div>
   </div>

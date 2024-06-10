@@ -27,3 +27,12 @@ export interface Coordinate {
   x: number;
   y: number;
 }
+
+export interface CheckedStringResponse {
+  dialogue: string,
+  // The reason we provide null as an option rather than using a boolean is because if the automata being tested is invalid,
+  // We do not want to give a response back to the user indicating the string is either accepted OR rejected since it's not possible
+  // to tell if we cannot test the automata in the first place.
+  is_string_accepted: boolean | null,
+  states_traversed: Array<State>
+}
