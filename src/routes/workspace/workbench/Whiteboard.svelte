@@ -27,6 +27,7 @@
   export let is_string_accepted: boolean | null;
   export let workspace_name: string | undefined;
   export let email: string | undefined;
+  export let highlighted_state: State | null;
 
   $: {
     if (context) {
@@ -37,7 +38,8 @@
         states,
         connections,
         selected_connection_index,
-        1,
+        highlighted_state,
+        1
       );
     }
   }

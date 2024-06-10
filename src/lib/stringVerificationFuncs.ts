@@ -20,9 +20,9 @@ export const checkInputtedString = async (
       states_traversed: []
     };
   }
-  if(start_state_coordinates === null) {
+  if(!start_state_coordinates || !string_to_check) {
     return {
-      dialogue: "You must specify a start state to test a string.",
+      dialogue: "",
       is_string_accepted: null,
       states_traversed: []
     };

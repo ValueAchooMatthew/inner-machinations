@@ -11,7 +11,8 @@ export const draw = (
   nodes: Array<State>,
   connections: Array<Connection>,
   selected_connection_index: number | null,
-  scale: number,
+  highlighted_state: State | null,
+  scale: number
 ) => {
   // Needed so position specified for where characters are drawn is not drawn differently depending on if its offset is above/below or
   // left/right of the Connection
@@ -21,7 +22,7 @@ export const draw = (
   context.clearRect(0, 0, width, height);
 
   nodes.forEach((node) => {
-    drawNode(context, node, scale);
+    drawNode(context, node, highlighted_state, scale);
   });
   connections.forEach((connection, index) => {
     drawConnection(
@@ -107,7 +108,8 @@ const drawConnection = (
 const drawNode = (
   context: CanvasRenderingContext2D,
   node: State,
-  scale: number,
+  highlighted_state: State | null,
+  scale: number
 ) => {
   context.lineWidth = 3;
   if (node.is_final) {
@@ -123,8 +125,22 @@ const drawNode = (
     context.stroke();
     context.closePath();
   }
-  // For some reason fills with the wrong colour unless I do this, no idea why
-  if (node.is_start) {
+
+  if(highlighted_state && node.position.x === highlighted_state.position.x && node.position.y === highlighted_state.position.y) {
+    context.fillStyle = "rgb(218,112,214)";
+    context.beginPath();
+    context.arc(
+      node.position.x / scale,
+      node.position.y / scale,
+      35 / scale,
+      0,
+      2 * Math.PI,
+    );
+    context.fill();
+    context.stroke();
+    context.closePath();
+  }
+  else if (node.is_start) {
     context.fillStyle = "rgb(22, 163, 74)";
     context.beginPath();
     context.arc(

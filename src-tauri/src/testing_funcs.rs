@@ -11,6 +11,7 @@ pub fn test_string_dfa(state_connections: HashMap<String, State>, start_state_co
     Some(state) => state,
     None => return (false, states_visited)
   };
+  states_visited.push(start_state.to_owned());
 
   let mut current_state: &State = start_state;
 

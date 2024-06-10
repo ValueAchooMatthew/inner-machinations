@@ -10,6 +10,7 @@
   export let data;
 
   $: {
+
     checkInputtedString(
       start_state_coordinates, 
       automata_selected, 
@@ -17,7 +18,7 @@
       string_to_check,
       is_strict_checking,
       input_alphabet
-    )
+      )
       .then((result: CheckedStringResponse) => {
         is_string_accepted = result.is_string_accepted;
         states_traversed = result.states_traversed;
@@ -63,6 +64,43 @@
     string_to_check = "";
     string_to_check = inputted_string.toString();
   };
+
+  const handleIncrementalStringChecking = async () => {
+
+    is_string_accepted = null;
+    let i = 0;
+    const traverseAutomata = 
+    setInterval(()=>{
+      if(i === states_traversed.length){
+        checkInputtedString(
+        start_state_coordinates, 
+        automata_selected, 
+        state_connections, 
+        string_to_check,
+        is_strict_checking,
+        input_alphabet
+        )
+        .then((result: CheckedStringResponse) => {
+          is_string_accepted = result.is_string_accepted;
+          states_traversed = result.states_traversed;
+          dialogue = result.dialogue;
+        })
+        .catch((err)=>{
+          console.log(err);
+        });
+          clearInterval(traverseAutomata);
+      }
+      highlighted_state = states_traversed[i];
+      i++
+    }, 500)
+
+    // The inputted string is checked after so that the result of whether the string is accepted or not
+    // Is not displayed to the user until after the traversal is finished
+
+
+
+  }
+
 </script>
 
 <div
@@ -99,6 +137,7 @@
         bind:dialogue
         bind:state_connections
         bind:start_state_index
+        {highlighted_state}
 
         {default_connection_char}
         {is_string_accepted}
@@ -120,6 +159,9 @@
         />
         <div class="w-40"></div>
       </form>
+      <button on:click={handleIncrementalStringChecking}>
+        Show String Verification Steps
+      </button>
       
       <Notifications {dialogue} />
     </div>
