@@ -13,6 +13,7 @@
     const data = new FormData(event.target);
     const email = data.get("email")?.toString();
     const password = data.get("password")?.toString();
+    document.cookie = "email" + "=" + email + "; path=/";
     if (!email || !password) {
       return;
     }
@@ -41,7 +42,6 @@
       goto("verification");
       return;
     }
-    document.cookie = "email" + "=" + email + "; path=/";
     goto("../workspace/dashboard");
     return;
   };

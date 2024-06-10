@@ -25,7 +25,8 @@ fn main() {
     register_user, is_user_registered, is_correct_log_in,
     send_email, verify_user, is_user_verified, test_string_dfa,
     test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, get_users_saved_workspaces
-  ])
+  ]
+)
   .run(tauri::generate_context!())
   .expect("error while running tauri application");
 }
@@ -86,7 +87,7 @@ fn send_email(email_address: &str) -> String {
 
 }
 
-use diesel::MysqlConnection;
+use diesel::SqliteConnection;
 use diesel::RunQueryDsl;
 use models::User;
 #[tauri::command]
@@ -100,7 +101,7 @@ fn is_user_verified(email_address: &str) -> bool {
   let cipher = new_magic_crypt!(&key, 256);
 
   let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
-  let mut conn: MysqlConnection = establish_connection();
+  let mut conn: SqliteConnection = establish_connection();
   let person: Result<User, diesel::result::Error> = users
     .filter(email.eq(encrypted_email))
     .filter(verified.eq(true))
@@ -124,7 +125,7 @@ fn verify_user(email_address: &str){
   let cipher = new_magic_crypt!(&key, 256);
 
   let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
-  let mut conn: MysqlConnection = establish_connection();
+  let mut conn: SqliteConnection = establish_connection();
 
   diesel::update(users)
     .filter(email.eq(encrypted_email))

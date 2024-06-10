@@ -1,13 +1,12 @@
 use diesel::prelude::*;
 use diesel::query_builder::QueryId;
-use diesel::sql_types::{Integer, Bool, VarChar};
 
 // Any instances of a character being typed as a string is done due to the fact the deserialized datatype coming from the
 // type scripty back-end, despite being a single character is always of type string since typescript does not have a character data type
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = crate::schema::users)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
 pub struct User {
     pub id: i32,
@@ -18,53 +17,38 @@ pub struct User {
 }
 
 #[derive(Queryable, QueryableByName, QueryId, Selectable, Insertable)]
-#[diesel(table_name = crate::schema::saved_automata)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
+#[diesel(table_name = crate::schema::saved_workspaces)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
 pub struct SavedAutomata {
-    #[diesel(sql_type = Integer)]
     pub id: i32,
-    #[diesel(sql_type = Integer)]
-    pub u_id: i32,
-    #[diesel(sql_type = VarChar)]
-    pub name: String
+    pub user_id: i32,
+    pub workspace_name: String
 }
 
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
 #[diesel(table_name = crate::schema::saved_states)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
 pub struct SavedState {
-    #[diesel(sql_type = Integer)]
     pub id: i32,
-    #[diesel(sql_type = Integer)]
-    pub automata_id: i32,
-    #[diesel(sql_type = VarChar)]
+    pub workspace_id: i32,
     pub position: String,
-    #[diesel(sql_type = Bool)]
     pub is_start: bool,
-    #[diesel(sql_type = Bool)]
     pub is_final: bool
 }
 
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
 #[diesel(table_name = crate::schema::saved_connections)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
 pub struct SavedConnection {
-    #[diesel(sql_type = Integer)]
     pub id: i32,
-    #[diesel(sql_type = Integer)]
-    pub automata_id: i32,
-    #[diesel(sql_type = VarChar)]
+    pub workspace_id: i32,
     pub start_point: String,
-    #[diesel(sql_type = VarChar)]
     pub control_point_one: String,
-    #[diesel(sql_type = VarChar)]
     pub control_point_two: String,
-    #[diesel(sql_type = VarChar)]
     pub end_point: String,
-    #[diesel(sql_type = VarChar)]
     pub connection_character: String
 }
 

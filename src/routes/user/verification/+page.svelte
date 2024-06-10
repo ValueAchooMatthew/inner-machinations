@@ -8,12 +8,12 @@
   let is_verified = false;
   let response = "";
   onMount(async () => {
-    if (data === null || data.email === null) {
+    if (data === undefined || data.email === undefined) {
       console.log("The user's email is null");
       return;
     }
     is_verified = await invoke("is_user_verified", {
-      emailAddress: data.email,
+      emailAddress: data.email
     });
     if (!is_verified) {
       code = await invoke("send_email", { emailAddress: data.email });
