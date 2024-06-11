@@ -3,6 +3,7 @@
   export let sidebar_open: boolean;
   export let input_alphabet: Array<string> = new Array("a", "b");
   export let is_strict_checking: boolean = false;
+  export let is_showing_string_traversal: boolean = false;
 
   const handleDefaultCharChange = (event: Event) => {
     if (!(event instanceof InputEvent)) {
@@ -113,7 +114,7 @@
         {/each}
         <button
           on:submit={handleSubmitAll}
-          class="bg-orange-500 w-fit h-fit self-center px-2 py-1 rounded-md text-white"
+          class="bg-orange-500 w-fit h-fit self-center px-2 py-1 rounded-md text-white text-md font-semibold border-black border-2"
           form="alphabetChange"
         >
           Submit All
@@ -144,13 +145,29 @@
   <form class="self-start">
     <label for="strict"> Strict Checking (works for DFA's only): </label>
     <input
-      class="w-6 h-6"
+      class="w-6 h-6 accent-orange-500
+        checked:bg-orange-500 checked:border-transparent checked:ring-2 checked:ring-orange-500 checked:ring-offset-2
+        checked:ring-offset-white rounded-md px-2 py-1"
       on:change={() => {
         is_strict_checking = !is_strict_checking;
       }}
       type="checkbox"
       name="strict"
       id="strict"
+    />
+  </form>
+  <form class="self-start">
+    <label for="showingTraversalSteps"> Show Step-By-Step String Traversal: </label>
+    <input
+      class="w-6 h-6 accent-orange-500
+        checked:bg-orange-500 checked:border-transparent checked:ring-2 checked:ring-orange-500 checked:ring-offset-2
+        checked:ring-offset-white rounded-md px-2 py-1 checked:"
+      on:change={() => {
+        is_showing_string_traversal = !is_showing_string_traversal;
+      }}
+      type="checkbox"
+      name="showingTraversalSteps"
+      id="showingTraversalSteps"
     />
   </form>
 

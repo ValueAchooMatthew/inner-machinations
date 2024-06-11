@@ -9,7 +9,42 @@
 
   export let data;
 
-  $: {
+  let dialogue: string = "";
+  let start_state_index: number | null = null;
+  let string_to_check: string;
+  let is_string_accepted: boolean | null = null;
+  let states_traversed: Array<State> = [];
+  let start_state_coordinates: string | null = null;
+  let automata_selected: Automata = Automata.DFA;
+  // hashing every coordinate to a state for use when user click on a given coordinate point
+  // Allows for O(1) access without having to search for the state which was clicked in the State array
+  let state_connections: Map<string, State> = new Map<string, State>();
+  let highlighted_state: State | null = null;
+  let is_showing_string_traversal: boolean;
+  let connections: Array<Connection>;
+  let default_connection_char: string;
+  let sidebar_open: boolean;
+  let is_strict_checking: boolean;
+  let input_alphabet: Array<string>;
+  let workspace_name: string | undefined = data.workspace_name;
+
+
+  const handleStringInput = (event: SubmitEvent) => {
+    if (!(event.target instanceof HTMLFormElement)) {
+      return;
+    }
+    const data = new FormData(event.target);
+    const inputted_string = data.get("string");
+    if (!inputted_string) {
+      return;
+    }
+    if (start_state_index === null) {
+      dialogue = "You must specify at least one start state";
+      return;
+    }
+    // Here to trigger the tauri invoke to fire even if the same string is inputted as the previous submission
+    string_to_check = "";
+    string_to_check = inputted_string.toString();
 
     checkInputtedString(
       start_state_coordinates, 
@@ -27,47 +62,13 @@
       .catch((err)=>{
         console.log(err);
       });
-  }
+    if(is_showing_string_traversal){
+      handleIncrementalStringChecking();
+    }
 
-  let dialogue: string = "";
-  let start_state_index: number | null = null;
-  let string_to_check: string;
-  let is_string_accepted: boolean | null = null;
-  let states_traversed: Array<State> = [];
-  let start_state_coordinates: string | null = null;
-  let automata_selected: Automata = Automata.DFA;
-  // hashing every coordinate to a state for use when user click on a given coordinate point
-  // Allows for O(1) access without having to search for the state which was clicked in the State array
-  let state_connections: Map<string, State> = new Map<string, State>();
-  let highlighted_state: State | null = null;
-  let connections: Array<Connection>;
-  let default_connection_char: string;
-  let sidebar_open: boolean;
-  let is_strict_checking: boolean;
-  let input_alphabet: Array<string>;
-  let workspace_name: string | undefined = data.workspace_name;
-
-  const handleSubmit = (event: SubmitEvent) => {
-    if (!(event.target instanceof HTMLFormElement)) {
-      return;
-    }
-    const data = new FormData(event.target);
-    const inputted_string = data.get("string");
-    if (!inputted_string) {
-      return;
-    }
-    if (start_state_index === null) {
-      dialogue = "You must specify at least one start state";
-      return;
-    }
-    // Here to trigger the tauri invoke to fire even if the same string is inputted as the previous submission
-    string_to_check = "";
-    string_to_check = inputted_string.toString();
   };
 
   const handleIncrementalStringChecking = async () => {
-
-    is_string_accepted = null;
     let i = 0;
     const traverseAutomata = 
     setInterval(()=>{
@@ -94,12 +95,8 @@
       i++
     }, 500)
 
-    // The inputted string is checked after so that the result of whether the string is accepted or not
-    // Is not displayed to the user until after the traversal is finished
-
-
-
   }
+
 
 </script>
 
@@ -117,6 +114,7 @@
       bind:is_strict_checking
       bind:default_connection_char
       bind:sidebar_open
+      bind:is_showing_string_traversal
     />
   </aside>
   <div class="w-full min-w-0">
@@ -143,13 +141,15 @@
         {is_string_accepted}
       />
     </main>
-    <div class="flex justify-center mt-3">
+    <div class="flex justify-center mt-3 gap-4">
       <form
+        id="stringCheckingForm"
         class="flex self-center gap-2 align-middle select-none"
-        on:submit|preventDefault={handleSubmit}
+        on:submit|preventDefault={handleStringInput}
+        on:change={()=>{is_string_accepted = null}}
       >
         <label class="w-40 text-2xl self-center" for="string">
-          Check String:
+          String To Test:
         </label>
         <input
           class="border-black border-2 text-3xl rounded-md px-2 py-1"
@@ -157,12 +157,12 @@
           name="string"
           id="string"
         />
-        <div class="w-40"></div>
-      </form>
-      <button on:click={handleIncrementalStringChecking}>
-        Show String Verification Steps
-      </button>
-      
+        <button class="w-40 bg-orange-500 rounded-md text-xl font-semibold border-black 
+          border-2 hover:-translate-y-4 duration-300 transition-all will-change-transform" form="stringCheckingForm">
+          Check String
+        </button>
+
+      </form>      
       <Notifications {dialogue} />
     </div>
   </div>

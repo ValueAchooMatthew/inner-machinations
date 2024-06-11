@@ -126,7 +126,7 @@ const drawNode = (
     context.closePath();
   }
 
-  if(highlighted_state && node.position.x === highlighted_state.position.x && node.position.y === highlighted_state.position.y) {
+  if(highlighted_state?.position && node.position.x === highlighted_state.position.x && node.position.y === highlighted_state.position.y) {
     context.fillStyle = "rgb(218,112,214)";
     context.beginPath();
     context.arc(
