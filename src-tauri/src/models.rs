@@ -56,7 +56,7 @@ pub struct SavedConnection {
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct State { 
     pub position: Coordinate,
     pub states_connected_to: HashMap<String, Vec<String>>,

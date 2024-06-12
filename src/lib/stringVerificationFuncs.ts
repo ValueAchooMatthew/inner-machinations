@@ -47,7 +47,7 @@ export const checkInputtedString = async (
       };
 
     case Automata.NFA:
-      [is_string_accepted_after_test, states_traversed_after_test] = await invoke("test_string_dfa", {
+      [is_string_accepted_after_test, states_traversed_after_test] = await invoke("test_string_nfa", {
         stateConnections: state_connections,
         startStateCoordinates: start_state_coordinates,
         stringToCheck: string_to_check,

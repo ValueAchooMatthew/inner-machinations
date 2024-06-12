@@ -50,66 +50,136 @@ fn dfa_delta_function<'a>(state_connections: &'a HashMap<String, State>, s: &'a 
 
 }
 
-fn nfa_delta_function(state_connections: &HashMap<String, State>, current_state: &State, string_to_check: &str) -> bool {
+// For the purposes of this program, we will use a modified version of delta function as traditionally written in the form Q x a -> P,
+// To allow for easier communication to and from the nfa string checking function
+// The reason for the hashmap is so that, if a s
 
+fn nfa_delta_function<'a>(state_connections: &'a HashMap<String, State>, 
+  current_state: &'a State, 
+  string_to_check: &String,
+  states_visited: &'a mut Vec<State>) -> (bool, &'a mut Vec<State>) {
+  
   if string_to_check.is_empty() && current_state.is_final {
-    return true;
+    return (true, states_visited);
   }
-
-  let next_char = match string_to_check.chars().next() {
-    Some(char) => char.to_string(),
-    None => String::new()
-  };
-
-  let binding = vec![];
-  let connection_keys_with_char  = match current_state.states_connected_to.get(&next_char) {
-    Some(connections) => connections,
-    None => &binding
-  };
-
-  let connection_keys_with_epsilon = match current_state.states_connected_to.get(&"ϵ".to_owned()) {
-    Some(connections) => connections,
-    None => &binding
-  };
-
-
-  for connection_key in connection_keys_with_char {
-    let next_state = match state_connections.get(connection_key){
-      Some(state)  => state,
-      None => return false
-    };
-
-    // Even after exhausting all the regular character options, the nfa may still be valid depending on the results of the epsilon connections, 
-    // hence we are not returning unless it returns true
-    let result = nfa_delta_function(state_connections, next_state, &string_to_check[1..]);
-    if result {
-      return true;
-    }
-  }
-
-  for epsilon_key in connection_keys_with_epsilon {
-    let next_state = match state_connections.get(epsilon_key){
-      Some(state)  => state,
-      None => return false
-    };
-    let result = nfa_delta_function(state_connections, next_state, string_to_check);
-    if result {
-      return true;
+  
+  for character in string_to_check.chars() {
+    let states_connected_by_character = get_states_connected_by_character_in_nfa(
+      state_connections, 
+      current_state,
+      &character.to_string());
+    
+    let states_connected_by_epsilon = get_states_connected_by_epsilon_in_nfa(
+      state_connections, 
+      current_state);
+    
+    if states_connected_by_character.is_none() && states_connected_by_epsilon.is_none() {
+      return (false, states_visited);
     }
 
+    if states_connected_by_character.is_some() {
+
+      for state in states_connected_by_character.unwrap() {
+
+        // The rest of the string to be checked will be everything excluding the first character
+        // Which was consumed when retrieving states_connected_by_character
+        let string_to_check = String::from(&string_to_check[1..]);
+
+        // Checking if the bool value of states visited is true
+        if nfa_delta_function(state_connections, state, &string_to_check, states_visited).0 {
+          states_visited.push(state.to_owned());
+          return (true, states_visited);
+        } 
+      }
+
+    }
+    if states_connected_by_epsilon.is_some() {
+
+      for state in states_connected_by_epsilon.unwrap() {
+
+        // Checking if the bool value of states visited is true
+        if nfa_delta_function(state_connections, state, string_to_check, states_visited).0 {
+          return (true, states_visited);
+        }
+
+      };
+
+    }
+
+  };
+  return (false, states_visited);
+}
+
+fn get_states_connected_by_character_in_nfa<'a>(
+  state_connections: &'a HashMap<String, State>, 
+  s: &'a State, 
+  connection_char: &String
+  ) -> Option<Vec<&'a State>> {
+
+  match s.states_connected_to.get(connection_char) {
+    Some(connected_state_keys) => {
+      let mut connected_states: Vec<&State> = vec![];
+
+      for state_key in connected_state_keys {
+
+        let state = state_connections.get(state_key)
+          .expect("The requested state could not be found");
+
+        connected_states.push(state);
+      }
+      Some(connected_states)
+    },
+    None => None
   }
-  false
 
 }
 
+fn get_states_connected_by_epsilon_in_nfa<'a>(
+  state_connections: &'a HashMap<String, State>, 
+  s: &'a State
+) -> Option<Vec<&'a State>> {
+  match s.states_connected_to.get(&String::from("ϵ")) {
+    Some(connected_state_keys) => {
+      let mut connected_states: Vec<&State> = vec![];
+
+      for state_key in connected_state_keys {
+
+        let state = state_connections.get(state_key)
+          .expect("The requested state could not be found");
+
+        // Epsilon transitions connecting to the same state cannot be used as the program will just indefinitely check
+        // The exact same string on the exact same state over and over again thus epsilon self looping cannot be sent to the delta function
+        if s != state {
+          connected_states.push(state);
+
+        }
+      }
+      Some(connected_states)
+    },
+    None => None
+  }
+}
+
+
+
 #[tauri::command]
-pub fn test_string_nfa(state_connections: HashMap<String, State>, start_state_coordinates: String, string_to_check: String) -> bool {
-  
+pub fn test_string_nfa(
+  state_connections: HashMap<String, State>, 
+  start_state_coordinates: String, 
+  string_to_check: String
+  ) -> (bool, Vec<State>) {
+
+  let mut states_visited: Vec<State> = vec![];
+
   let start_state = match state_connections.get(&start_state_coordinates) {
     Some(state) => state,
-    None => return false
+    None => return (false, states_visited)
   };
 
-  nfa_delta_function(&state_connections, start_state, &string_to_check)
+  states_visited.push(start_state.to_owned());
+
+  // Ugly syntax but whatevs
+  let result = nfa_delta_function(&state_connections, start_state, &string_to_check, &mut states_visited);
+  return (result.0, result.1.to_owned());
 
 }

@@ -272,7 +272,7 @@
 
       case Action.PLACING_LINE:
         if (!selected_state) {
-          dialogue = "You must place an arrow on top of another Node.";
+          dialogue = "You must place an arrow on top of a Node.";
           return;
         }
         const curve: BezierCurve = {
@@ -293,7 +293,7 @@
 
       case Action.PLACING_EPSILON_LINE:
         if (!selected_state) {
-          dialogue = "You must place an arrow on top of another Node.";
+          dialogue = "You must place an arrow on top of a Node.";
           return;
         }
         const ep_curve: BezierCurve = {
@@ -338,13 +338,14 @@
             last_connection.connection_character,
             new Array<String>(cursor_coords_string),
           );
-        } else {
-          previous_connections.push(cursor_coords_string);
-          starting_state.states_connected_to.set(
-            last_connection.connection_character,
-            previous_connections,
-          );
-        }
+          return;
+        } 
+
+        previous_connections.push(cursor_coords_string);
+        starting_state.states_connected_to.set(
+          last_connection.connection_character,
+          previous_connections,
+        );
 
         // First control point starts at the start coordinate, the second control point moves to follow the end coordinates
         // Makes drawing for user easier if control points are spread apart
