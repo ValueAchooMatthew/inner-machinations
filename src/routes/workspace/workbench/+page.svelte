@@ -72,7 +72,9 @@
     let i = 0;
     const traverseAutomata = 
     setInterval(()=>{
+      
       if(i === states_traversed.length){
+
         checkInputtedString(
         start_state_coordinates, 
         automata_selected, 

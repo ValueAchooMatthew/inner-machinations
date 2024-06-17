@@ -12,7 +12,7 @@
     Coordinate,
     BezierCurve,
   } from "$lib/interfaces";
-  import { Action, Automata } from "$lib/enums";
+  import { Action } from "$lib/enums";
   import Sidebar from "./Sidebar.svelte";
   import TestFeedback from "./TestFeedback.svelte";
   import { invoke } from "@tauri-apps/api";
@@ -250,7 +250,7 @@
         start_state_coordinates = cursor_coords_string;
         // Only one start state is allowed, thus when the start state coordinates change, the old one becomes a regular state
 
-        if (start_state_index !== null) {
+        if (start_state_index !== null && start_state_index > 0) {
           const old_start_state = states[start_state_index];
           old_start_state.is_start = false;
           states[start_state_index] = old_start_state;
@@ -317,10 +317,13 @@
           dialogue = "The arrow must point to a valid Node.";
           return;
         }
+        console.log(connections);
         const last_connection = connections.pop();
         if (!last_connection) {
           return;
         }
+        console.log(last_connection);
+        
         // Starting node's key will be at the x, y coordinates of the connection's start point
         // The selected node will treated as our "ending" node
         const starting_state_key = last_connection.curve.start_point;
@@ -330,15 +333,11 @@
         if (!starting_state) {
           return;
         }
-        const previous_connections = starting_state.states_connected_to.get(
+        let previous_connections = starting_state.states_connected_to.get(
           last_connection.connection_character,
         );
         if (previous_connections === undefined) {
-          starting_state.states_connected_to.set(
-            last_connection.connection_character,
-            new Array<String>(cursor_coords_string),
-          );
-          return;
+          previous_connections = new Array<String>(cursor_coords_string);
         } 
 
         previous_connections.push(cursor_coords_string);
@@ -349,6 +348,7 @@
 
         // First control point starts at the start coordinate, the second control point moves to follow the end coordinates
         // Makes drawing for user easier if control points are spread apart
+        console.log(state_connections);
         last_connection.curve.end_point = selected_state.position;
         last_connection.curve.control_point_two = selected_state.position;
         if (selected_state === starting_state) {

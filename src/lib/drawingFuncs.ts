@@ -20,9 +20,10 @@ export const draw = (
   context.textAlign = "center";
   context.strokeStyle = "black";
   context.clearRect(0, 0, width, height);
+  const tick = new Audio("/metronome-85688.mp3");
 
   nodes.forEach((node) => {
-    drawNode(context, node, highlighted_state, scale);
+    drawNode(context, node, highlighted_state, scale, tick);
   });
   connections.forEach((connection, index) => {
     drawConnection(
@@ -109,7 +110,8 @@ const drawNode = (
   context: CanvasRenderingContext2D,
   node: State,
   highlighted_state: State | null,
-  scale: number
+  scale: number,
+  tick: HTMLAudioElement
 ) => {
   context.lineWidth = 3;
   if (node.is_final) {
@@ -139,6 +141,8 @@ const drawNode = (
     context.fill();
     context.stroke();
     context.closePath();
+    tick.play();
+
   }
   else if (node.is_start) {
     context.fillStyle = "rgb(22, 163, 74)";
