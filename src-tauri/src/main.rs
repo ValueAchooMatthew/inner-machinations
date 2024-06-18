@@ -4,9 +4,10 @@
 extern crate diesel;
 pub mod schema;
 pub mod models;
-pub mod testing_funcs;
-pub mod validation_funcs;
+pub mod testing_automata_funcs;
+pub mod validation_automata_funcs;
 pub mod saving_automata_funcs;
+pub mod advanced_automata_funcs;
 pub mod db;
 
 use dotenv::dotenv;
@@ -14,9 +15,10 @@ use lettre::message::Mailbox;
 use std::env;
 use db::register_user;
 use db::is_correct_log_in;
-use testing_funcs::{test_string_dfa, test_string_nfa};
+use advanced_automata_funcs::is_dfa_minimized;
+use testing_automata_funcs::{test_string_dfa, test_string_nfa};
 use saving_automata_funcs::{save_workspace, delete_workspace, retrieve_workspace_data, get_users_saved_workspaces};
-use validation_funcs::verify_valid_dfa;
+use validation_automata_funcs::verify_valid_dfa;
 
 // Fixed Opsec but should refactor key getting and setting into separate func in lib
 fn main() {
@@ -24,7 +26,8 @@ fn main() {
   .invoke_handler(tauri::generate_handler![
     register_user, is_user_registered, is_correct_log_in,
     send_email, verify_user, is_user_verified, test_string_dfa,
-    test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, get_users_saved_workspaces
+    test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, 
+    get_users_saved_workspaces, is_dfa_minimized
   ]
 )
   .run(tauri::generate_context!())

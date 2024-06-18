@@ -3,7 +3,8 @@ extern crate dotenv;
 
 pub mod schema;
 pub mod models;
-pub mod testing_funcs;
+pub mod testing_automata_funcs;
+pub mod advanced_automata_funcs;
 
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;

@@ -6,6 +6,7 @@
   import Banner from "./Banner.svelte";
   import { checkInputtedString } from "$lib/stringVerificationFuncs";
   import Notifications from "./Notifications.svelte";
+  import { invoke } from "@tauri-apps/api";
 
   export let data;
 
@@ -163,7 +164,9 @@
           border-2 hover:-translate-y-4 duration-300 transition-all will-change-transform" form="stringCheckingForm">
           Check String
         </button>
-
+        <button on:click={async ()=>{const res = await invoke("is_dfa_minimized", {stateConnections: state_connections, inputAlphabet: input_alphabet}); console.log(res);}}>
+          Minimize DFA
+        </button>
       </form>      
       <Notifications {dialogue} />
     </div>

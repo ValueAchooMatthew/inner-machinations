@@ -317,12 +317,10 @@
           dialogue = "The arrow must point to a valid Node.";
           return;
         }
-        console.log(connections);
         const last_connection = connections.pop();
         if (!last_connection) {
           return;
         }
-        console.log(last_connection);
         
         // Starting node's key will be at the x, y coordinates of the connection's start point
         // The selected node will treated as our "ending" node
@@ -348,7 +346,6 @@
 
         // First control point starts at the start coordinate, the second control point moves to follow the end coordinates
         // Makes drawing for user easier if control points are spread apart
-        console.log(state_connections);
         last_connection.curve.end_point = selected_state.position;
         last_connection.curve.control_point_two = selected_state.position;
         if (selected_state === starting_state) {
