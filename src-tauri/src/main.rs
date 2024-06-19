@@ -15,7 +15,7 @@ use lettre::message::Mailbox;
 use std::env;
 use db::register_user;
 use db::is_correct_log_in;
-use advanced_automata_funcs::is_dfa_minimized;
+use advanced_automata_funcs::minimize_dfa;
 use testing_automata_funcs::{test_string_dfa, test_string_nfa};
 use saving_automata_funcs::{save_workspace, delete_workspace, retrieve_workspace_data, get_users_saved_workspaces};
 use validation_automata_funcs::verify_valid_dfa;
@@ -27,7 +27,7 @@ fn main() {
     register_user, is_user_registered, is_correct_log_in,
     send_email, verify_user, is_user_verified, test_string_dfa,
     test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, 
-    get_users_saved_workspaces, is_dfa_minimized
+    get_users_saved_workspaces, minimize_dfa
   ]
 )
   .run(tauri::generate_context!())

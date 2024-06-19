@@ -89,11 +89,38 @@ pub struct BezierCurve {
 
 impl Coordinate{
     pub fn convert_coords_to_string(&self) -> String {
-        let mut built_string = self.x.to_string();
-        built_string.push(',');
-        // Using reference here since push_str takes in &str as param
-        built_string.push_str(&self.y.to_string());
-        return built_string;
+      let mut built_string = self.x.to_string();
+      built_string.push(',');
+      // Using reference here since push_str takes in &str as param
+      built_string.push_str(&self.y.to_string());
+      return built_string;
     }
+
+    pub fn convert_string_to_coords(string_to_convert: &String) -> Result<Coordinate, ()> {
+
+      let processed_strings: Vec<&str> = string_to_convert.split(",").collect();
+
+      if processed_strings.len() != 2 {
+        return Err(());
+      }
+
+      let coordinate = Coordinate {
+        x: processed_strings
+          .get(0)
+          .unwrap()
+          .parse::<i32>()
+          .unwrap(),
+
+        y: processed_strings
+          .get(1)
+          .unwrap()
+          .parse::<i32>()
+          .unwrap()
+      };
+
+      return Ok(coordinate);
+
+    }
+
 
 }

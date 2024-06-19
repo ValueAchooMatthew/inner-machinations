@@ -28,6 +28,7 @@
   export let workspace_name: string | undefined;
   export let email: string | undefined;
   export let highlighted_state: State | null;
+  export let input_alphabet;
 
   $: {
     if (context) {
@@ -558,5 +559,10 @@
       {handleTrash}
       {clearCursor}
     />
+    <button class="bg-orange-500 rounded-md text-lg border-2 border-black"
+    on:click={async ()=>{const res = await invoke("minimize_dfa", {stateConnections: state_connections, inputAlphabet: input_alphabet, connections: connections}); console.log(res); state_connections = res[0]; states = res[1]; connections = res[2];}}>
+      Minimize DFA
+    </button>
   </div>
+
 </div>
