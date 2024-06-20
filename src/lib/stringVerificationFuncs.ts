@@ -9,7 +9,7 @@ export const checkInputtedString = async (
   string_to_check: string | null,
   is_strict_checking: boolean,
   input_alphabet: Array<string>
-): Promise<CheckedStringResponse> => {
+  ): Promise<CheckedStringResponse> => {
 
   const is_dfa_valid: boolean = await checkValidityOfDFA(is_strict_checking, current_automata, state_connections, input_alphabet);
   if(!is_dfa_valid){

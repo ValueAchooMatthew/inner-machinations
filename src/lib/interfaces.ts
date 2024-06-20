@@ -45,7 +45,6 @@ export interface TauriGeneratedAutomataInformation {
 
 }
 
-
 export interface AutomataInformation {
   start_state_index: number | null,
   states: Array<State>,

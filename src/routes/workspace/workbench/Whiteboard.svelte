@@ -17,6 +17,7 @@
   import TestFeedback from "./TestFeedback.svelte";
   import { invoke } from "@tauri-apps/api";
   import { convertCoordinateToString } from "$lib/miscUtils";
+  import { parseTauriResponseToTSTypes } from "$lib/parsingBackendResponsesFuncs";
 
   export let start_state_coordinates: string | null;
   export let state_connections: Map<string, State>;
@@ -66,6 +67,31 @@
   let context: CanvasRenderingContext2D;
   let current_action: Action = Action.ADDING_REGULAR_STATE;
 
+  const handleStateMinimization = async (): Promise<void> => {
+    
+    const tauri_response: [
+      number | null,
+      Array<State>,
+      Array<Connection>,
+      { [key: string]: State }
+    ] = await invoke("minimize_dfa", {
+      stateConnections: state_connections, 
+      connections: connections, 
+      inputAlphabet: input_alphabet});
+
+    start_state_index = tauri_response[0];
+
+    if(start_state_index != null) {
+      start_state_coordinates = convertCoordinateToString(
+        states[start_state_index].position,
+      );
+    }
+    
+    connections = tauri_response[2];
+    [states, state_connections] = parseTauriResponseToTSTypes(tauri_response[1], tauri_response[3]);
+
+  }
+
   const saveWorkspace = async () => {
     if (!email || !workspace_name) {
       return;
@@ -99,40 +125,28 @@
     if (!email || !workspace_name) {
       return;
     }
-    const retrieved_data: [
+    const tauri_response: [
       number | null,
       Array<State>,
       Array<Connection>,
-      { [key: string]: State },
+      { [key: string]: State }
     ] = await invoke("retrieve_workspace_data", {
       email: email,
       workspaceName: workspace_name,
     });
+    
+    start_state_index = tauri_response[0];
 
-    states = retrieved_data[1];
-    connections = retrieved_data[2];
     // If the some value exists, there is a specified start state
-    if (retrieved_data[0] !== null) {
-      start_state_index = retrieved_data[0];
+    if (start_state_index !== null) {
       start_state_coordinates = convertCoordinateToString(
         states[start_state_index].position,
       );
     }
+    
+    connections = tauri_response[2];
+    [states, state_connections] = parseTauriResponseToTSTypes(tauri_response[1], tauri_response[3]);
 
-    // Needed as hashmaps get parsed into an object instead of a map when coming from backend
-    state_connections = new Map<string, State>(
-      Object.entries(retrieved_data[3]),
-    );
-    states.forEach((state) => {
-      state.states_connected_to = new Map<string, Array<string>>(
-        Object.entries(state.states_connected_to),
-      );
-    });
-    state_connections.forEach((state) => {
-      state.states_connected_to = new Map<string, Array<string>>(
-        Object.entries(state.states_connected_to),
-      );
-    });
   });
 
   const undo = (): void => {
@@ -560,7 +574,7 @@
       {clearCursor}
     />
     <button class="bg-orange-500 rounded-md text-lg border-2 border-black"
-    on:click={async ()=>{const res = await invoke("minimize_dfa", {stateConnections: state_connections, inputAlphabet: input_alphabet, connections: connections}); console.log(res); state_connections = res[0]; states = res[1]; connections = res[2];}}>
+    on:click={handleStateMinimization}>
       Minimize DFA
     </button>
   </div>

@@ -154,8 +154,6 @@ fn remove_redundant_connections(
 
     } else if !state_keys_to_be_ignored.contains(&start_state_key) {
 
-
-
       if let Some(equivalent_state_key) = equivalent_state_keys.get(&end_state_key) {
         
         let equivalent_state_key = Coordinate::convert_string_to_coords(*equivalent_state_key)
@@ -169,26 +167,22 @@ fn remove_redundant_connections(
 
     }
 
-
   };
 
   return updated_connections;
 
-  }
-
-
+}
 
 #[tauri::command]
 pub fn minimize_dfa(
   state_connections: HashMap<String, State>,
   connections: Vec<Connection>,
   input_alphabet: Vec<String>
-) -> (HashMap<String, State>, Vec<State>, Vec<Connection>){
-
-
+  ) -> (Option<usize>, Vec<State>, Vec<Connection>, HashMap<String, State>){
 
   let marked_states = mark_unequivalent_states_in_dfa(&state_connections, &input_alphabet);
 
+  let mut start_state_index: Option<usize> = None;
   let mut minimized_states = vec![];
   let mut minimized_state_connections: HashMap<String, State> = HashMap::new();
   let mut state_keys_to_be_ignored: HashSet<&String> = HashSet::new();
@@ -227,27 +221,25 @@ pub fn minimize_dfa(
       }
 
     }
-    
+
     minimized_states.push(first_state.to_owned());
-
-    // If a state does not need to be ignored, we will still need to change all references made to an ignored state to its equivalent
-    // Which we chose not to ignore
-
 
   };
 
   // If a state does not need to be ignored, we will still need to change all references made to an ignored state to its equivalent
   // Which we chose not to ignore
   // This must be done after the final list of all states to be ignored has been made
-  for state in minimized_states.iter_mut() {
+  for (index, state) in minimized_states.iter_mut().enumerate() {
+
+    if state.is_start {
+      start_state_index = Some(index);
+    }
     *state = remove_redundant_state_connections(state.to_owned(), &equivalent_state_keys, &state_keys_to_be_ignored);
     minimized_state_connections.insert(state.position.convert_coords_to_string().to_owned(), state.to_owned());
   }
 
   let connections = remove_redundant_connections(connections, &equivalent_state_keys , &state_keys_to_be_ignored);
 
-
-  return (minimized_state_connections, minimized_states, connections);
+  return (start_state_index, minimized_states, connections, minimized_state_connections);
 
 }
-
