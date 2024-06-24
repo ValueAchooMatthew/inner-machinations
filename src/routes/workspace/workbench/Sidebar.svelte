@@ -1,11 +1,15 @@
 <script lang="ts">
   import { Action } from "$lib/enums";
+  import { undo } from "$lib/deletionFuncs";
+  import { saveWorkspace } from "$lib/savingWorkspaceFuncs";
+  import { current_action } from "$lib/automataStores";
+  import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
 
-  export let current_action: Action;
+  export let email: string | undefined;
+  export let workspace_name: string | undefined;
   export let clearCursor: () => void;
-  export let undo: () => void;
   export let handleTrash: () => void;
-  export let saveWorkspace: () => Promise<void>;
+  
 </script>
 
 <nav class="text-center select-none flex flex-col justify-between self-end
@@ -14,7 +18,7 @@ gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 p
     <button
       on:click={() => {
         clearCursor();
-        current_action = Action.ADDING_START_STATE;
+        current_action.set(Action.ADDING_START_STATE);
       }}
       class="flex flex-col self-center"
       style="line-height: 15px;">
@@ -25,7 +29,7 @@ gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 p
     <button
       on:click={() => {
         clearCursor();
-        current_action = Action.ADDING_REGULAR_STATE;
+        current_action.set(Action.ADDING_REGULAR_STATE);
       }}
       class="flex flex-col self-center">
       New State
@@ -35,7 +39,7 @@ gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 p
     <button
       on:click={() => {
         clearCursor();
-        current_action = Action.ADDING_FINAL_STATE;
+        current_action.set(Action.ADDING_FINAL_STATE);
       }}
       class="flex flex-col self-center"
       style="line-height: 15px;">
@@ -47,7 +51,7 @@ gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 p
     <button
       on:click={() => {
         clearCursor();
-        current_action = Action.PLACING_LINE;
+        current_action.set(Action.PLACING_START_OF_LINE);
       }}
       class="flex flex-col"
       style="line-height: 15px;">
@@ -71,7 +75,7 @@ gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 p
     <button
       on:click={() => {
         clearCursor();
-        current_action = Action.PLACING_EPSILON_LINE;
+        current_action.set(Action.PLACING_START_OF_EPSILON_LINE);
       }}
       class="flex flex-col"
       style="line-height: 15px;">
@@ -153,7 +157,7 @@ gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 p
       ></path>
     </svg>
     <svg
-      on:click={saveWorkspace}
+      on:click={()=>{saveWorkspace(email, workspace_name)}}
       class="hover:cursor-pointer w-6 mb-0.5"
       data-slot="icon"
       fill="currentColor"

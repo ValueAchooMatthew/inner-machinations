@@ -6,28 +6,46 @@
   import Banner from "./Banner.svelte";
   import { checkInputtedString } from "$lib/stringVerificationFuncs";
   import Notifications from "./Notifications.svelte";
+  import { onMount } from "svelte";
+  import { invoke } from "@tauri-apps/api";
+  import { dialogue_to_user, start_state_index, state_positions, input_alphabet, start_state_position, type_of_automata } from "$lib/automataStores";
+  import { setTauriResponses } from "$lib/parsingBackendResponsesFuncs";
 
   export let data;
 
-  let dialogue: string = "";
-  let start_state_index: number | null = null;
+  // let start_state_index: number | null = null;
   let string_to_check: string;
   let is_string_accepted: boolean | null = null;
   let states_traversed: Array<State> = [];
-  let start_state_coordinates: string | null = null;
-  let automata_selected: Automata = Automata.DFA;
-  // hashing every coordinate to a state for use when user click on a given coordinate point
-  // Allows for O(1) access without having to search for the state which was clicked in the State array
-  let state_connections: Map<string, State> = new Map<string, State>();
+
+  // let state_connections: Map<string, State> = new Map<string, State>();
   let highlighted_state: State | null = null;
   let is_showing_string_traversal: boolean;
-  let connections: Array<Connection>;
   let default_connection_char: string;
   let sidebar_open: boolean;
   let is_strict_checking: boolean;
-  let input_alphabet: Array<string>;
   let workspace_name: string | undefined = data.workspace_name;
+  let email: string | undefined = data.email;
 
+  onMount(async ()=> {
+    if (!email || !workspace_name) {
+      return;
+    }
+    const tauri_response: [
+      number | null,
+      Array<State>,
+      Array<Connection>,
+      { [key: string]: State }
+    ] = await invoke("retrieve_workspace_data", {
+      email: email,
+      workspaceName: workspace_name,
+    });
+
+    setTauriResponses(
+      tauri_response
+    );
+
+  });
 
   const handleStringInput = (event: SubmitEvent) => {
     if (!(event.target instanceof HTMLFormElement)) {
@@ -39,25 +57,29 @@
       return;
     }
     if (start_state_index === null) {
-      dialogue = "You must specify at least one start state";
+      dialogue_to_user.set("You must specify at least one start state");
       return;
     }
     // Here to trigger the tauri invoke to fire even if the same string is inputted as the previous submission
     string_to_check = "";
     string_to_check = inputted_string.toString();
 
+    console.log(state_positions);
+
     checkInputtedString(
-      start_state_coordinates, 
-      automata_selected, 
-      state_connections, 
+      $start_state_position, 
+      $type_of_automata, 
+      $state_positions, 
       string_to_check,
       is_strict_checking,
-      input_alphabet
+      $input_alphabet
       )
       .then((result: CheckedStringResponse) => {
         is_string_accepted = result.is_string_accepted;
         states_traversed = result.states_traversed;
-        dialogue = result.dialogue;
+        dialogue_to_user.set(
+          result.dialogue
+        );
       })
       .catch((err)=>{
         console.log(err);
@@ -65,7 +87,6 @@
     if(is_showing_string_traversal){
       handleIncrementalStringChecking();
     }
-
   };
 
   const handleIncrementalStringChecking = async () => {
@@ -74,19 +95,20 @@
     setInterval(()=>{
       
       if(i === states_traversed.length){
-
         checkInputtedString(
-        start_state_coordinates, 
-        automata_selected, 
-        state_connections, 
+        $start_state_position, 
+        $type_of_automata, 
+        $state_positions, 
         string_to_check,
         is_strict_checking,
-        input_alphabet
+        $input_alphabet
         )
         .then((result: CheckedStringResponse) => {
           is_string_accepted = result.is_string_accepted;
           states_traversed = result.states_traversed;
-          dialogue = result.dialogue;
+          dialogue_to_user.set(
+            result.dialogue
+          );
         })
         .catch((err)=>{
           console.log(err);
@@ -98,7 +120,6 @@
     }, 500)
 
   }
-
 
 </script>
 
@@ -112,7 +133,6 @@
     class:-left-full={!sidebar_open}
   >
     <OptionsMenu
-      bind:input_alphabet
       bind:is_strict_checking
       bind:default_connection_char
       bind:sidebar_open
@@ -121,23 +141,14 @@
   </aside>
   <div class="w-full min-w-0">
     <Banner
-      email={data.email}
-      {state_connections}
-      {connections}
+      {email}
       bind:workspace_name
       bind:sidebar_open
-      bind:automata_selected
     />
     <main class="flex">
       <Whiteboard
-        email={data.email}
-        bind:connections
+        {email}
         {workspace_name}
-        bind:start_state_coordinates
-        bind:dialogue
-        bind:state_connections
-        bind:start_state_index
-        {input_alphabet}
         {highlighted_state}
         {default_connection_char}
         {is_string_accepted}
@@ -165,7 +176,7 @@
         </button>
 
       </form>      
-      <Notifications {dialogue} />
+      <Notifications/>
     </div>
   </div>
 </div>

@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { input_alphabet } from "$lib/automataStores";
+
   export let default_connection_char: string = "a";
   export let sidebar_open: boolean;
-  export let input_alphabet: Array<string> = new Array("a", "b");
   export let is_strict_checking: boolean = false;
   export let is_showing_string_traversal: boolean = false;
 
@@ -21,30 +22,43 @@
     if (!(event.target instanceof HTMLFormElement)) {
       return;
     }
-    input_alphabet = [];
+
+    // Clearing input alphabet so form data becomes the new input alphabet 
+    input_alphabet.set(
+      new Array()
+    );
+
     const form_data = new FormData(event.target);
-    let i = 0;
     form_data.forEach((entry) => {
-      i++;
-      const char = entry.toString();
-      if (input_alphabet.includes(char)) {
-        return;
-      } else if (input_alphabet.includes("")) {
+
+      // If the user attempts to add an empty string or multiple of the same character to the
+      // input alphabet, the character isnt added and no new characters are added
+      if($input_alphabet.includes(entry.toString()) || "" === entry.toString()) {
         return;
       }
-      input_alphabet.push(char);
+
+      input_alphabet.update((prev_input_alphabet: Array<string>) => {
+        prev_input_alphabet.push(entry.toString());
+        return prev_input_alphabet;
+      })
     });
-    input_alphabet = input_alphabet;
   };
 
   const handleAddingNewCharInput = () => {
-    input_alphabet = [...input_alphabet, ""];
-  };
+    input_alphabet.update((prev_input_alphabet)=>{
+      prev_input_alphabet.push("");
+      return prev_input_alphabet;
+    })
+
+  }
 
   const handleRemovingCharInput = (index: number) => {
-    input_alphabet.splice(index, 1);
-    input_alphabet = input_alphabet;
+    input_alphabet.update((prev_input_alphabet)=>{
+      prev_input_alphabet.splice(index, 1);
+      return prev_input_alphabet;
+    })
   };
+
 </script>
 
 <div class="flex justify-start">
@@ -80,7 +94,7 @@
       <label for="alphabet"> Input Alphabet (works for DFA's only): </label>
       <div class="flex flex-col gap-2">
         <!-- Svelte way of itearting through an object with a length property, which I am using to place input elements in DOM -->
-        {#each input_alphabet as value, i}
+        {#each $input_alphabet as value, i}
           <div class="flex gap-1">
             <input
               maxlength="1"

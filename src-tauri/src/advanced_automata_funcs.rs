@@ -71,8 +71,6 @@ fn mark_unequivalent_states_in_dfa(
   }
   return marked_states;
 
-
-
 }
 
 #[tauri::command]
@@ -243,3 +241,7 @@ pub fn minimize_dfa(
   return (start_state_index, minimized_states, connections, minimized_state_connections);
 
 }
+
+// pub fn convert_nfa_to_dfa() {
+  
+// }

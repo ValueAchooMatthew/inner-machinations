@@ -87,12 +87,12 @@ fn nfa_delta_function<'a>(state_connections: &'a HashMap<String, State>,
 
         // Checking if the bool value of states visited is true
         if nfa_delta_function(state_connections, state, &string_to_check, states_visited).0 {
-          states_visited.push(state.to_owned());
+          states_visited.insert(0, state.to_owned());
           return (true, states_visited);
         } 
       }
-
     }
+
     if states_connected_by_epsilon.is_some() {
 
       for state in states_connected_by_epsilon.unwrap() {
@@ -101,11 +101,8 @@ fn nfa_delta_function<'a>(state_connections: &'a HashMap<String, State>,
         if nfa_delta_function(state_connections, state, string_to_check, states_visited).0 {
           return (true, states_visited);
         }
-
       };
-
     }
-
   };
   return (false, states_visited);
 }
@@ -160,8 +157,6 @@ fn get_states_connected_by_epsilon_in_nfa<'a>(
   }
 }
 
-
-
 #[tauri::command]
 pub fn test_string_nfa(
   state_connections: HashMap<String, State>, 
@@ -175,8 +170,6 @@ pub fn test_string_nfa(
     Some(state) => state,
     None => return (false, states_visited)
   };
-
-  states_visited.push(start_state.to_owned());
 
   // Ugly syntax but whatevs
   let result = nfa_delta_function(&state_connections, start_state, &string_to_check, &mut states_visited);

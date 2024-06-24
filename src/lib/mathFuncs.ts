@@ -1,3 +1,4 @@
+import { list_of_connections } from "./automataStores";
 import type { BezierCurve, Connection, Coordinate } from "./interfaces";
 
 export const roundToNearest = (
@@ -44,8 +45,13 @@ const distanceBetweenTwoPoints = (
 // Making up the curve is used to roughly estimate its position
 export const indexOfClosestBezierCurveToPoint = (
   origin: Coordinate,
-  connections: Array<Connection>,
 ): number => {
+
+  let connections = new Array();
+  list_of_connections.subscribe((value)=>{
+    connections = value;
+  });
+
   let indexOfClosestLine = 0;
   let minimumDistance = distanceFromBezierCurveToPoint(
     origin,

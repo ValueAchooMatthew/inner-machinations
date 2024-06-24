@@ -1,12 +1,9 @@
 <script lang="ts">
   import { Automata } from "$lib/enums";
-  import type { Connection, State } from "$lib/interfaces";
+  import { state_positions, list_of_connections, type_of_automata } from "$lib/automataStores";
   import { invoke } from "@tauri-apps/api";
   export let sidebar_open: boolean = false;
-  export let automata_selected: Automata = Automata.DFA;
   export let workspace_name: string | undefined;
-  export let state_connections: Map<String, State>;
-  export let connections: Array<Connection>;
   export let email: string | undefined;
 
   const handleSubmit = async (event: SubmitEvent) => {
@@ -26,8 +23,8 @@
     await invoke("save_workspace", {
       workspaceName: new_workspace_name,
       email: email,
-      states: state_connections,
-      connections: connections,
+      states: $state_positions,
+      connections: $list_of_connections,
     });
     workspace_name = new_workspace_name;
   };
@@ -72,18 +69,18 @@
     </div>
     <div class="flex gap-2 font-bold self-center ml-auto mr-auto">
       <button
-        class={automata_selected === Automata.DFA ? "" : "text-gray-950"}
+        class={$type_of_automata === Automata.DFA ? "" : "text-gray-950"}
         on:click={() => {
-          automata_selected = Automata.DFA;
+          type_of_automata.set(Automata.DFA);
         }}
       >
         DFA
       </button>
       <span>|</span>
       <button
-        class={automata_selected === Automata.NFA ? "" : "text-gray-950"}
+        class={$type_of_automata === Automata.NFA ? "" : "text-gray-950"}
         on:click={() => {
-          automata_selected = Automata.NFA;
+          type_of_automata.set(Automata.NFA);
         }}
       >
         NFA

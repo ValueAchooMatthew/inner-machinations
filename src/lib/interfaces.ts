@@ -42,7 +42,6 @@ export interface TauriGeneratedAutomataInformation {
   states: Array<State>,
   connections: Array<Connection>,
   state_connections: { [key: string]: State }
-
 }
 
 export interface AutomataInformation {
