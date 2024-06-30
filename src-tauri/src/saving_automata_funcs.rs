@@ -111,10 +111,10 @@ fn save_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, con
         let connection_to_be_inserted = (
             saved_connections::workspace_id.eq(workspace_id),
             saved_connections::connection_character.eq(&connection.connection_character),
-            saved_connections::start_point.eq(connection.curve.start_point.convert_coords_to_string()),
-            saved_connections::control_point_one.eq(connection.curve.control_point_one.convert_coords_to_string()),
-            saved_connections::control_point_two.eq(connection.curve.control_point_two.convert_coords_to_string()),
-            saved_connections::end_point.eq(connection.curve.end_point.convert_coords_to_string())
+            saved_connections::start_point.eq::<String>(connection.curve.start_point.into()),
+            saved_connections::control_point_one.eq::<String>(connection.curve.control_point_one.into()),
+            saved_connections::control_point_two.eq::<String>(connection.curve.control_point_two.into()),
+            saved_connections::end_point.eq::<String>(connection.curve.end_point.into())
         );
 
         connections_to_be_inserted.push(connection_to_be_inserted);

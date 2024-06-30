@@ -1,6 +1,8 @@
 <script src="" lang="ts">
+
+  import { Automata } from "$lib/enums";
   import { input_alphabet, list_of_connections, list_of_states, 
-  start_state_index, start_state_position, state_positions } from "$lib/automataStores";
+  start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/automataStores";
   import type { Connection, State } from "$lib/interfaces";
   import { convertCoordinateToString } from "$lib/miscUtils";
   import { setTauriResponses } from "$lib/parsingBackendResponsesFuncs";
@@ -18,7 +20,6 @@
       connections: $list_of_connections, 
       inputAlphabet: $input_alphabet});
 
-
     setTauriResponses(
       tauri_response
     );
@@ -32,9 +33,40 @@
     
   }
 
-</script>
+  const convertNFAToDFA = async () => {
+    type_of_automata
+      .set(Automata.DFA);
+    
+    const tauri_response: [
+      number | null,
+      Array<State>,
+      Array<Connection>,
+      { [key: string]: State }
+    ] = await invoke("convert_nfa_to_dfa", {
+      startStatePosition: $start_state_position,
+      statePositions: $state_positions
+    });
 
-<button class="bg-orange-500 rounded-md text-lg border-2 border-black"
-on:click={handleStateMinimization}>
-  Minimize DFA
-</button>
+    setTauriResponses(
+      tauri_response
+    );
+
+    start_state_position.set(
+      $start_state_index !== null? convertCoordinateToString($list_of_states[$start_state_index].position): 
+      null
+    );
+
+  }
+
+</script>
+<div class="max-w-32 select-none">
+  {#if $type_of_automata === Automata.DFA }
+  <button class="bg-orange-500 rounded-md text-lg border-2 border-black px-1 py-0.5" on:click={handleStateMinimization}>
+    Minimize DFA
+  </button>
+  {:else}
+  <button class="bg-orange-500 rounded-md text-lg border-2 border-black px-1 py-0.5" on:click={convertNFAToDFA}>
+    Convert NFA to DFA
+  </button>
+  {/if}
+</div>

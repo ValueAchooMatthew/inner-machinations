@@ -6,17 +6,17 @@ pub mod models;
 pub mod testing_automata_funcs;
 pub mod advanced_automata_funcs;
 
-use diesel::prelude::*;
+use diesel::{prelude::*, Connection as DieselConnection};
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
 use std::env;
 
 pub fn establish_connection() -> SqliteConnection {
-    dotenv().ok();
-    let database_url = env::var("DATABASE_URL")
-      .expect("DATABASE_URL must be set");
-    SqliteConnection::establish(&database_url)
-      .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+  dotenv().ok();
+  let database_url = env::var("DATABASE_URL")
+    .expect("DATABASE_URL must be set");
+  SqliteConnection::establish(&database_url)
+    .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
 use models::User;
@@ -39,9 +39,9 @@ pub fn add_user_to_db(email: &str, password: &str) {
   let mut conn: SqliteConnection = establish_connection();
   let new_user = (users::email.eq(email), users::password.eq(password));
   diesel::insert_into(users::table)
-      .values(&new_user)
-      .execute(&mut conn)
-      .expect("whoopsies, there was an error registering the user!");
+    .values(&new_user)
+    .execute(&mut conn)
+    .expect("whoopsies, there was an error registering the user!");
 }
 
 use magic_crypt::{MagicCrypt256, MagicCryptTrait};

@@ -65,15 +65,6 @@
 
   });
 
-  const handleTrash = () => {
-    list_of_states.set(new Array());
-    list_of_connections.set(new Array());
-    list_of_all_elements.set(new Array());
-    start_state_index.set(null);
-    start_state_position.set(null);
-    current_action.set(Action.CLICKING);
-  };
-
   const handleClick = (event: MouseEvent): void => {
     const cursor_x_pos = roundToNearest(event.offsetX, 100);
     const cursor_y_pos = roundToNearest(event.offsetY, 100);
@@ -274,7 +265,6 @@
   <div class="flex flex-col justify-start gap-3 py-3">
     <TestFeedback {is_string_accepted} />
     <Sidebar
-      {handleTrash}
       {clearCursor}
       {email}
       {workspace_name}

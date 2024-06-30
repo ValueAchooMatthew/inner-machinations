@@ -2,14 +2,22 @@
   import { Action } from "$lib/enums";
   import { undo } from "$lib/deletionFuncs";
   import { saveWorkspace } from "$lib/savingWorkspaceFuncs";
-  import { current_action } from "$lib/automataStores";
-  import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
+  import { current_action, list_of_all_elements, list_of_connections, list_of_states, start_state_index, start_state_position, state_positions } from "$lib/automataStores";
 
   export let email: string | undefined;
   export let workspace_name: string | undefined;
   export let clearCursor: () => void;
-  export let handleTrash: () => void;
   
+  function handleTrash() {
+    state_positions.set(new Map());
+    start_state_index.set(null);
+    start_state_position.set(null);
+    list_of_states.set(new Array());
+    list_of_connections.set(new Array());
+    list_of_all_elements.set(new Array());
+    current_action.set(Action.CLICKING);
+  }
+
 </script>
 
 <nav class="text-center select-none flex flex-col justify-between self-end

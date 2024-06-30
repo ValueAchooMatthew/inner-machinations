@@ -7,7 +7,6 @@ use app::establish_connection;
 use crate::diesel::query_dsl::methods::FilterDsl;
 use crate::diesel::RunQueryDsl;
 
-
 #[tauri::command]
 pub fn register_user(email: &str, password: &str) {
 
@@ -18,7 +17,6 @@ pub fn register_user(email: &str, password: &str) {
   let [encrypted_email, encrypted_password] = encrypt_user_data(&cipher, email, password);
   add_user_to_db(&encrypted_email, &encrypted_password);
 }
-
 
 #[tauri::command]
 pub fn is_correct_log_in(email_address: &str, pwrd: &str) -> bool{

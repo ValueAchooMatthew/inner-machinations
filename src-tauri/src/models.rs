@@ -43,20 +43,19 @@ pub struct SavedState {
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
 pub struct SavedConnection {
-    pub id: i32,
-    pub workspace_id: i32,
-    pub start_point: String,
-    pub control_point_one: String,
-    pub control_point_two: String,
-    pub end_point: String,
-    pub connection_character: String
+  pub id: i32,
+  pub workspace_id: i32,
+  pub start_point: String,
+  pub control_point_one: String,
+  pub control_point_two: String,
+  pub end_point: String,
+  pub connection_character: String
 }
-
 
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct State { 
     pub position: Coordinate,
     pub states_connected_to: HashMap<String, Vec<String>>,
@@ -64,7 +63,20 @@ pub struct State {
     pub is_final: bool,
     pub element: String
 }
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Hash, Clone)]
+
+impl PartialEq for State {
+  fn eq(&self, other: &Self) -> bool {
+    self.position == other.position
+  }
+}
+
+impl Into<String> for State {
+  fn into(self) -> String {
+    self.position.into()
+  }
+} 
+
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Hash, Clone, Copy)]
 pub struct Coordinate {
     pub x: i32,
     pub y: i32
@@ -75,52 +87,82 @@ pub struct Connection {
     pub curve: BezierCurve,
     pub connection_character: String,
     pub element: String
-
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct BezierCurve {
-    pub start_point: Coordinate,
-    pub control_point_one: Coordinate,
-    pub control_point_two: Coordinate,
-    pub end_point: Coordinate
-
+  pub start_point: Coordinate,
+  pub control_point_one: Coordinate,
+  pub control_point_two: Coordinate,
+  pub end_point: Coordinate
 }
 
-impl Coordinate{
-    pub fn convert_coords_to_string(&self) -> String {
-      let mut built_string = self.x.to_string();
-      built_string.push(',');
-      // Using reference here since push_str takes in &str as param
-      built_string.push_str(&self.y.to_string());
-      return built_string;
+impl Into<String> for Coordinate {
+  fn into(self) -> String {
+    let mut built_string = self.x.to_string();
+    built_string.push(',');
+    // Using reference here since push_str takes in &str as param
+    built_string.push_str(&self.y.to_string());
+    return built_string;
+  }
+}
+
+impl TryFrom<String> for Coordinate {
+
+  type Error = ();
+
+  fn try_from(value: String) -> Result<Coordinate, ()> {
+
+    let processed_strings: Vec<&str> = value.split(",").collect();
+
+    if processed_strings.len() != 2 {
+      return Err(());
     }
 
-    pub fn convert_string_to_coords(string_to_convert: &String) -> Result<Coordinate, ()> {
+    let coordinate = Coordinate {
+      x: processed_strings
+        .get(0)
+        .unwrap()
+        .parse::<i32>()
+        .unwrap(),
 
-      let processed_strings: Vec<&str> = string_to_convert.split(",").collect();
+      y: processed_strings
+        .get(1)
+        .unwrap()
+        .parse::<i32>()
+        .unwrap()
+    };
 
-      if processed_strings.len() != 2 {
-        return Err(());
-      }
+    return Ok(coordinate);
+  }
+}
 
-      let coordinate = Coordinate {
-        x: processed_strings
-          .get(0)
-          .unwrap()
-          .parse::<i32>()
-          .unwrap(),
+impl TryFrom<&String> for Coordinate {
 
-        y: processed_strings
-          .get(1)
-          .unwrap()
-          .parse::<i32>()
-          .unwrap()
-      };
+  type Error = ();
 
-      return Ok(coordinate);
+  fn try_from(value: &String) -> Result<Coordinate, ()> {
 
+    let processed_strings: Vec<&str> = value.split(",").collect();
+
+    if processed_strings.len() != 2 {
+      return Err(());
     }
 
+    let coordinate = Coordinate {
+      x: processed_strings
+        .get(0)
+        .unwrap()
+        .parse::<i32>()
+        .unwrap(),
 
+      y: processed_strings
+        .get(1)
+        .unwrap()
+        .parse::<i32>()
+        .unwrap()
+    };
+
+    return Ok(coordinate);
+  }
 }
