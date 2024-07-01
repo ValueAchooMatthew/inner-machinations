@@ -8,7 +8,7 @@
 
 
 </script>
-{#if dialogue !== null}
+{#if dialogue}
 <div class="bg-orange-500 text-white rounded-md py-4 flex justify-center align-middle text-2xl gap-5 transition-all duration-500 select-none"
 class:w-0:={!dialogue} class:w-fit={dialogue} class:px-4={dialogue} class:h-0={!dialogue} class:h-fit={dialogue} class:py-4={dialogue}>
   <svg class="self-center w-10 h-10" class:hidden={!dialogue} data-slot="icon" fill="none" stroke-width="1.5" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

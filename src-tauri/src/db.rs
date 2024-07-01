@@ -9,7 +9,6 @@ use crate::diesel::RunQueryDsl;
 
 #[tauri::command]
 pub fn register_user(email: &str, password: &str) {
-
   dotenv().ok();
   let key = env::var("ENCRYPTION_KEY")
     .expect("Encryption Key must be set as a .env variable");

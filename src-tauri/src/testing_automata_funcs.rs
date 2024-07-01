@@ -74,6 +74,7 @@ fn nfa_delta_function<'a>(state_connections: &'a HashMap<String, State>,
       current_state);
     
     if states_connected_by_character.is_none() && states_connected_by_epsilon.is_none() {
+      println!("{:?}", states_visited);
       return (false, states_visited);
     }
 

@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { draw } from "$lib/drawingFuncs";
   import type { State, Connection } from "$lib/interfaces";
+  import { setTauriResponses } from "$lib/parsingBackendResponsesFuncs";
   import { invoke } from "@tauri-apps/api";
   import { onMount } from "svelte";
 
@@ -42,8 +43,10 @@
       retrieved_data[1],
       retrieved_data[2],
       retrieved_data[0],
-      5,
+      null,
+      5
     );
+    
   });
 </script>
 

@@ -64,8 +64,6 @@
     string_to_check = "";
     string_to_check = inputted_string.toString();
 
-    console.log(state_positions);
-
     checkInputtedString(
       $start_state_position, 
       $type_of_automata, 
@@ -93,8 +91,12 @@
     let i = 0;
     const traverseAutomata = 
     setInterval(()=>{
-      
-      if(i === states_traversed.length){
+      // Every other tick, we're going to unhighlight the previously highlighted state so transitions
+      // are more apparent to see
+      console.log(states_traversed);
+      if(i % 2 == 1) {
+        highlighted_state = null;
+      } else if(i === 2*states_traversed.length){
         checkInputtedString(
         $start_state_position, 
         $type_of_automata, 
@@ -113,11 +115,15 @@
         .catch((err)=>{
           console.log(err);
         });
-          clearInterval(traverseAutomata);
+        clearInterval(traverseAutomata);
+      } else {
+        // Never an odd number, so we can do this without having to worry
+        // about floats
+        highlighted_state = states_traversed[i/2];
       }
-      highlighted_state = states_traversed[i];
       i++
-    }, 500)
+
+    }, 300)
 
   }
 

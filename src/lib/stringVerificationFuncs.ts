@@ -11,8 +11,6 @@ export const checkInputtedString = async (
   input_alphabet: Array<string>
   ): Promise<CheckedStringResponse> => {
 
-  console.log()
-
   const is_dfa_valid: boolean = await checkValidityOfDFA(is_strict_checking, type_of_automata, state_positions, input_alphabet);
   if(!is_dfa_valid){
     return {
