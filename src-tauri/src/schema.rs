@@ -27,6 +27,8 @@ diesel::table! {
         id -> Integer,
         user_id -> Integer,
         workspace_name -> Text,
+        type_of_automata -> crate::models::TypeOfAutomataMapping,
+        date_of_last_update -> Timestamp,
     }
 }
 

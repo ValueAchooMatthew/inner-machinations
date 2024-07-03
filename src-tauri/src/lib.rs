@@ -78,5 +78,4 @@ pub fn set_user_code(cipher: &MagicCrypt256, generated_code: &str, email_address
     .set(code.eq(generated_code))
     .execute(&mut conn)
     .expect("There was an error assigning a code for the user");
-
 }

@@ -3,19 +3,15 @@
   import { Automata } from "$lib/enums";
   import { input_alphabet, list_of_connections, list_of_states, 
   start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/automataStores";
-  import type { Connection, State } from "$lib/interfaces";
   import { convertCoordinateToString } from "$lib/miscUtils";
   import { setTauriResponses } from "$lib/parsingBackendResponsesFuncs";
   import { invoke } from "@tauri-apps/api";
+  import type { TauriGeneratedAutomataInformation } from "$lib/types";
 
   const handleStateMinimization = async (): Promise<void> => {
     
-    const tauri_response: [
-      number | null,
-      Array<State>,
-      Array<Connection>,
-      { [key: string]: State }
-    ] = await invoke("minimize_dfa", {
+    const tauri_response: TauriGeneratedAutomataInformation =
+    await invoke("minimize_dfa", {
       stateConnections: $state_positions, 
       connections: $list_of_connections, 
       inputAlphabet: $input_alphabet});
@@ -37,12 +33,8 @@
     type_of_automata
       .set(Automata.DFA);
     
-    const tauri_response: [
-      number | null,
-      Array<State>,
-      Array<Connection>,
-      { [key: string]: State }
-    ] = await invoke("convert_nfa_to_dfa", {
+    const tauri_response: TauriGeneratedAutomataInformation =
+    await invoke("convert_nfa_to_dfa", {
       startStatePosition: $start_state_position,
       statePositions: $state_positions
     });

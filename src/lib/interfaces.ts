@@ -36,17 +36,3 @@ export interface CheckedStringResponse {
   is_string_accepted: boolean | null,
   states_traversed: Array<State>
 }
-
-export interface TauriGeneratedAutomataInformation {
-  start_state_index: number | null,
-  states: Array<State>,
-  connections: Array<Connection>,
-  state_connections: { [key: string]: State }
-}
-
-export interface AutomataInformation {
-  start_state_index: number | null,
-  states: Array<State>,
-  connections: Array<Connection>,
-  state_connections: Map<string, State>
-}

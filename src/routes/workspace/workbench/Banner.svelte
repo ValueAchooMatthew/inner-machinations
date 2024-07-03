@@ -10,21 +10,26 @@
     if (!(event.target instanceof HTMLFormElement) || !email) {
       return;
     }
+
     const form_data = new FormData(event.target);
     let new_workspace_name = form_data.get("renamedWorkspace");
+
     if (!new_workspace_name) {
       return;
     }
     new_workspace_name = new_workspace_name.toString();
+
     await invoke("delete_workspace", {
       workspaceName: workspace_name,
-      email: email,
+      email: email
     });
+
     await invoke("save_workspace", {
       workspaceName: new_workspace_name,
       email: email,
       states: $state_positions,
       connections: $list_of_connections,
+      typeOfAutomata: Automata[$type_of_automata]
     });
     workspace_name = new_workspace_name;
   };
@@ -37,8 +42,7 @@
         class="w-12 h-12 z-10 self-center"
         on:click={() => {
           sidebar_open = !sidebar_open;
-        }}
-      >
+        }}>
         <svg
           data-slot="icon"
           aria-hidden="true"
@@ -46,13 +50,11 @@
           stroke-width="1.5"
           stroke="currentColor"
           viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
             stroke-linecap="round"
-            stroke-linejoin="round"
-          ></path>
+            stroke-linejoin="round" />
         </svg>
       </button>
       <div>
@@ -69,7 +71,7 @@
     </div>
     <div class="flex gap-2 font-bold self-center ml-auto mr-auto">
       <button
-        class={$type_of_automata === Automata.DFA ? "" : "text-gray-950"}
+        class={$type_of_automata == Automata.DFA ? "" : "text-gray-950"}
         on:click={() => {
           type_of_automata.set(Automata.DFA);
         }}

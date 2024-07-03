@@ -1,13 +1,13 @@
 [package]
 name = "app"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
+description = "A desktop application to build and test deterministic and non-deterministic finite automata"
+authors = ["Matthew Farah"]
+license = "MIT"
 repository = ""
 default-run = "app"
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.65"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -18,12 +18,14 @@ tauri-build = { version = "1.5.1", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.5.4", features = [] }
-diesel = { version = "2.1.0", features = ["sqlite"] }
+diesel = { version = "2.1.0", features = ["sqlite", "chrono"] }
 dotenv = "0.15.0"
 rusqlite = { version = "0.30.0", features = ["bundled"] }
 magic-crypt = "3.1.9"
 lettre = "0.11.4"
 rand = "0.8.5"
+chrono = "0.4.38"
+diesel-derive-enum = { version = "2.1.0", features = ["sqlite"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

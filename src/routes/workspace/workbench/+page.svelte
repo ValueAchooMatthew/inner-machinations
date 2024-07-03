@@ -10,6 +10,7 @@
   import { invoke } from "@tauri-apps/api";
   import { dialogue_to_user, start_state_index, state_positions, input_alphabet, start_state_position, type_of_automata } from "$lib/automataStores";
   import { setTauriResponses } from "$lib/parsingBackendResponsesFuncs";
+  import type { TauriGeneratedAutomataInformation } from "$lib/types";
 
   export let data;
 
@@ -31,12 +32,8 @@
     if (!email || !workspace_name) {
       return;
     }
-    const tauri_response: [
-      number | null,
-      Array<State>,
-      Array<Connection>,
-      { [key: string]: State }
-    ] = await invoke("retrieve_workspace_data", {
+    const tauri_response: TauriGeneratedAutomataInformation = 
+    await invoke("retrieve_workspace_data", {
       email: email,
       workspaceName: workspace_name,
     });
@@ -93,7 +90,6 @@
     setInterval(()=>{
       // Every other tick, we're going to unhighlight the previously highlighted state so transitions
       // are more apparent to see
-      console.log(states_traversed);
       if(i % 2 == 1) {
         highlighted_state = null;
       } else if(i === 2*states_traversed.length){

@@ -1,8 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { draw } from "$lib/drawingFuncs";
-  import type { State, Connection } from "$lib/interfaces";
-  import { setTauriResponses } from "$lib/parsingBackendResponsesFuncs";
+  import type { TauriGeneratedAutomataInformation } from "$lib/types";
   import { invoke } from "@tauri-apps/api";
   import { onMount } from "svelte";
 
@@ -18,6 +17,7 @@
   };
 
   let canvas: HTMLCanvasElement | null;
+  let retrieved_data: TauriGeneratedAutomataInformation;
 
   onMount(async () => {
     const context = canvas?.getContext("2d");
@@ -26,12 +26,8 @@
     if (!context || !width || !height) {
       return;
     }
-    const retrieved_data: [
-      number | null,
-      Array<State>,
-      Array<Connection>,
-      { [key: string]: State },
-    ] = await invoke("retrieve_workspace_data", {
+    retrieved_data =
+    await invoke("retrieve_workspace_data", {
       email: email,
       workspaceName: workspace_name,
     });
@@ -51,23 +47,25 @@
 </script>
 
 <div class="flex">
-  <button
-    class="w-64 h-80 hover:w-80 hover:h-96 p-3 bg-orange-500
+  <button class="w-64 h-80 hover:w-80 hover:h-96 p-3 bg-orange-500
     transition-all duration-300 rounded-md shadow-2xl flex flex-col justify-between overflow-hidden"
-    on:click={handleClick}
-  >
-    <canvas bind:this={canvas} class=" bg-white self-center"> </canvas>
-
+    on:click={handleClick}>
+    <canvas bind:this={canvas} class=" bg-white self-center" />
     <span class="font-bold text-white text-2xl my-2 self-center">
       {workspace_name}
+      <br>
+      {#if retrieved_data}
+        <span class="text-sm">
+          Last updated: {retrieved_data[5]}
+        </span>
+      {/if}
     </span>
+
   </button>
-  <button
-    class="absolute flex justify-center bg-orange-500 rounded-r-md w-12 h-12"
+  <button class="absolute flex justify-center bg-orange-500 rounded-r-md w-12 h-12"
     on:click={() => {
       workspace_to_delete = workspace_name;
-    }}
-  >
+    }}>
     <svg
       class="w-8 h-8 self-center"
       data-slot="icon"
@@ -76,8 +74,7 @@
       stroke="white"
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
+      aria-hidden="true">
       <path
         stroke-linecap="round"
         stroke-linejoin="round"

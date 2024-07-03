@@ -21,7 +21,7 @@
       </path>
     </svg>
   </header>
-  <main class="">
+  <main class="z-50">
     <LogIn />
   </main>
   <div class="min-h-64">

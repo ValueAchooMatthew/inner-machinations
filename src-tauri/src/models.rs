@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use diesel::query_builder::QueryId;
 
@@ -9,21 +10,23 @@ use diesel::query_builder::QueryId;
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
 pub struct User {
-    pub id: i32,
-    pub email: String,
-    pub password: String,
-    pub verified: bool,
-    pub code: Option<String>
+  pub id: i32,
+  pub email: String,
+  pub password: String,
+  pub verified: bool,
+  pub code: Option<String>
 }
 
-#[derive(Queryable, QueryableByName, QueryId, Selectable, Insertable)]
+#[derive(Queryable, Insertable, QueryableByName, QueryId, Selectable)]
 #[diesel(table_name = crate::schema::saved_workspaces)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
-pub struct SavedAutomata {
-    pub id: i32,
-    pub user_id: i32,
-    pub workspace_name: String
+pub struct SavedWorkspace {
+  pub id: i32,
+  pub user_id: i32,
+  pub workspace_name: String,
+  pub type_of_automata: TypeOfAutomata,
+  pub date_of_last_update: NaiveDateTime
 }
 
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
@@ -31,11 +34,11 @@ pub struct SavedAutomata {
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
 pub struct SavedState {
-    pub id: i32,
-    pub workspace_id: i32,
-    pub position: String,
-    pub is_start: bool,
-    pub is_final: bool
+  pub id: i32,
+  pub workspace_id: i32,
+  pub position: String,
+  pub is_start: bool,
+  pub is_final: bool
 }
 
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
@@ -57,11 +60,11 @@ use serde::Serialize;
 use std::collections::HashMap;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct State { 
-    pub position: Coordinate,
-    pub states_connected_to: HashMap<String, Vec<String>>,
-    pub is_start: bool,
-    pub is_final: bool,
-    pub element: String
+  pub position: Coordinate,
+  pub states_connected_to: HashMap<String, Vec<String>>,
+  pub is_start: bool,
+  pub is_final: bool,
+  pub element: String
 }
 
 impl PartialEq for State {
@@ -132,7 +135,6 @@ impl TryFrom<String> for Coordinate {
         .parse::<i32>()
         .unwrap()
     };
-
     return Ok(coordinate);
   }
 }
@@ -165,4 +167,11 @@ impl TryFrom<&String> for Coordinate {
 
     return Ok(coordinate);
   }
+}
+
+#[derive(Debug, Deserialize, Serialize, diesel_derive_enum::DbEnum)]
+#[DbValueStyle = "UPPERCASE"]
+pub enum TypeOfAutomata {
+  DFA,
+  NFA
 }

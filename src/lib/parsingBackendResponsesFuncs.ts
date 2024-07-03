@@ -1,7 +1,9 @@
 import { get } from "svelte/store";
-import { list_of_connections, list_of_states, start_state_index, start_state_position, state_positions } from "./automataStores";
-import type { Connection, State } from "./interfaces";
+import { list_of_connections, list_of_states, start_state_index, start_state_position, state_positions, type_of_automata } from "./automataStores";
+import type { State } from "./interfaces";
 import { convertCoordinateToString } from "./miscUtils";
+import type { TauriGeneratedAutomataInformation } from "./types";
+import { Automata } from "./enums";
 
 export const parseListOfStates = (
   json_states: Array<State>,
@@ -36,11 +38,7 @@ export const parseStatePositions = (
   return state_positions;
 }
 
-export const setTauriResponses = (tauri_response: [
-  number | null,
-  Array<State>,
-  Array<Connection>,
-  { [key: string]: State }]): void => {
+export const setTauriResponses = (tauri_response: TauriGeneratedAutomataInformation): void => {
 
   start_state_index.set(
     tauri_response[0]
@@ -64,5 +62,20 @@ export const setTauriResponses = (tauri_response: [
     ss_index !== null? convertCoordinateToString(get(list_of_states)[ss_index].position): 
     null
   );
+
+
+  // For some reason, if i set the type of automata as an integer rather than the enum type directly,
+  // the value of get[type_of_automata] becomes an integer instead of the enum type, which
+  // messes up the way all my other functions work
+  // thus it's done awkwardly this way
+  if(tauri_response[4] === "DFA") {
+    type_of_automata.set(
+      Automata.DFA
+    );
+  } else {
+    type_of_automata.set(
+      Automata.NFA
+    );
+  }
 
 }

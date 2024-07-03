@@ -11,6 +11,8 @@ CREATE TABLE saved_workspaces (
   id INTEGER PRIMARY KEY NOT NULL UNIQUE,
   user_id INTEGER NOT NULL,
   workspace_name TEXT NOT NULL UNIQUE,
+  type_of_automata TEXT CHECK(type_of_automata IN ('DFA', 'NFA')) NOT NULL,
+  date_of_last_update TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
