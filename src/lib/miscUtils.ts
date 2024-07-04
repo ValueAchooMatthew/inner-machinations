@@ -16,3 +16,19 @@ export const removeFirstElementFromArray = <T>(list: Array<T>, element_to_remove
   list.splice(index_of_element_to_remove, 1);
   return list;
 }
+// Provided by W3 schools and used as page.server files don't seem to work in prod
+export function getCookie(cname: string): string {
+  let name = cname + "=";
+  let decodedCookie = decodeURIComponent(document.cookie);
+  let ca = decodedCookie.split(';');
+  for(let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) == ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
+}

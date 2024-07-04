@@ -1,5 +1,5 @@
 -- Your SQL goes here
-CREATE TABLE users(
+CREATE TABLE users (
   id INTEGER PRIMARY KEY NOT NULL UNIQUE,
   email TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL,

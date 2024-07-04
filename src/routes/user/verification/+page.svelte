@@ -1,12 +1,16 @@
 <script lang="ts">
+  import { getCookie } from "$lib/miscUtils";
   import { invoke } from "@tauri-apps/api/tauri";
   import { onMount } from "svelte";
 
-  export let data;
+  let data = {
+    email: getCookie("email")
+  };
 
   $: code = "";
   let is_verified = false;
   let response = "";
+
   onMount(async () => {
     if (data === undefined || data.email === undefined) {
       console.log("The user's email is null");
@@ -21,7 +25,7 @@
   });
 
   const handleSubmit = async (event: SubmitEvent) => {
-    if (!(event.target instanceof HTMLFormElement) || !data || !data.email) {
+    if (!(event.target instanceof HTMLFormElement) || !data.email) {
       return;
     }
     const form_data = new FormData(event.target);

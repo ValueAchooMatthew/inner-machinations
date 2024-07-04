@@ -4,13 +4,14 @@
   import { invoke } from "@tauri-apps/api";
   import SignOut from "./SignOut.svelte";
   import ConfirmDelete from "./ConfirmDelete.svelte";
+  import { getCookie } from "$lib/miscUtils";
 
   let saved_workspace_names: Array<string> = new Array();
-  export let data: {email: string};
+  let data = {email: getCookie("email")};
   let workspace_to_delete: string | null = null;
 
   const getWorkspaces = async (data: {email: string}) => {
-    if(!data || !data.email){
+    if(!data || !getCookie("email")){
       return;
     }
     saved_workspace_names = await invoke("get_users_saved_workspaces", {email: data.email});

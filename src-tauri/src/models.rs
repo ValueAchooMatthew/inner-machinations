@@ -5,7 +5,7 @@ use diesel::query_builder::QueryId;
 // Any instances of a character being typed as a string is done due to the fact the deserialized datatype coming from the
 // type scripty back-end, despite being a single character is always of type string since typescript does not have a character data type
 
-#[derive(Queryable, Selectable)]
+#[derive(Queryable, Selectable, QueryableByName)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]

@@ -2,6 +2,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 extern crate diesel;
+extern crate diesel_migrations;
+use diesel::sqlite::Sqlite;
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations");
+
 pub mod schema;
 pub mod models;
 pub mod testing_automata_funcs;
@@ -20,8 +25,19 @@ use testing_automata_funcs::{test_string_dfa, test_string_nfa};
 use saving_automata_funcs::{save_workspace, delete_workspace, retrieve_workspace_data, get_users_saved_workspaces};
 use validation_automata_funcs::verify_valid_dfa;
 
-// Fixed Opsec but should refactor key getting and setting into separate func in lib
+fn run_migrations(connection: &mut impl MigrationHarness<Sqlite>) {
+
+  // This will run the necessary migrations.
+  connection
+    .run_pending_migrations(MIGRATIONS)
+    .expect("Balls");
+}
+
 fn main() {
+  let mut connection = establish_connection();
+
+  run_migrations(&mut connection);
+
   tauri::Builder::default()
   .invoke_handler(tauri::generate_handler![
     register_user, is_user_registered, is_correct_log_in,

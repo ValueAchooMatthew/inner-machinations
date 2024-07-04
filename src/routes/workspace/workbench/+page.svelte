@@ -11,8 +11,12 @@
   import { dialogue_to_user, start_state_index, state_positions, input_alphabet, start_state_position, type_of_automata } from "$lib/automataStores";
   import { setTauriResponses } from "$lib/parsingBackendResponsesFuncs";
   import type { TauriGeneratedAutomataInformation } from "$lib/types";
+  import { getCookie } from "$lib/miscUtils";
 
-  export let data;
+  let data = {
+    workspace_name: getCookie("workspace_name"),
+    email: getCookie("email")
+  };
 
   // let start_state_index: number | null = null;
   let string_to_check: string;
@@ -26,7 +30,7 @@
   let sidebar_open: boolean;
   let is_strict_checking: boolean;
   let workspace_name: string | undefined = data.workspace_name;
-  let email: string | undefined = data.email;
+  let email: string | undefined = getCookie("email");
 
   onMount(async ()=> {
     if (!email || !workspace_name) {

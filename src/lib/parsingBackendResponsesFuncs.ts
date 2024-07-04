@@ -7,7 +7,7 @@ import { Automata } from "./enums";
 
 export const parseListOfStates = (
   json_states: Array<State>,
-  ):  Array<State> => {
+  ): Array<State> => {
   
   const states = json_states;
 
