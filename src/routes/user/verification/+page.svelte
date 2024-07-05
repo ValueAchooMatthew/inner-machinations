@@ -16,6 +16,8 @@
       console.log("The user's email is null");
       return;
     }
+    console.log(data, document.cookie);
+
     is_verified = await invoke("is_user_verified", {
       emailAddress: data.email
     });
@@ -36,7 +38,7 @@
       code = await invoke("send_email", { emailAddress: data.email });
       return;
     }
-    invoke("verify_user", { emailAddress: "matthewtamerfarah@gmail.com" });
+    invoke("verify_user", { emailAddress: data.email });
     response = "You were successfully verified!";
   };
 </script>

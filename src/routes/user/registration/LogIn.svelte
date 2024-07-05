@@ -21,6 +21,7 @@
       email: email,
       password: password,
     });
+
     if (!isRegistered) {
       invoke("register_user", { email: email, password: password });
       goto("verification");
@@ -38,6 +39,7 @@
       response = "Sorry, you've entered an incorrect password";
       return;
     }
+    console.log("isVerified: ", isVerified);
     if (!isVerified) {
       goto("verification");
       return;
