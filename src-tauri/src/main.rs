@@ -3,6 +3,8 @@
 
 extern crate diesel;
 extern crate diesel_migrations;
+use app::get_encryption_key;
+use app::set_working_directory;
 use diesel::sqlite::Sqlite;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations");
@@ -15,7 +17,6 @@ pub mod saving_automata_funcs;
 pub mod advanced_automata_funcs;
 pub mod db;
 
-use dotenv::dotenv;
 use lettre::message::Mailbox;
 use std::env;
 use db::register_user;
@@ -30,12 +31,14 @@ fn run_migrations(connection: &mut impl MigrationHarness<Sqlite>) {
   // This will run the necessary migrations.
   connection
     .run_pending_migrations(MIGRATIONS)
-    .expect("Balls");
+    .expect("There was an error running the migrations");
 }
 
 fn main() {
-  let mut connection = establish_connection();
 
+  set_working_directory();
+
+  let mut connection = establish_connection();
   run_migrations(&mut connection);
 
   tauri::Builder::default()
@@ -58,9 +61,7 @@ use app::{encrypt_user_data, establish_connection, generate_code, retrieve_regis
 #[tauri::command]
 fn is_user_registered(email: &str) -> bool {
 
-  dotenv().ok();
-  let key = env::var("ENCRYPTION_KEY")
-    .expect("Encryption Key must be set as a .env variable");
+  let key = get_encryption_key();
   let cipher = new_magic_crypt!(&key, 256);
 
   let [encrypted_email, _] = encrypt_user_data(&cipher, email, "");
@@ -74,9 +75,7 @@ use lettre::{Message, SmtpTransport, Transport};
 fn send_email(email_address: &str) -> String {
   let code = generate_code();
 
-  dotenv().ok();
-  let key = env::var("ENCRYPTION_KEY")
-    .expect("Encryption Key must be set as a .env variable");
+  let key = get_encryption_key();
   let cipher = new_magic_crypt!(&key, 256);
 
   set_user_code(&cipher, &code, email_address);
@@ -114,9 +113,7 @@ fn is_user_verified(email_address: &str) -> bool {
   use crate::users::dsl::*;
   use crate::diesel::ExpressionMethods;
 
-  dotenv().ok();
-  let key = env::var("ENCRYPTION_KEY")
-    .expect("Encryption Key must be set as a .env variable");
+  let key = get_encryption_key();
   let cipher = new_magic_crypt!(&key, 256);
 
   let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
@@ -139,8 +136,7 @@ fn verify_user(email_address: &str){
   use crate::users::dsl::*;
   use crate::diesel::ExpressionMethods;
 
-  let key = env::var("ENCRYPTION_KEY").ok()
-    .expect("Encryption Key must be set as a .env variable");
+  let key = get_encryption_key();
   let cipher = new_magic_crypt!(&key, 256);
 
   let [encrypted_email, _] = encrypt_user_data(&cipher, email_address, "");
