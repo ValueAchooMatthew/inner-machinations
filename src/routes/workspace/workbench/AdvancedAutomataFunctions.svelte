@@ -56,7 +56,7 @@
   <button class="bg-orange-500 rounded-md text-lg border-2 border-black px-1 py-0.5" on:click={handleStateMinimization}>
     Minimize DFA
   </button>
-  <button class="bg-orange-500 rounded-md text-lg border-2 border-black px-1 py-0.5" on:click={async ()=> {console.log("fired!"); await invoke("determine_language_of_dfa", { statePositions: $state_positions, startStateKey: $start_state_position})}}>
+  <button class="bg-orange-500 rounded-md text-lg border-2 border-black px-1 py-0.5" on:click={async ()=> { await invoke("determine_language_of_dfa", { statePositions: $state_positions, startStateKey: $start_state_position})}}>
     Print language to console
   </button>
   {:else}
