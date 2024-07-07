@@ -39,7 +39,6 @@
       response = "Sorry, you've entered an incorrect password";
       return;
     }
-    console.log("isVerified: ", isVerified);
     if (!isVerified) {
       goto("verification");
       return;

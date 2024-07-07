@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+
 use crate::models::State;
 
 // Need to refactor to use less cloning in future
@@ -81,8 +82,8 @@ fn find_unique_loops_to_given_state(
     for state_key in state_keys {
 
       let next_state = state_positions
-      .get(state_key)
-      .expect("There was a problem getting the state");
+        .get(state_key)
+        .expect("There was a problem getting the state");
 
       if let Some(set) = visited_states.get_mut(current_state) {
         if set.contains(&next_state) {
@@ -108,7 +109,7 @@ fn find_unique_loops_to_given_state(
 }
 
 #[tauri::command]
-pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_state_key: String) {
+pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_state_key: String) -> String {
 
   // Here's what I'm thinking
   // To determine the language of this dfa, i'm going to find every single unique path that leads to a final state.
@@ -129,19 +130,61 @@ pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_
   let mut visited_states: HashSet<&State> = HashSet::new();
   visited_states.insert(start_state);
 
-  let mut final_state_loops = HashMap::new();
+  let mut looping_paths_to_final_states = HashMap::new();
   let mut visited_looping_states = HashMap::new();
-
 
   for final_state in positions_of_final_states.values() {
     find_all_paths_to_state(start_state, *final_state, "", &mut all_paths_to_reach_final_states, &state_positions, visited_states.clone());
   }
 
   for final_state in positions_of_final_states.values() {
-
-    find_unique_loops_to_given_state(*final_state, *final_state, &mut final_state_loops, "", &state_positions, &mut visited_looping_states);
+    find_unique_loops_to_given_state(*final_state, *final_state, &mut looping_paths_to_final_states, "", &state_positions, &mut visited_looping_states);
+    visited_looping_states.clear();
   }
 
-  println!("reg: {:?}, loops:{:?}", all_paths_to_reach_final_states.values(), final_state_loops.values());
+  let mut all_paths_to_acceptance: HashMap<String, HashSet<String>> = HashMap::new();
+
+  for (final_state, direct_paths) in all_paths_to_reach_final_states {
+
+    for direct_path in direct_paths {
+
+      let looping_paths = match all_paths_to_acceptance
+        .get_mut(&direct_path) {
+          Some(paths) => paths,
+          None => {
+            // The direct path hasn't been added to the hashmap yet so we'll insert the path
+            // then retrieve the newly created corresponding hashset
+            all_paths_to_acceptance
+              .insert(direct_path.to_owned(), HashSet::new());
+
+            all_paths_to_acceptance
+              .get_mut(&direct_path)
+              .unwrap()
+          }
+        };
+
+      if let Some(looping_paths_from_state) = looping_paths_to_final_states.get(&final_state) {
+
+        let unionized: HashSet<&String> = looping_paths
+          .union(looping_paths_from_state)
+          .collect();
+
+        let unionized = unionized
+          .into_iter()
+          .cloned()
+          .collect();
+
+        all_paths_to_acceptance.insert(direct_path, unionized);
+
+      }
+  
+    }
+    
+  };
+
+  println!("{:?}", all_paths_to_acceptance);
+
+  return String::new();
 
 }
+

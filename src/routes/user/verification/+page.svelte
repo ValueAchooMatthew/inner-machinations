@@ -16,7 +16,6 @@
       console.log("The user's email is null");
       return;
     }
-    console.log(data, document.cookie);
 
     is_verified = await invoke("is_user_verified", {
       emailAddress: data.email
