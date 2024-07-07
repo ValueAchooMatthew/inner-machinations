@@ -5,6 +5,7 @@ pub mod schema;
 pub mod models;
 pub mod testing_automata_funcs;
 pub mod advanced_automata_funcs;
+mod language_determination_funcs;
 
 use std::fs;
 use std::io::Write;

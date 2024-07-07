@@ -16,6 +16,7 @@ pub mod validation_automata_funcs;
 pub mod saving_automata_funcs;
 pub mod advanced_automata_funcs;
 pub mod db;
+pub mod language_determination_funcs;
 
 use lettre::message::Mailbox;
 use std::env;
@@ -25,6 +26,7 @@ use advanced_automata_funcs::{minimize_dfa, convert_nfa_to_dfa};
 use testing_automata_funcs::{test_string_dfa, test_string_nfa};
 use saving_automata_funcs::{save_workspace, delete_workspace, retrieve_workspace_data, get_users_saved_workspaces};
 use validation_automata_funcs::verify_valid_dfa;
+use language_determination_funcs::determine_language_of_dfa;
 
 fn run_migrations(connection: &mut impl MigrationHarness<Sqlite>) {
 
@@ -46,7 +48,7 @@ fn main() {
     register_user, is_user_registered, is_correct_log_in,
     send_email, verify_user, is_user_verified, test_string_dfa,
     test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, 
-    get_users_saved_workspaces, minimize_dfa, convert_nfa_to_dfa
+    get_users_saved_workspaces, minimize_dfa, convert_nfa_to_dfa, determine_language_of_dfa
   ]
 )
   .run(tauri::generate_context!())

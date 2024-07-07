@@ -5,10 +5,9 @@ use diesel::query_builder::QueryId;
 // Any instances of a character being typed as a string is done due to the fact the deserialized datatype coming from the
 // type scripty back-end, despite being a single character is always of type string since typescript does not have a character data type
 
-#[derive(Queryable, Selectable, QueryableByName)]
+#[derive(Queryable, Selectable, QueryableByName, Debug)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[derive(Debug)]
 pub struct User {
   pub id: i32,
   pub email: String,
@@ -58,7 +57,8 @@ pub struct SavedConnection {
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-#[derive(Debug, Deserialize, Serialize, Clone)]
+use std::hash::Hash;
+#[derive(Debug, Deserialize, Serialize, Clone, Eq)]
 pub struct State { 
   pub position: Coordinate,
   pub states_connected_to: HashMap<String, Vec<String>>,
@@ -79,17 +79,25 @@ impl Into<String> for State {
   }
 } 
 
+// We're able to do this as we never have two states assigned to the same position,
+// thus there is a unique position for every state that exists
+impl Hash for State {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.position.hash(state);
+  }
+}
+
 #[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Hash, Clone, Copy)]
 pub struct Coordinate {
-    pub x: i32,
-    pub y: i32
+  pub x: i32,
+  pub y: i32
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Connection {
-    pub curve: BezierCurve,
-    pub connection_character: String,
-    pub element: String
+  pub curve: BezierCurve,
+  pub connection_character: String,
+  pub element: String
 }
 
 #[derive(Debug, Deserialize, Serialize)]
