@@ -1,21 +1,17 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { draw } from "$lib/drawingFuncs";
-  import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/mathFuncs";
-  import type { State, Connection, Coordinate, BezierCurve } from "$lib/interfaces";
-  import { Action } from "$lib/enums";
-  import Sidebar from "./Sidebar.svelte";
-  import TestFeedback from "./TestFeedback.svelte";
-  import { saveWorkspace } from "$lib/savingWorkspaceFuncs";
-  import { convertCoordinateToString, removeFirstElementFromArray } from "$lib/miscUtils";
-  import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
+  import { draw } from "$lib/utils/drawingFuncs";
+  import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/utils/mathFuncs";
+  import type { State, Connection, Coordinate, BezierCurve } from "$lib/types/interfaces";
+  import { Action } from "$lib/types/enums";
+  import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
+  import { convertCoordinateToString, removeFirstElementFromArray } from "$lib/utils/miscUtils";
   import { list_of_states, list_of_connections, selected_connection_index, 
-  state_positions, start_state_index, start_state_position, list_of_all_elements, current_action } from "$lib/automataStores";
-  import { undo } from "$lib/deletionFuncs";
-  import { handleUserClickingCanvas } from "$lib/userEvents";
+  state_positions, current_action } from "$lib/utils/automataStores";
+  import { undo } from "$lib/utils/deletionFuncs";
+  import { handleUserClickingCanvas } from "$lib/utils/userEvents";
 
   export let default_connection_char: string = "a";
-  export let is_string_accepted: boolean | null;
   export let workspace_name: string | undefined;
   export let email: string | undefined;
   export let highlighted_state: State | null;
@@ -105,7 +101,7 @@
 
   const clearCursor = (): void => {
     current_action.set(Action.CLICKING);
-    selected_connection_index
+    selected_connection_index.set(null);
   };
 
   // Used when an arrow is selected and the character of its transition is being changed by the user
@@ -238,7 +234,6 @@
   on:mouseup={handleDragEnd}
   on:mousemove={handleDrag}
 />
-<div class="w-full h-fit font-semibold flex align-middle justify-around">
   <!-- Setting tabindex is necessary so element is focusable and can thus listen to keydown events -->
   <!-- svelte-ignore a11y-positive-tabindex -->
   <canvas
@@ -262,14 +257,4 @@
     on:mouseup={handleDragEnd}
   >
   </canvas>
-  <div class="flex flex-col justify-start gap-3 py-3">
-    <TestFeedback {is_string_accepted} />
-    <Sidebar
-      {clearCursor}
-      {email}
-      {workspace_name}
-    />
-    <AdvancedAutomataFunctions />
-  </div>
 
-</div>

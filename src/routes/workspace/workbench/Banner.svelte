@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Automata } from "$lib/enums";
-  import { state_positions, list_of_connections, type_of_automata } from "$lib/automataStores";
+  import { Automata } from "$lib/types/enums";
+  import { state_positions, list_of_connections, type_of_automata } from "$lib/utils/automataStores";
   import { invoke } from "@tauri-apps/api";
   export let sidebar_open: boolean = false;
   export let workspace_name: string | undefined;

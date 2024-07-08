@@ -1,4 +1,4 @@
-import type { Coordinate } from "./interfaces";
+import type { Coordinate } from "../types/interfaces";
 
 export const convertCoordinateToString = (coordinate: Coordinate): string => {
   return coordinate.x + "," + coordinate.y;

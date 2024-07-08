@@ -1,12 +1,12 @@
 <script src="" lang="ts">
 
-  import { Automata } from "$lib/enums";
+  import { Automata } from "$lib/types/enums";
   import { input_alphabet, list_of_connections, list_of_states, 
-  start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/automataStores";
-  import { convertCoordinateToString } from "$lib/miscUtils";
-  import { setTauriResponses } from "$lib/parsingBackendResponsesFuncs";
+  start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/automataStores";
+  import { convertCoordinateToString } from "$lib/utils/miscUtils";
+  import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
   import { invoke } from "@tauri-apps/api";
-  import type { TauriGeneratedAutomataInformation } from "$lib/types";
+  import type { TauriGeneratedAutomataInformation } from "$lib/types/types";
 
   const handleStateMinimization = async (): Promise<void> => {
     
@@ -56,7 +56,7 @@
   <button class="bg-orange-500 rounded-md text-lg border-2 border-black px-1 py-0.5" on:click={handleStateMinimization}>
     Minimize DFA
   </button>
-  <button class="bg-orange-500 rounded-md text-lg border-2 border-black px-1 py-0.5" on:click={async ()=> { await invoke("determine_language_of_dfa", { statePositions: $state_positions, startStateKey: $start_state_position})}}>
+  <button class="bg-orange-500 rounded-md text-lg border-2 border-black px-1 py-0.5" on:click={async ()=> {const nuts = await invoke("determine_language_of_dfa", { statePositions: $state_positions, startStateKey: $start_state_position}); console.log(nuts)} }>
     Print language to console
   </button>
   {:else}

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Action } from "$lib/enums";
-  import { undo } from "$lib/deletionFuncs";
-  import { saveWorkspace } from "$lib/savingWorkspaceFuncs";
-  import { current_action, list_of_all_elements, list_of_connections, list_of_states, start_state_index, start_state_position, state_positions } from "$lib/automataStores";
+  import { Action } from "$lib/types/enums";
+  import { undo } from "$lib/utils/deletionFuncs";
+  import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
+  import { current_action, list_of_all_elements, list_of_connections, list_of_states, start_state_index, start_state_position, state_positions } from "$lib/utils/automataStores";
 
   export let email: string | undefined;
   export let workspace_name: string | undefined;
@@ -21,7 +21,7 @@
 </script>
 
 <nav class="text-center select-none flex flex-col justify-between self-end
-gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 py-4 mr-0.5 z-10">
+gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 py-4 mr-0.5 z-10 transition-all duration-300">
   <div class="flex flex-col gap-2">
     <button
       on:click={() => {
@@ -98,8 +98,7 @@ gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 p
         stroke="currentColor"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
+        aria-hidden="true">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -119,14 +118,13 @@ gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 p
       fill="currentColor"
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
+      aria-hidden="true">
       <path
         clip-rule="evenodd"
         fill-rule="evenodd"
         d="M2.515 10.674a1.875 1.875 0 0 0 0 2.652L8.89 19.7c.352.351.829.549 1.326.549H19.5a3 3 0 0 0 3-3V6.75a3 3 0 
-            0 0-3-3h-9.284c-.497 0-.974.198-1.326.55l-6.375 6.374ZM12.53 9.22a.75.75 0 1 0-1.06 1.06L13.19 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 1 0 1.06-1.06L15.31 12l1.72-1.72a.75.75 0 1 0-1.06-1.06l-1.72 1.72-1.72-1.72Z"
-      ></path>
+            0 0-3-3h-9.284c-.497 0-.974.198-1.326.55l-6.375 6.374ZM12.53 9.22a.75.75 0 1 0-1.06 1.06L13.19 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 1 0 1.06-1.06L15.31 12l1.72-1.72a.75.75 0 1 0-1.06-1.06l-1.72 1.72-1.72-1.72Z">
+      </path>
     </svg>
     <svg
       on:click={() => {
@@ -171,13 +169,11 @@ gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 p
       fill="currentColor"
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
+      aria-hidden="true">
       <path
         clip-rule="evenodd"
         fill-rule="evenodd"
-        d="M5.478 5.559A1.5 1.5 0 0 1 6.912 4.5H9A.75.75 0 0 0 9 3H6.912a3 3 0 0 0-2.868 2.118l-2.411 7.838a3 3 0 0 0-.133.882V18a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-4.162c0-.299-.045-.596-.133-.882l-2.412-7.838A3 3 0 0 0 17.088 3H15a.75.75 0 0 0 0 1.5h2.088a1.5 1.5 0 0 1 1.434 1.059l2.213 7.191H17.89a3 3 0 0 0-2.684 1.658l-.256.513a1.5 1.5 0 0 1-1.342.829h-3.218a1.5 1.5 0 0 1-1.342-.83l-.256-.512a3 3 0 0 0-2.684-1.658H3.265l2.213-7.191Z"
-      ></path>
+        d="M5.478 5.559A1.5 1.5 0 0 1 6.912 4.5H9A.75.75 0 0 0 9 3H6.912a3 3 0 0 0-2.868 2.118l-2.411 7.838a3 3 0 0 0-.133.882V18a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-4.162c0-.299-.045-.596-.133-.882l-2.412-7.838A3 3 0 0 0 17.088 3H15a.75.75 0 0 0 0 1.5h2.088a1.5 1.5 0 0 1 1.434 1.059l2.213 7.191H17.89a3 3 0 0 0-2.684 1.658l-.256.513a1.5 1.5 0 0 1-1.342.829h-3.218a1.5 1.5 0 0 1-1.342-.83l-.256-.512a3 3 0 0 0-2.684-1.658H3.265l2.213-7.191Z"></path>
       <path
         clip-rule="evenodd"
         fill-rule="evenodd"

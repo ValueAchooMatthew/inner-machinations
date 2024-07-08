@@ -2,7 +2,7 @@
   export let is_string_accepted: boolean | null;
 </script>
 
-<div class="flex-col align-middle justify-cente0 select-none">
+<div class="flex-col align-middle justify-center select-none">
   {#if is_string_accepted}
     <svg
       class="w-24 h-24 self-center mx-auto"

@@ -1,6 +1,6 @@
 import { writable, type Writable } from "svelte/store";
-import type { Connection, State } from "./interfaces";
-import { Action, Automata } from "./enums";
+import type { Connection, State } from "../types/interfaces";
+import { Action, Automata } from "../types/enums";
 
 export const start_state_index: Writable<number | null> = writable(null);
 export const start_state_position: Writable<string | null> = writable(null);

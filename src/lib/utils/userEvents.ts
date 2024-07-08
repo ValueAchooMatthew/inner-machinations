@@ -1,10 +1,11 @@
 import { get } from "svelte/store";
 import { current_action, dialogue_to_user, list_of_all_elements, list_of_connections, list_of_states, selected_connection_index, start_state_index, start_state_position, state_positions } from "./automataStores";
-import type { BezierCurve, Connection, Coordinate, State } from "./interfaces";
+import type { BezierCurve, Connection, Coordinate, State } from "../types/interfaces";
 import { convertCoordinateToString } from "./miscUtils";
-import { Action } from "./enums";
+import { Action } from "../types/enums";
 
 export const handleUserClickingCanvas = (cursor_x_pos: number, cursor_y_pos: number, default_connection_char: string) => {
+  dialogue_to_user.set(null);
   const cursor_coords: Coordinate = { x: cursor_x_pos, y: cursor_y_pos };
   const cursor_coords_as_string: string = convertCoordinateToString(cursor_coords);
   const selected_state: State | undefined = get(state_positions).get(cursor_coords_as_string);

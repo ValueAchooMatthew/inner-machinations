@@ -4,7 +4,7 @@
   import { invoke } from "@tauri-apps/api";
   import SignOut from "./SignOut.svelte";
   import ConfirmDelete from "./ConfirmDelete.svelte";
-  import { getCookie } from "$lib/miscUtils";
+  import { getCookie } from "$lib/utils/miscUtils";
 
   let saved_workspace_names: Array<string> = new Array();
   let data = {email: getCookie("email")};

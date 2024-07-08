@@ -1,6 +1,6 @@
 import { get } from "svelte/store";
 import { list_of_all_elements, list_of_connections, list_of_states, start_state_index, start_state_position, state_positions } from "./automataStores";
-import type { Connection, State } from "./interfaces";
+import type { Connection, State } from "../types/interfaces";
 import { convertCoordinateToString, removeFirstElementFromArray } from "./miscUtils";
 
 export const removeStateFromConnections = (given_state: State, state_to_remove: State, connection_character: string): State => {

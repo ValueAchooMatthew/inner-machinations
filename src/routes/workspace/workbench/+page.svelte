@@ -1,17 +1,20 @@
 <script lang="ts">
-  import { Automata } from "$lib/enums";
+  import { Automata } from "$lib/types/enums";
   import OptionsMenu from "./OptionsMenu.svelte";
-  import type { CheckedStringResponse, Connection, State } from "$lib/interfaces";
+  import type { CheckedStringResponse, Connection, State } from "$lib/types/interfaces";
   import Whiteboard from "./Whiteboard.svelte";
   import Banner from "./Banner.svelte";
-  import { checkInputtedString } from "$lib/stringVerificationFuncs";
+  import { checkInputtedString } from "$lib/utils/stringVerificationFuncs";
   import Notifications from "./Notifications.svelte";
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api";
-  import { dialogue_to_user, start_state_index, state_positions, input_alphabet, start_state_position, type_of_automata } from "$lib/automataStores";
-  import { setTauriResponses } from "$lib/parsingBackendResponsesFuncs";
-  import type { TauriGeneratedAutomataInformation } from "$lib/types";
-  import { getCookie } from "$lib/miscUtils";
+  import { dialogue_to_user, start_state_index, state_positions, input_alphabet, start_state_position, type_of_automata } from "$lib/utils/automataStores";
+  import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
+  import type { TauriGeneratedAutomataInformation } from "$lib/types/types";
+  import { getCookie } from "$lib/utils/miscUtils";
+  import TestFeedback from "./TestFeedback.svelte";
+  import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
+  import Sidebar from "./Sidebar.svelte";
 
   let data = {
     workspace_name: getCookie("workspace_name"),
@@ -129,9 +132,7 @@
 
 </script>
 
-<div
-  class="relative flex font-semibold overflow-x-hidden w-full h-full bg-gray-200 min-h-screen"
->
+<div class="relative flex font-semibold overflow-x-hidden w-full h-full bg-gray-200 min-h-screen">
   <aside
     class=" bg-orange-500 flex flex-col top-0
     absolute transition-all duration-300 overflow-hidden z-50 w-full h-full"
@@ -151,38 +152,54 @@
       bind:workspace_name
       bind:sidebar_open
     />
-    <main class="flex">
+    <main >
+      <div class="w-full h-fit font-semibold flex align-middle justify-around">
+      <div class="flex flex-col">
+
       <Whiteboard
         {email}
         {workspace_name}
         {highlighted_state}
-        {default_connection_char}
-        {is_string_accepted}
-      />
-    </main>
-    <div class="flex justify-center mt-3 gap-4">
-      <form
-        id="stringCheckingForm"
-        class="flex self-center gap-2 align-middle select-none"
-        on:submit|preventDefault={handleStringInput}
-        on:change={()=>{is_string_accepted = null}}
-      >
-        <label class="w-40 text-2xl self-center" for="string">
-          String To Test:
-        </label>
-        <input
-          class="border-black border-2 text-3xl rounded-md px-2 py-1"
-          type="text"
-          name="string"
-          id="string"
-        />
-        <button class="w-40 bg-orange-500 rounded-md text-xl font-semibold border-black 
-          border-2 hover:-translate-y-4 duration-300 transition-all will-change-transform" form="stringCheckingForm">
-          Check String
-        </button>
-
-      </form>      
-      <Notifications/>
+        {default_connection_char}/>
+        
+      <div class="flex justify-center mt-3 gap-4">
+        <form
+          id="stringCheckingForm"
+          class="flex self-center gap-2 align-middle select-none"
+          on:submit|preventDefault={handleStringInput}
+          on:change={()=>{is_string_accepted = null}}>
+          <label class="w-40 text-2xl self-center" for="string">
+            String To Test:
+          </label>
+          <input class="border-black border-2 text-3xl rounded-md px-2 py-1"
+            type="text"
+            name="string"
+            id="string"/>
+          <button class="w-40 bg-orange-500 rounded-md text-xl font-semibold border-black 
+            border-2 hover:-translate-y-4 duration-300 transition-all will-change-transform" form="stringCheckingForm">
+            Check String
+          </button>
+        </form>      
+        <Notifications/>
+      </div>
     </div>
+
+      <div class="flex flex-col justify-center gap-3 py-3">
+        <TestFeedback {is_string_accepted} />
+        <Sidebar
+          clearCursor = {()=>{}}
+          {email}
+          {workspace_name}
+        />
+        <AdvancedAutomataFunctions />
+      </div>
+      
+    </div>
+
+    </main>
+
+    <!-- <div class="text-orange-500 ">
+      Automata Information
+    </div>   -->
   </div>
 </div>

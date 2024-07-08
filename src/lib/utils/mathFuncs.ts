@@ -1,5 +1,5 @@
-import { list_of_connections } from "./automataStores";
-import type { BezierCurve, Connection, Coordinate } from "./interfaces";
+import { list_of_connections } from "$lib/utils/automataStores";
+import type { BezierCurve, Coordinate } from "$lib/types/interfaces";
 
 export const roundToNearest = (
   number_to_round: number,

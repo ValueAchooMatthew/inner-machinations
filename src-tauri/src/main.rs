@@ -73,6 +73,8 @@ fn is_user_registered(email: &str) -> bool {
 use lettre::message::header::ContentType;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
+
+// Todo: If invalid email is entered, do not proceed to verification/panic and instead inform user
 #[tauri::command]
 fn send_email(email_address: &str) -> String {
   let code = generate_code();
@@ -101,7 +103,7 @@ fn send_email(email_address: &str) -> String {
   // Send the email
   match mailer.send(&email) {
     Ok(_) => println!("Email sent successfully!"),
-    Err(e) => panic!("Could not send email: {e:?}"),
+    Err(_) => println!("invalid email"),
   }
   code
 

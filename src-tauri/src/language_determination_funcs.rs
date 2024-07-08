@@ -10,7 +10,10 @@ fn find_all_paths_to_state(start_state: &State,
   state_positions: &HashMap<String, State>,
   visited_states: HashSet<&State>) {
 
-  if start_state == end_state {
+  // Since we already handle the empty string prior to running this code
+  // We will only count strings with a positive length
+
+  if start_state == end_state && consumed_string.len() > 0 {
 
     match strings_to_final_state.get_mut(end_state) {
       Some(previous_ways) => {
@@ -108,6 +111,43 @@ fn find_unique_loops_to_given_state(
 
 }
 
+fn convert_acceptance_paths_to_string(acceptance_paths: &HashMap<String, HashSet<String>>) -> String {
+
+  let mut representation_of_acceptance_path = String::from("{");
+
+  for (direct_path, looping_paths) in acceptance_paths {
+
+    if representation_of_acceptance_path.len() == 1 {
+      representation_of_acceptance_path += direct_path.as_str();
+    } else {
+      representation_of_acceptance_path += format!(" + {direct_path}").as_str();
+    }
+
+    if looping_paths.len() > 0 {
+
+      representation_of_acceptance_path += "(";
+      let mut looping_paths_to_add = String::new();
+
+      for looping_path in looping_paths {
+        if looping_paths_to_add.len() == 0 {
+          looping_paths_to_add += looping_path.as_str();
+
+        } else {
+          looping_paths_to_add += format!(" + {looping_path}").as_str();
+        }
+      }
+      representation_of_acceptance_path += looping_paths_to_add.as_str();
+      representation_of_acceptance_path += ")^n";
+    }
+
+  };
+
+  representation_of_acceptance_path += " | n ε N}";
+
+  return representation_of_acceptance_path;
+
+}
+
 #[tauri::command]
 pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_state_key: String) -> String {
 
@@ -128,6 +168,14 @@ pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_
 
   let mut all_paths_to_reach_final_states = HashMap::new();
   let mut visited_states: HashSet<&State> = HashSet::new();
+
+  let mut all_paths_to_acceptance: HashMap<String, HashSet<String>> = HashMap::new();
+
+  if start_state.is_final {
+    // Just specifies that if the start state is final, the empty string should be accepted as well 
+    all_paths_to_acceptance.insert(String::from("ε"), HashSet::new());
+  }
+
   visited_states.insert(start_state);
 
   let mut looping_paths_to_final_states = HashMap::new();
@@ -141,8 +189,6 @@ pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_
     find_unique_loops_to_given_state(*final_state, *final_state, &mut looping_paths_to_final_states, "", &state_positions, &mut visited_looping_states);
     visited_looping_states.clear();
   }
-
-  let mut all_paths_to_acceptance: HashMap<String, HashSet<String>> = HashMap::new();
 
   for (final_state, direct_paths) in all_paths_to_reach_final_states {
 
@@ -165,11 +211,9 @@ pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_
 
       if let Some(looping_paths_from_state) = looping_paths_to_final_states.get(&final_state) {
 
-        let unionized: HashSet<&String> = looping_paths
+        let unionized: HashSet<String> = looping_paths
           .union(looping_paths_from_state)
-          .collect();
-
-        let unionized = unionized
+          // The union produces a hashset of type &String when collected so we need to clone
           .into_iter()
           .cloned()
           .collect();
@@ -182,9 +226,8 @@ pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_
     
   };
 
-  println!("{:?}", all_paths_to_acceptance);
 
-  return String::new();
+  return convert_acceptance_paths_to_string(&all_paths_to_acceptance);
 
 }
 

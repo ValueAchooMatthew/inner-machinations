@@ -1,4 +1,4 @@
-import type { State, Connection, Coordinate, BezierCurve } from "./interfaces";
+import type { State, Connection, Coordinate, BezierCurve } from "../types/interfaces";
 import {
   getBezierCurveAngleAtPoint,
   getPointOnBezierCurveAtDistance,

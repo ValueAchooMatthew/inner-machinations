@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api";
 import { dialogue_to_user, list_of_connections, state_positions, type_of_automata } from "./automataStores";
 import { get } from "svelte/store";
-import { Automata } from "./enums";
+import { Automata } from "../types/enums";
 
 export const saveWorkspace = async (email: string | undefined, workspace_name: string | undefined) => {
   if (!email || !workspace_name) {

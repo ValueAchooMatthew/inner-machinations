@@ -1,9 +1,9 @@
 import { get } from "svelte/store";
-import { list_of_connections, list_of_states, start_state_index, start_state_position, state_positions, type_of_automata } from "./automataStores";
-import type { State } from "./interfaces";
-import { convertCoordinateToString } from "./miscUtils";
-import type { TauriGeneratedAutomataInformation } from "./types";
-import { Automata } from "./enums";
+import { list_of_connections, list_of_states, start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/automataStores";
+import type { State } from "$lib/types/interfaces";
+import { convertCoordinateToString } from "$lib/utils/miscUtils";
+import type { TauriGeneratedAutomataInformation } from "$lib/types/types";
+import { Automata } from "../types/enums";
 
 export const parseListOfStates = (
   json_states: Array<State>,

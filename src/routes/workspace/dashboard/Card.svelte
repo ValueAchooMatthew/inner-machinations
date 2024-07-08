@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { draw } from "$lib/drawingFuncs";
-  import type { TauriGeneratedAutomataInformation } from "$lib/types";
+  import { draw } from "$lib/utils/drawingFuncs";
+  import type { TauriGeneratedAutomataInformation } from "$lib/types/types";
   import { invoke } from "@tauri-apps/api";
   import { onMount } from "svelte";
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { input_alphabet } from "$lib/automataStores";
+  import { input_alphabet } from "$lib/utils/automataStores";
 
   export let default_connection_char: string = "a";
   export let sidebar_open: boolean;
