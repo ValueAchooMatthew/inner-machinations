@@ -64,7 +64,7 @@ fn find_unique_loops_to_given_state(
   strings_to_final_state: &mut HashMap<State, HashSet<String>>, 
   consumed_string: &str,
   state_positions: &HashMap<String, State>,
-  visited_states: &mut HashMap<State, HashSet<State>>) {
+  visited_states: &mut HashMap<State, HashSet<(String, State)>>) {
   
   if current_state == end_state && consumed_string != "" {
     match strings_to_final_state.get_mut(end_state) {
@@ -84,22 +84,23 @@ fn find_unique_loops_to_given_state(
 
     for state_key in state_keys {
 
-      let next_state = state_positions
-        .get(state_key)
-        .expect("There was a problem getting the state");
-
-      if let Some(set) = visited_states.get_mut(current_state) {
-        if set.contains(&next_state) {
-          continue;
-        }
-        set.insert(next_state.clone());
-      } else {
-        visited_states.insert(current_state.clone(), HashSet::from([next_state.clone()]));
-      }
-
       let string_consumed = consumed_string.to_owned() + character_connection;
 
-      find_unique_loops_to_given_state(next_state, 
+      let next_state = state_positions
+        .get(state_key)
+        .expect("There was a problem getting the state")
+        .to_owned();
+
+      if let Some(set) = visited_states.get_mut(current_state) {
+        if set.contains(&(character_connection.to_owned(), next_state.clone())) {
+          continue;
+        }
+        set.insert((character_connection.to_owned(), next_state.clone()));
+      } else {
+        visited_states.insert(current_state.clone(), HashSet::from([(character_connection.to_owned(), next_state.clone())]));
+      }
+
+      find_unique_loops_to_given_state(&next_state, 
         end_state, 
         strings_to_final_state,
         string_consumed.as_str(),
@@ -123,6 +124,8 @@ fn convert_acceptance_paths_to_string(acceptance_paths: &HashMap<String, HashSet
       representation_of_acceptance_path += format!(" + {direct_path}").as_str();
     }
 
+    println!("d: {direct_path:?}, l: {looping_paths:?}");
+
     if looping_paths.len() > 0 {
 
       representation_of_acceptance_path += "(";
@@ -137,12 +140,12 @@ fn convert_acceptance_paths_to_string(acceptance_paths: &HashMap<String, HashSet
         }
       }
       representation_of_acceptance_path += looping_paths_to_add.as_str();
-      representation_of_acceptance_path += ")^n";
+      representation_of_acceptance_path += ")\u{207F}";
     }
 
   };
 
-  representation_of_acceptance_path += " | n ε N}";
+  representation_of_acceptance_path += " | n ε N\u{207A}}";
 
   return representation_of_acceptance_path;
 

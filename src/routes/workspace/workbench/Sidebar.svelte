@@ -2,11 +2,15 @@
   import { Action } from "$lib/types/enums";
   import { undo } from "$lib/utils/deletionFuncs";
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
-  import { current_action, list_of_all_elements, list_of_connections, list_of_states, start_state_index, start_state_position, state_positions } from "$lib/utils/automataStores";
+  import { current_action, list_of_all_elements, list_of_connections, list_of_states, selected_connection_index, start_state_index, start_state_position, state_positions } from "$lib/utils/automataStores";
 
   export let email: string | undefined;
   export let workspace_name: string | undefined;
-  export let clearCursor: () => void;
+
+  const clearCursor = (): void => {
+    current_action.set(Action.CLICKING);
+    selected_connection_index.set(null);
+  };
   
   function handleTrash() {
     state_positions.set(new Map());
@@ -20,8 +24,7 @@
 
 </script>
 
-<nav class="text-center select-none flex flex-col justify-between self-end
-gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 py-4 mr-0.5 z-10 transition-all duration-300">
+<nav class="text-center select-none flex flex-col justify-between self-end gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 py-4 mr-0.5 z-10 transition-all duration-300">
   <div class="flex flex-col gap-2">
     <button
       on:click={() => {
@@ -34,34 +37,30 @@ gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 p
       <div class="mt-2 self-center bg-green-600 rounded-full w-14 h-14 border-black border-[1px]">
       </div>
     </button>
-    <button
+    <button class="flex flex-col self-center"
       on:click={() => {
         clearCursor();
         current_action.set(Action.ADDING_REGULAR_STATE);
-      }}
-      class="flex flex-col self-center">
+      }}>
       New State
       <div class="self-center bg-orange-600 rounded-full w-14 h-14 border-black border-[1px]">
       </div>
     </button>
-    <button
+    <button class="flex flex-col self-center"
       on:click={() => {
         clearCursor();
         current_action.set(Action.ADDING_FINAL_STATE);
       }}
-      class="flex flex-col self-center"
       style="line-height: 15px;">
       New Final State
-      <div
-        class="bg-white mt-2 self-center rounded-full w-[4.5rem] h-[4.5rem] border-black border-[1px]"
-      ></div>
+      <div class="bg-white mt-2 self-center rounded-full w-[4.5rem] h-[4.5rem] border-black border-[1px]">
+      </div>
     </button>
-    <button
+    <button class="flex flex-col"
       on:click={() => {
         clearCursor();
         current_action.set(Action.PLACING_START_OF_LINE);
       }}
-      class="flex flex-col"
       style="line-height: 15px;">
       New Connection
       <svg
