@@ -124,8 +124,6 @@ fn convert_acceptance_paths_to_string(acceptance_paths: &HashMap<String, HashSet
       representation_of_acceptance_path += format!(" + {direct_path}").as_str();
     }
 
-    println!("d: {direct_path:?}, l: {looping_paths:?}");
-
     if looping_paths.len() > 0 {
 
       representation_of_acceptance_path += "(";
