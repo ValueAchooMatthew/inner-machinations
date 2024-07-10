@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Automata } from "$lib/types/enums";
   import OptionsMenu from "./OptionsMenu.svelte";
   import type { CheckedStringResponse, Connection, State } from "$lib/types/interfaces";
   import Whiteboard from "./Whiteboard.svelte";
@@ -134,25 +133,22 @@
 </script>
 
 <div class="relative flex font-semibold w-full h-full bg-gray-200 min-h-screen">
-  <aside
-    class=" bg-orange-500 flex flex-col top-0
+  <aside class=" bg-orange-500 flex flex-col top-0
     absolute transition-all duration-300 overflow-hidden z-50 w-full h-full"
     class:left-0={sidebar_open}
-    class:-left-full={!sidebar_open}
-  >
+    class:-left-full={!sidebar_open}>
     <OptionsMenu
       bind:is_strict_checking
       bind:default_connection_char
       bind:sidebar_open
-      bind:is_showing_string_traversal
-    />
+      bind:is_showing_string_traversal/>
   </aside>
   <div class="w-full min-w-0">
     <Banner
       {email}
       bind:workspace_name
       bind:sidebar_open/>
-    <main >
+    <main>
       <div class="w-full h-fit font-semibold flex align-middle justify-around">
         <div class="flex flex-col">
         <Whiteboard
@@ -160,6 +156,16 @@
           {workspace_name}
           {highlighted_state}
           {default_connection_char}/>
+      </div>
+      <div class="flex flex-col justify-center gap-3 py-3">
+        <TestFeedback {is_string_accepted} />
+        <Sidebar
+          {email}
+          {workspace_name}/>
+        <AdvancedAutomataFunctions />
+      </div>
+    </div>
+      <div class="absolute bottom-6 ml-0 mr-0 mx-auto w-full">
         <div class="flex justify-center mt-3 gap-4">
           <form
             id="stringCheckingForm"
@@ -182,18 +188,6 @@
         </div>
         <LanguageOfAutomata />
       </div>
-
-      <div class="flex flex-col justify-center gap-3 py-3">
-        <TestFeedback {is_string_accepted} />
-        <Sidebar
-          {email}
-          {workspace_name}/>
-        <AdvancedAutomataFunctions />
-      </div>
-      
-    </div>
-
     </main>
-
   </div>
 </div>

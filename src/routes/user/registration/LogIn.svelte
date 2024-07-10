@@ -6,17 +6,21 @@
 
   const handleSubmit = async (event: SubmitEvent): Promise<void> => {
     event.preventDefault();
+
     if (!(event.target instanceof HTMLFormElement)) {
       console.log("There was an error submitting user information");
       return;
     }
+
     const data = new FormData(event.target);
     const email = data.get("email")?.toString();
     const password = data.get("password")?.toString();
     document.cookie = "email" + "=" + email + "; path=/";
+
     if (!email || !password) {
       return;
     }
+
     const isRegistered: boolean = await invoke("is_user_registered", {
       email: email,
       password: password,
@@ -27,22 +31,32 @@
       goto("verification");
       return;
     }
+
     const isCorrectLogin: boolean = await invoke("is_correct_log_in", {
-      emailAddress: email,
-      pwrd: password,
+      email: email,
+      password: password,
     });
+
     const isVerified: boolean = await invoke("is_user_verified", {
-      emailAddress: email,
-      pwrd: password,
+      email: email,
+      password: password,
     });
+
     if (!isCorrectLogin) {
       response = "Sorry, you've entered an incorrect password";
       return;
     }
+
     if (!isVerified) {
+      const was_email_successfully_sent: string | null = await invoke("send_verification_email", {email: email});
+      if(!was_email_successfully_sent) {
+        response = "There was an error sending the email"
+        return;
+      }
       goto("verification");
       return;
     }
+
     goto("../workspace/dashboard");
     return;
   };

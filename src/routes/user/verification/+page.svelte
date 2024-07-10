@@ -1,30 +1,18 @@
 <script lang="ts">
   import TitleHeader from "$lib/components/TitleHeader.svelte";
-import { getCookie } from "$lib/utils/miscUtils";
+  import { getCookie } from "$lib/utils/miscUtils";
   import { invoke } from "@tauri-apps/api/tauri";
   import { onMount } from "svelte";
 
+  // Having to use getCookie instead of server file as prod version of app
+  // cannot work with server files due to disabled SSR
   let data = {
     email: getCookie("email")
   };
 
-  $: code = "";
+  let correct_code: string | null = "";
   let is_verified = false;
   let response = "";
-
-  onMount(async () => {
-    if (data === undefined || data.email === undefined) {
-      console.log("The user's email is null");
-      return;
-    }
-
-    is_verified = await invoke("is_user_verified", {
-      emailAddress: data.email
-    });
-    if (!is_verified) {
-      code = await invoke("send_email", { emailAddress: data.email });
-    }
-  });
 
   const handleSubmit = async (event: SubmitEvent) => {
     if (!(event.target instanceof HTMLFormElement) || !data.email) {
@@ -32,15 +20,16 @@ import { getCookie } from "$lib/utils/miscUtils";
     }
     const form_data = new FormData(event.target);
     const enteredCode = form_data.get("code");
-    if (enteredCode != code) {
+    // Loose type checking as enteredCode is not of type string
+    if (enteredCode != correct_code) {
       response =
         "The entered code was incorrect. Please ensure you are logging in with the correct email address. Another email has been sent with a code for verification to the provided email.";
-      code = await invoke("send_email", { emailAddress: data.email });
+      correct_code = await invoke("send_verification_email", { email: data.email });
       return;
     }
-    invoke("verify_user", { emailAddress: data.email });
+    invoke("verify_user", { email: data.email });
     response = "You were successfully verified!";
-  };
+  }
 </script>
 
 <div class="bg-gray-100 flex flex-col overflow-hidden gap-3 h-screen justify-between ">

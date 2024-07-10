@@ -17,9 +17,9 @@ use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 
 fn get_workspace(workspace_name: &String, user_id: &i32, conn: &mut SqliteConnection) -> SavedWorkspace {
-  let workspace: SavedWorkspace = match saved_workspaces::dsl::saved_workspaces
+  let workspace: SavedWorkspace = match saved_workspaces::table
     .filter(saved_workspaces::user_id.eq(user_id))
-    .filter(saved_workspaces::dsl::workspace_name.eq(&workspace_name))
+    .filter(saved_workspaces::workspace_name.eq(&workspace_name))
     .limit(1)
     .get_result::<SavedWorkspace>(conn) {
 
@@ -39,8 +39,8 @@ fn get_workspace(workspace_name: &String, user_id: &i32, conn: &mut SqliteConnec
       
       println!("Creating new workspace {}", &workspace_name);
       
-      saved_workspaces::dsl::saved_workspaces
-        .filter(saved_workspaces::dsl::workspace_name.eq(workspace_name))
+      saved_workspaces::table
+        .filter(saved_workspaces::workspace_name.eq(workspace_name))
         .limit(1)
         .get_result::<SavedWorkspace>(conn)
         .expect("There was an error retrieving the given workspace")
@@ -57,8 +57,8 @@ fn get_user_id(email: &String, conn: &mut SqliteConnection) -> i32 {
   let cipher = new_magic_crypt!(&key, 256);
   let [encrypted_user_email, _ ] = encrypt_user_data(&cipher, &email, "");
 
-  let user: User = users::dsl::users
-    .filter(users::dsl::email.eq(&encrypted_user_email))
+  let user: User = users::table
+    .filter(users::email.eq(&encrypted_user_email))
     .limit(1)
     .get_result::<User>(conn)
     .expect("There was an error finding the user's profile");
@@ -194,7 +194,7 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (Option
   let workspace = get_workspace(&workspace_name, &user_id, &mut conn);
     
   // First get the states and connections from the database
-  let retrieved_states: Vec<SavedState> = saved_states::dsl::saved_states
+  let retrieved_states: Vec<SavedState> = saved_states::table
     .filter(saved_states::workspace_id.eq(&workspace.id))
     .get_results::<SavedState>(&mut conn)
     .expect("There was an issue getting the workspace's states");
@@ -213,8 +213,8 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (Option
     states.push(parsed_state.to_owned());
   }
 
-  let retrieved_connections: Vec<SavedConnection> = saved_connections::dsl::saved_connections
-    .filter(saved_connections::dsl::workspace_id.eq(&workspace.id))
+  let retrieved_connections: Vec<SavedConnection> = saved_connections::table
+    .filter(saved_connections::workspace_id.eq(&workspace.id))
     .get_results::<SavedConnection>(&mut conn)
     .expect("There was an issue getting the workspace's states");
 
@@ -246,9 +246,9 @@ fn parse_saved_state_to_regular_state(state: &SavedState, workspace: &SavedWorks
     element: "State".to_owned()
   };
 
-  let states_connected_to_given_state: Vec<SavedConnection> = saved_connections::dsl::saved_connections
-    .filter(saved_connections::dsl::workspace_id.eq(&workspace.id))
-    .filter(saved_connections::dsl::start_point.eq(&state.position))
+  let states_connected_to_given_state: Vec<SavedConnection> = saved_connections::table
+    .filter(saved_connections::workspace_id.eq(&workspace.id))
+    .filter(saved_connections::start_point.eq(&state.position))
     .get_results::<SavedConnection>(conn)
     .expect("There was an issue getting the workspace's states");
 
@@ -295,8 +295,8 @@ pub fn get_users_saved_workspaces(email: String) -> Vec<String> {
   let mut conn = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
 
-  let retrieved_workspaces: Vec<SavedWorkspace> = saved_workspaces::dsl::saved_workspaces
-    .filter(saved_workspaces::dsl::user_id.eq(&user_id))
+  let retrieved_workspaces: Vec<SavedWorkspace> = saved_workspaces::table
+    .filter(saved_workspaces::user_id.eq(&user_id))
     .get_results(&mut conn)
     .expect("There was an error retrieving the user's saved workspaces");
 

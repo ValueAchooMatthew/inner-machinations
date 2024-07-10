@@ -92,9 +92,10 @@
   };
 
   const handleUndoEvent = async (event: KeyboardEvent): Promise<void> => {
-    if (event.ctrlKey === true && event.key === "z") {
-      undo();
-    } else if (event.ctrlKey === true && event.key === "s") {
+    // if (event.ctrlKey === true && event.key === "z") {
+    //   undo();
+    // } else 
+    if (event.ctrlKey === true && event.key === "s") {
       saveWorkspace(email, workspace_name);
     }
   };
