@@ -48,11 +48,6 @@
     }
 
     if (!isVerified) {
-      const was_email_successfully_sent: string | null = await invoke("send_verification_email", {email: email});
-      if(!was_email_successfully_sent) {
-        response = "There was an error sending the email"
-        return;
-      }
       goto("verification");
       return;
     }

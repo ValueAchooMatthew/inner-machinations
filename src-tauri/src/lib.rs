@@ -46,20 +46,7 @@ pub fn get_encryption_key() -> String {
   let mut env_file = dotenv::dotenv();
 
   if env_file.is_err() {
-    let mut new_env_file = fs::File
-    ::create_new(".env")
-    .unwrap();
-
-    let random_string: String = rand::thread_rng()
-      .sample_iter(&Alphanumeric)
-      .take(12)
-      .map(char::from)
-      .collect();
-
-    let env_variable = String::from("ENCRYPTION_KEY=") + format!("{random_string}").as_str();
-    new_env_file.write(env_variable.as_bytes())
-      .expect("There was an error writing to the env file");
-
+    create_new_env_file();
     env_file = dotenv::dotenv();
   }
   
@@ -68,6 +55,22 @@ pub fn get_encryption_key() -> String {
   env::var("ENCRYPTION_KEY")
     .expect("There was an error retrieving the encryption key")
 
+}
+
+fn create_new_env_file() {
+  let mut new_env_file = fs::File
+  ::create_new(".env")
+  .unwrap();
+
+let random_string: String = rand::thread_rng()
+  .sample_iter(&Alphanumeric)
+  .take(12)
+  .map(char::from)
+  .collect();
+
+let env_variable = String::from("ENCRYPTION_KEY=") + format!("{random_string}").as_str();
+new_env_file.write(env_variable.as_bytes())
+  .expect("There was an error writing to the env file");
 }
 
 pub fn set_working_directory() {

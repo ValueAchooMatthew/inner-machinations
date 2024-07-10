@@ -165,7 +165,6 @@
         <AdvancedAutomataFunctions />
       </div>
     </div>
-      <div class="absolute bottom-6 ml-0 mr-0 mx-auto w-full">
         <div class="flex justify-center mt-3 gap-4">
           <form
             id="stringCheckingForm"
@@ -187,7 +186,6 @@
           <Notifications/>
         </div>
         <LanguageOfAutomata />
-      </div>
     </main>
   </div>
 </div>

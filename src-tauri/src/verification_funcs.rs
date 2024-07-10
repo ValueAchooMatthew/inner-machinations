@@ -1,4 +1,4 @@
-use app::{encrypt_user_data, establish_connection};
+use app::{encrypt_user_data, establish_connection, get_encryption_key, generate_code};
 use diesel::SqliteConnection;
 use diesel::RunQueryDsl;
 use diesel::query_dsl::methods::FilterDsl;
@@ -7,7 +7,6 @@ use magic_crypt::new_magic_crypt;
 use magic_crypt::MagicCrypt256;
 use crate::models::User;
 use crate::{diesel::ExpressionMethods, schema::users};
-use crate::{generate_code, get_encryption_key};
 
 #[tauri::command]
 pub fn send_verification_email(email: &str) -> Option<String> {
@@ -26,7 +25,7 @@ pub fn send_verification_email(email: &str) -> Option<String> {
     .body("Please enter the following code to verify your email: ".to_owned() + &code)
     .unwrap();
 
-  let creds = Credentials::new("matthewtamerfarah@gmail.com".to_owned(), "fkyr oetz ethu vqbx".to_owned());
+  let creds = Credentials::new("matthewtamerfarah@gmail.com".to_owned(), "ygiv jpki lzas irzd".to_owned());
   
   // Open a remote connection to gmail
   let mailer = SmtpTransport::relay("smtp.gmail.com")

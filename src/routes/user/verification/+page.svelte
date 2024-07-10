@@ -14,14 +14,22 @@
   let is_verified = false;
   let response = "";
 
+  onMount(async ()=> {
+    correct_code = await invoke("send_verification_email", { email: data.email });
+  })
+
   const handleSubmit = async (event: SubmitEvent) => {
     if (!(event.target instanceof HTMLFormElement) || !data.email) {
       return;
     }
+
     const form_data = new FormData(event.target);
     const enteredCode = form_data.get("code");
     // Loose type checking as enteredCode is not of type string
-    if (enteredCode != correct_code) {
+    if(!correct_code) {
+      response = "There was an error sending the verification code at this time";
+      return;
+    } else if (enteredCode != correct_code) {
       response =
         "The entered code was incorrect. Please ensure you are logging in with the correct email address. Another email has been sent with a code for verification to the provided email.";
       correct_code = await invoke("send_verification_email", { email: data.email });
