@@ -37,4 +37,5 @@
     <SignOut/>
   </div>
   <ConfirmDelete email={data.email} bind:workspace_to_delete={workspace_to_delete}/>
+  <a href="./regexes">Go To regexes</a>
 </div>

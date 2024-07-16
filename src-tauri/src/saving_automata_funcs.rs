@@ -16,37 +16,44 @@ use magic_crypt::new_magic_crypt;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 
-fn get_workspace(workspace_name: &String, user_id: &i32, conn: &mut SqliteConnection) -> SavedWorkspace {
-  let workspace: SavedWorkspace = match saved_workspaces::table
+fn get_workspace(workspace_name: &String, user_id: &i32, conn: &mut SqliteConnection) -> Result<SavedWorkspace, diesel::result::Error> {
+  
+  match saved_workspaces::table
     .filter(saved_workspaces::user_id.eq(user_id))
     .filter(saved_workspaces::workspace_name.eq(&workspace_name))
     .limit(1)
     .get_result::<SavedWorkspace>(conn) {
 
-      Ok(workspace) =>{println!("Retrieving workspace {}", &workspace_name); workspace},
+      Ok(workspace) => {
+
+        println!("Retrieving workspace {}", &workspace_name); 
+        return Ok(workspace)
+      
+      },
 
       Err(_) => {
-      let new_saved_automata = (
-        saved_workspaces::user_id.eq(&user_id), 
-        saved_workspaces::workspace_name.eq(&workspace_name),
-        saved_workspaces::type_of_automata.eq(&TypeOfAutomata::DFA)
-      );
+        let new_saved_automata = (
+          saved_workspaces::user_id.eq(&user_id), 
+          saved_workspaces::workspace_name.eq(&workspace_name),
+          saved_workspaces::type_of_automata.eq(&TypeOfAutomata::DFA)
+        );
+      
+        diesel::insert_into(saved_workspaces::table)
+          .values(new_saved_automata)
+          .execute(conn)?;
+        
+        println!("Creating new workspace {}", &workspace_name);
+        
+        let workspace = saved_workspaces::table
+          .filter(saved_workspaces::workspace_name.eq(workspace_name))
+          .limit(1)
+          .get_result::<SavedWorkspace>(conn)?;
 
-      diesel::insert_into(saved_workspaces::table)
-        .values(new_saved_automata)
-        .execute(conn)
-        .expect("There was an error creating a new workspace");
-      
-      println!("Creating new workspace {}", &workspace_name);
-      
-      saved_workspaces::table
-        .filter(saved_workspaces::workspace_name.eq(workspace_name))
-        .limit(1)
-        .get_result::<SavedWorkspace>(conn)
-        .expect("There was an error retrieving the given workspace")
+        return Ok(workspace);
+
       }
-    };
-  return workspace;
+    }
+
 }
 
 fn get_user_id(email: &String, conn: &mut SqliteConnection) -> i32 {
@@ -66,12 +73,11 @@ fn get_user_id(email: &String, conn: &mut SqliteConnection) -> i32 {
   user.id
 }
 
-fn save_states_to_db(workspace_id: &i32, states: &HashMap<String, State>, conn: &mut SqliteConnection) {
+fn save_states_to_db(workspace_id: &i32, states: &HashMap<String, State>, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
   // First step is to remove all existing states corresponding to the workspace
   diesel::delete(saved_states::table)
     .filter(saved_states::workspace_id.eq(&workspace_id))
-    .execute(conn)
-    .expect("There was an error deleting existing states from the states table");
+    .execute(conn)?;
   
   // Second step is to add the states from the hashmap and associate each one to the existing state id
   // A state can have 0 inclusive connected states, so we will make one entry for the state itself with no connections,
@@ -91,18 +97,18 @@ fn save_states_to_db(workspace_id: &i32, states: &HashMap<String, State>, conn: 
 
   diesel::insert_into(saved_states::table)
     .values(&states_to_be_inserted)
-    .execute(conn)
-    .expect("There was an error inserting the states");
+    .execute(conn)?;
+
+  Ok(())
 
 }
 
-fn save_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, conn: &mut SqliteConnection) {
+fn save_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
 
   // First delete all existing connections relating to the current automata
   diesel::delete(saved_connections::table)
     .filter(saved_connections::workspace_id.eq(workspace_id))
-    .execute(conn)
-    .expect("There was an error deleting the previous connections from the saved connections table");
+    .execute(conn)?;
 
   let mut connections_to_be_inserted = vec![];
 
@@ -122,28 +128,31 @@ fn save_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, con
 
   diesel::insert_into(saved_connections::table)
     .values(connections_to_be_inserted)
-    .execute(conn)
-    .expect("There was an error inserting the new connections into the connections table");
+    .execute(conn)?;
+
+  return Ok(());
 
 }
 
-fn set_automata_type(workspace_id: &i32, type_of_automata: &TypeOfAutomata, conn: &mut SqliteConnection) {
+fn set_automata_type(workspace_id: &i32, type_of_automata: &TypeOfAutomata, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
 
   diesel::update(saved_workspaces::table
     .filter(saved_workspaces::id.eq(workspace_id)))
     .set(saved_workspaces::type_of_automata.eq(type_of_automata))
-    .execute(conn)
-    .expect("There was a error setting the workspace's automata type");
+    .execute(conn)?;
+
+  Ok(())
 }
 
-fn set_current_time(workspace_id: &i32, conn: &mut SqliteConnection) {
+fn set_current_time(workspace_id: &i32, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
 
   // Sets time of last update to current time
   diesel::update(saved_workspaces::table
     .filter(saved_workspaces::id.eq(workspace_id)))
     .set(saved_workspaces::date_of_last_update.eq(diesel::dsl::now))
-    .execute(conn)
-    .expect("There was a error setting the workspace's automata type");
+    .execute(conn)?;
+
+  Ok(())
 }
 
 #[tauri::command]
@@ -151,22 +160,32 @@ pub fn save_workspace(workspace_name: String, states: HashMap<String, State>, em
 
   let mut conn = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
-  let workspace: SavedWorkspace = get_workspace(&workspace_name, &user_id, &mut conn);
+  let workspace: SavedWorkspace = get_workspace(&workspace_name, &user_id, &mut conn)
+    .expect("There was an error retrieving the workspace");
 
-  save_states_to_db(&workspace.id, &states, &mut conn);
-  save_connections_to_db(&workspace.id, &connections, &mut conn);
-  set_automata_type(&workspace.id, &type_of_automata, &mut conn);
-  set_current_time(&workspace.id, &mut conn);
+  save_states_to_db(&workspace.id, &states, &mut conn)
+    .expect("There was an error saving the states to the database");
+
+  save_connections_to_db(&workspace.id, &connections, &mut conn)
+    .expect("There was an error saving the connections to the database");
+
+  set_automata_type(&workspace.id, &type_of_automata, &mut conn)
+    .expect("There was an error setting the automata type of the workspace");
+
+  set_current_time(&workspace.id, &mut conn)
+    .expect("There was an error updating the last modified time of the workspace");
+  
   println!("Saved!");
 
 }
 
 #[tauri::command]
-pub fn delete_workspace(workspace_name: String, email: String){
+pub fn delete_workspace(workspace_name: String, email: String) {
 
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
-  let workspace: SavedWorkspace = get_workspace(&workspace_name, &user_id, &mut conn);
+  let workspace: SavedWorkspace = get_workspace(&workspace_name, &user_id, &mut conn)
+    .expect("There was an eror retrieving the workspace");
 
   diesel::delete(saved_states::table)
     .filter(saved_states::workspace_id.eq(workspace.id))
@@ -191,7 +210,8 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (Option
     
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
-  let workspace = get_workspace(&workspace_name, &user_id, &mut conn);
+  let workspace = get_workspace(&workspace_name, &user_id, &mut conn)
+    .expect("There was an error retrieving the workspace");
     
   // First get the states and connections from the database
   let retrieved_states: Vec<SavedState> = saved_states::table

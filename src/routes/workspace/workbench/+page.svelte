@@ -166,9 +166,9 @@
       </div>
     </div>
         <div class="flex justify-center mt-3 gap-4">
-          <form
-            id="stringCheckingForm"
+            <form 
             class="flex self-center gap-2 align-middle select-none"
+            id="stringCheckingForm"
             on:submit|preventDefault={handleStringInput}
             on:change={()=>{is_string_accepted = null}}>
             <label class="w-40 text-2xl self-center" for="string">

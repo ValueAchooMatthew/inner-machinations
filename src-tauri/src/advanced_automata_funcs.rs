@@ -269,7 +269,7 @@ pub fn convert_nfa_to_dfa (
     finished = true;
     let mut states_to_add = vec![];
 
-    for state in  reconstructed_state_positions.values() {
+    for state in reconstructed_state_positions.values() {
 
       let mut state = state.borrow_mut();
       // The state's connection has to be be cloned to allow us to iterate over the existing states
