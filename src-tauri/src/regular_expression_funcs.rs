@@ -4,67 +4,89 @@ use app::regex_models::*;
 pub fn interpret_regex(regex: &str) {
 
   let (tokens, _) = tokenize_regular_expression(regex);
+  // Need to better address how to handle grouped expressions
+  // Additionally, I want it such that the leaf nodes of a grouped expression can only ever be literals
+  // ^^^Very important
   let parsed_tokens = parse_tokens(tokens);
 
-  println!("{:?}", parsed_tokens.unwrap());
+  println!("{:?}", parsed_tokens);
 }
 
-fn parse_tokens(mut tokens: Vec<Token>) -> Result<Vec<Token>, ParsingError> {
+fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
 
-  let mut tree = vec![];
-  let mut finished = false;
-  while !finished {
-    finished = true;
-    for (index, token) in tokens.clone().into_iter().enumerate() {
-      match token {
-        Token::BinaryOperator(op_type) => {
-  
-          let bin_op;
-  
-          if op_type == '+' {
-            let Some(left_argument) = tokens
-              .get(index - 1)
-              else {break};
-  
-            let Some(right_argument) = tokens
-              .get(index + 1)
-              else {break};
-  
-            bin_op = OrOperator::new(
-              left_argument.to_owned(),
-              right_argument.to_owned()
-            );
-            finished = false;
-            tree.push(ParseTree::Or(bin_op).into());
-          }
-  
-        },
-        Token::UnaryOperator(op_type) => {
-          let un_op;
-  
-          if op_type == '*' {
-            let Some(inner_argument) = tokens
-              .get(index - 1)
-              else {break};
-  
-            un_op = KleeneOperator::new(
-              inner_argument.to_owned()
-            );
-            tree.push(ParseTree::Kleene(un_op).into());
-            finished = false;
-          }
-  
-  
-        },
-        _ => continue
-      }
-    
-    }
-    tokens = tree.clone();
-  
+  if tokens.len() == 0 {
+    return Err(ParsingError::NoInnerArg)
+  } else if tokens.len() == 1 {
+
+    let final_token = tokens
+      .get(0)
+      .expect("The vec should have at least 1 element")
+      .to_owned();
+
+    match final_token {
+      Token::GroupedExpression(_) => {
+        // do nothing and continue, so the grouped expression continues to be broken apart
+      },
+      final_token => return Ok(final_token)
+
+    } 
   }
+
+  for (index, token) in tokens.clone().into_iter().enumerate() {
+    match token {
+      Token::OrOperator(mut current_or_op) => {
+        let duplicate_tokens = tokens.clone();
+        let (left_argument, right_argument) = duplicate_tokens.split_at(index);
+        // Done so we don't include the current token in the right argument
+        let mut right_argument = right_argument.to_owned();
+        right_argument.remove(0);
+        tokens.remove(index);
+
+        if left_argument.len() > 0 {
+          tokens.drain(0..left_argument.len());
+
+          let left_argument = parse_tokens(left_argument.to_owned())?;
+          current_or_op.left_insert_token(left_argument)?;
+          tokens.insert(0, Token::OrOperator(current_or_op.clone()));
+          break;
+        }
+
+        if right_argument.len() > 0 {
+          tokens.drain(0..right_argument.len());
+          let right_argument = parse_tokens(right_argument)?;
+          current_or_op.right_insert_token(right_argument)?;
+          tokens.insert(index, Token::OrOperator(current_or_op));
+          break;
+        }
+      },
+      Token::KleeneOperator(mut current_kleene_op) => {
+        if index == 0 {
+          return Err(ParsingError::NoInnerArg);
+        }
+        let mut duplicate_tokens = tokens.clone();
+        let _ = duplicate_tokens.split_off(index);
+        let left_of_kleene_operator = duplicate_tokens;
+        tokens.drain(0..=left_of_kleene_operator.len());
+
+        let inner_argument = parse_tokens(left_of_kleene_operator)?;
+
+        current_kleene_op.insert_token(inner_argument)?;
+
+        tokens.insert(0, Token::KleeneOperator(current_kleene_op));
+
+      },
+      Token::GroupedExpression(token_pointer) => {
+        let expanded_tokens = token_pointer
+          .to_vec();
+        tokens.remove(index);
+        tokens.insert(index, parse_tokens(expanded_tokens)?);
+      },
+      _ => continue
+    }
   
-  return Ok(tree);
+  };
+  
+  return parse_tokens(tokens);
 
 }
 
@@ -82,11 +104,11 @@ fn tokenize_regular_expression(regex: &str) -> (Vec<Token>, Option<usize>) {
       continue;
     } else if c == '+' {
       tokens.push(
-        Token::BinaryOperator('+')
+        Token::OrOperator(Box::new(OrOperator::new(None, None)))
       );
     } else if c == '*' {
       tokens.push(
-        Token::UnaryOperator('*')
+        Token::KleeneOperator(Box::new(KleeneOperator::new(None)))
       );
     } else if c == '(' {
       
@@ -94,7 +116,7 @@ fn tokenize_regular_expression(regex: &str) -> (Vec<Token>, Option<usize>) {
       // Currently, keeps reiterating over previously accounted for tokens
       let tokens_in_brackets = tokenize_regular_expression(&regex[index+1..]);
 
-      tokens.push(tokens_in_brackets.0.into());
+      tokens.push(Token::GroupedExpression(Box::new(tokens_in_brackets.0)));
       current_working_index += tokens_in_brackets.1
         .expect("The regex should have a closing bracket") + 1;
 
