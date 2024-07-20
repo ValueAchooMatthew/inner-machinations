@@ -7,6 +7,7 @@ pub fn interpret_regex(regex: &str) {
   // Need to better address how to handle grouped expressions
   // Additionally, I want it such that the leaf nodes of a grouped expression can only ever be literals
   // ^^^Very important
+  println!("{tokens:?}");
   let parsed_tokens = parse_tokens(tokens);
 
   println!("{:?}", parsed_tokens);
@@ -60,19 +61,17 @@ fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
         }
       },
       Token::KleeneOperator(mut current_kleene_op) => {
-        if index == 0 {
-          return Err(ParsingError::NoInnerArg);
-        }
+
         let mut duplicate_tokens = tokens.clone();
         let _ = duplicate_tokens.split_off(index);
         let left_of_kleene_operator = duplicate_tokens;
-        tokens.drain(0..=left_of_kleene_operator.len());
-
-        let inner_argument = parse_tokens(left_of_kleene_operator)?;
-
-        current_kleene_op.insert_token(inner_argument)?;
-
-        tokens.insert(0, Token::KleeneOperator(current_kleene_op));
+        if left_of_kleene_operator.len() > 0 {
+          tokens.drain(0..=left_of_kleene_operator.len());
+          let inner_argument = parse_tokens(left_of_kleene_operator)?;
+          current_kleene_op.insert_token(inner_argument)?;
+          tokens.insert(0, Token::KleeneOperator(current_kleene_op));
+          break;
+        }
 
       },
       Token::GroupedExpression(token_pointer) => {
@@ -126,13 +125,21 @@ fn tokenize_regular_expression(regex: &str) -> (Vec<Token>, Option<usize>) {
       // We've encountered a character which we will add to our list of tokens
       // Since a 'character' in the regex sense could hypothetically be more than one character long
       // Hence the into method on the regex slice starting at the current index
+      let tokenized_literal = regex[index..].into();
+      match &tokenized_literal {
+        Token::Literal(literal) => {
+          current_working_index += literal.len() - 1;
+        }
+        _ => {
+          panic!("A literal should be returned");
+        }
+      }
 
       tokens.push(
-        regex[index..].into()
+        tokenized_literal
       );
     }
-    current_working_index += 1;
-
+  current_working_index += 1;
   }
 
   return (tokens, None);

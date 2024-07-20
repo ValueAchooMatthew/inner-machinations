@@ -10,9 +10,7 @@ pub enum Token {
 
 #[derive(Debug)]
 pub enum ParsingError {
-  NoEmptySpace,
-  NoLeftArg,
-  NoRightArg,
+  NoEmptySpaceInParseTree,
   NoInnerArg
 }
 
@@ -81,7 +79,7 @@ impl BinaryOperator for OrOperator {
             Token::KleeneOperator(left_operator) => {
               left_operator.insert_token(token_to_insert)?;
             },
-            _ => return Err(ParsingError::NoEmptySpace)
+            _ => return Err(ParsingError::NoEmptySpaceInParseTree)
           }
           
         } else {
@@ -114,7 +112,7 @@ impl BinaryOperator for OrOperator {
               right_operator.insert_token(token_to_insert)?;
             },
             _ => {
-              return Err(ParsingError::NoEmptySpace);
+              return Err(ParsingError::NoEmptySpaceInParseTree);
             }
           }
         } else {
@@ -180,7 +178,7 @@ impl Operator for OrOperator {
       }
     }
 
-    return Err(ParsingError::NoEmptySpace)
+    return Err(ParsingError::NoEmptySpaceInParseTree)
 
   }
   
@@ -230,7 +228,7 @@ impl Operator for KleeneOperator {
       }
     }
 
-    return Err(ParsingError::NoEmptySpace)
+    return Err(ParsingError::NoEmptySpaceInParseTree)
 
   }
 
