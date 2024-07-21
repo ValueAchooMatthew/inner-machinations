@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
 pub enum Token {
   Literal(String),
   GroupedExpression(Box<Vec<Token>>),
@@ -8,22 +10,24 @@ pub enum Token {
   KleeneOperator(Box<KleeneOperator>)
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum ParsingError {
   NoEmptySpaceInParseTree,
+  NoLeftArg,
+  NoRightArg,
   NoInnerArg
 }
 
 // Consider ditching specific operators in future and instead store the
 // 'type of' an operator in a field in the obj
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
 pub struct OrOperator {
   // For now their arguments will exclusively be a single literal
   left_argument: Option<Token>,
   right_argument: Option<Token>
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
 pub struct KleeneOperator {
   inner_argument: Option<Token>
 }
@@ -33,6 +37,7 @@ pub trait Operator {
   fn get_operator_name() -> String;
   // Just using insert for now as a test
   fn insert_token(&mut self, token_to_insert: Token) -> Result<(), ParsingError>;
+  fn has_empty_arg(&self) -> bool;
 
 }
 
@@ -43,11 +48,14 @@ pub trait BinaryOperator {
   // Will refactor to work in future
   fn left_insert_token(&mut self, token_to_insert: Token) -> Result<(), ParsingError>;
   fn right_insert_token(&mut self, token_to_insert: Token) -> Result<(), ParsingError>;
+  fn get_left_argument(&self) -> Option<&Token>;
+  fn get_right_argument(&self) -> Option<&Token>; 
 
 }
 
 pub trait UnaryOperator {
   fn new(inner_argument: Option<Token>) -> Self;
+  fn get_inner_argument(&self) -> Option<&Token>;
 }
 
 impl BinaryOperator for OrOperator {
@@ -123,6 +131,14 @@ impl BinaryOperator for OrOperator {
       }
     }
   }
+
+  fn get_left_argument(&self) -> Option<&Token> {
+    return self.left_argument.as_ref();
+  }
+
+  fn get_right_argument(&self) -> Option<&Token> {
+    return self.right_argument.as_ref();
+  }
   
 }
 
@@ -132,6 +148,11 @@ impl UnaryOperator for KleeneOperator {
       inner_argument
     }
   }
+
+  fn get_inner_argument(&self) -> Option<&Token> {
+    return self.inner_argument.as_ref();
+  }
+
 }
 
 impl Operator for OrOperator {
@@ -181,7 +202,11 @@ impl Operator for OrOperator {
     return Err(ParsingError::NoEmptySpaceInParseTree)
 
   }
-  
+
+  fn has_empty_arg(&self) -> bool {
+    return self.left_argument.is_none() || self.right_argument.is_none();
+  }
+
 }
 
 impl Operator for KleeneOperator {
@@ -230,6 +255,10 @@ impl Operator for KleeneOperator {
 
     return Err(ParsingError::NoEmptySpaceInParseTree)
 
+  }
+
+  fn has_empty_arg(&self) -> bool {
+    return self.inner_argument.is_none();
   }
 
 

@@ -1,16 +1,63 @@
-use app::regex_models::*;
+mod regex_models;
+use regex_models::{BinaryOperator, KleeneOperator, OrOperator, ParsingError, Token, UnaryOperator, Operator};
+mod tests;
 
 #[tauri::command]
-pub fn interpret_regex(regex: &str) {
+pub fn interpret_regex(regex: &str) -> Result<Token, ParsingError> {
 
   let (tokens, _) = tokenize_regular_expression(regex);
-  // Need to better address how to handle grouped expressions
-  // Additionally, I want it such that the leaf nodes of a grouped expression can only ever be literals
-  // ^^^Very important
-  println!("{tokens:?}");
-  let parsed_tokens = parse_tokens(tokens);
+  let parsed_tokens = parse_tokens(tokens)?;
+  verify_syntactic_correctness_of_parse_tree(&parsed_tokens)?;
+  println!("{:?}", &parsed_tokens);
+  return Ok(parsed_tokens);
+}
 
-  println!("{:?}", parsed_tokens);
+fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), ParsingError> {
+  // If we come across an operator which has an None argument, a value was not
+  // properly supplied to the operator and thus the tree is syntactically incorrect
+  // We check for this using DFS
+
+  // Messy, refactor in future
+  match parse_tree {
+    Token::KleeneOperator(operator) => { 
+      if operator.has_empty_arg() {
+        return Err(ParsingError::NoInnerArg);
+      } else {
+
+        let inner_argument = operator.get_inner_argument().unwrap();
+        return verify_syntactic_correctness_of_parse_tree(inner_argument);
+
+      }
+    },
+    Token::OrOperator(operator) => {
+      if operator.has_empty_arg() {
+        if operator.get_left_argument().is_none() {
+          return Err(ParsingError::NoLeftArg);
+        } else {
+          return Err(ParsingError::NoRightArg);
+        }
+      } else {
+        // Definitely refactor in future, ugly code
+        let left_argument = operator.get_left_argument().unwrap();
+        let right_argument = operator.get_right_argument().unwrap();
+        let result_of_checking_left_arg = verify_syntactic_correctness_of_parse_tree(left_argument);
+        let result_of_checking_right_arg = verify_syntactic_correctness_of_parse_tree(right_argument);
+        if result_of_checking_left_arg.is_ok() && result_of_checking_right_arg.is_ok() {
+          return Ok(());
+        } else if result_of_checking_left_arg.is_err() {
+          return result_of_checking_left_arg;
+        } else {
+          return result_of_checking_right_arg;
+        }
+
+      }
+
+    },
+
+    _ => return Ok(())
+
+  }
+
 }
 
 fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
