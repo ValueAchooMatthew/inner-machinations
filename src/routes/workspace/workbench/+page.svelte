@@ -21,7 +21,6 @@
     email: getCookie("email")
   };
 
-  // let start_state_index: number | null = null;
   let string_to_check: string;
   let is_string_accepted: boolean | null = null;
   let states_traversed: Array<State> = [];
@@ -74,8 +73,7 @@
       $state_positions, 
       string_to_check,
       is_strict_checking,
-      $input_alphabet
-      )
+      $input_alphabet)
       .then((result: CheckedStringResponse) => {
         is_string_accepted = result.is_string_accepted;
         states_traversed = result.states_traversed;
@@ -86,7 +84,7 @@
       .catch((err)=>{
         console.log(err);
       });
-    if(is_showing_string_traversal){
+    if(is_showing_string_traversal) {
       handleIncrementalStringChecking();
     }
   };

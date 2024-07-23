@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::models::State;
+use crate::models::{SmartState, State};
 
 // Need to refactor to use less cloning in future
-fn find_all_paths_to_state(start_state: &State, 
+fn find_all_paths_to_final_state(start_state: &State, 
   end_state: &State, 
   consumed_string: &str, 
   strings_to_final_state: &mut HashMap<State, HashSet<String>>, 
@@ -29,7 +29,7 @@ fn find_all_paths_to_state(start_state: &State,
     return;
   }
 
-  for (character_connection, state_keys) in &start_state.states_connected_to {
+  for (character_connection, state_keys) in start_state.get_all_connections() {
 
     for state_key in state_keys {
 
@@ -46,7 +46,7 @@ fn find_all_paths_to_state(start_state: &State,
 
       let string_consumed = consumed_string.to_owned() + character_connection;
 
-      find_all_paths_to_state(next_state, 
+      find_all_paths_to_final_state(next_state, 
         end_state, 
         string_consumed.as_str(), 
         strings_to_final_state, 
@@ -80,7 +80,7 @@ fn find_unique_loops_to_given_state(
     return;
   }
 
-  for (character_connection, state_keys) in &current_state.states_connected_to {
+  for (character_connection, state_keys) in current_state.get_all_connections() {
 
     for state_key in state_keys {
 
@@ -160,7 +160,7 @@ pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_
 
   let positions_of_final_states: &HashMap<&String, &State> = &state_positions
     .iter()
-    .filter(|(_state_key, state)| state.is_final)
+    .filter(|(_state_key, state)| state.is_final())
     .collect();
 
   let start_state = state_positions
@@ -172,7 +172,7 @@ pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_
 
   let mut all_paths_to_acceptance: HashMap<String, HashSet<String>> = HashMap::new();
 
-  if start_state.is_final {
+  if start_state.is_final() {
     // Just specifies that if the start state is final, the empty string should be accepted as well 
     all_paths_to_acceptance.insert(String::from("ε"), HashSet::new());
   }
@@ -183,7 +183,7 @@ pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_
   let mut visited_looping_states = HashMap::new();
 
   for final_state in positions_of_final_states.values() {
-    find_all_paths_to_state(start_state, *final_state, "", &mut all_paths_to_reach_final_states, &state_positions, visited_states.clone());
+    find_all_paths_to_final_state(start_state, *final_state, "", &mut all_paths_to_reach_final_states, &state_positions, visited_states.clone());
   }
 
   for final_state in positions_of_final_states.values() {
@@ -226,7 +226,6 @@ pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_
     }
     
   };
-
 
   return convert_acceptance_paths_to_string(&all_paths_to_acceptance);
 

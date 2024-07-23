@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use app::encrypt_user_data;
-use app::models::{BezierCurve, Connection, Coordinate, SavedConnection, SavedState, TypeOfAutomata, User};
+use app::models::{BezierCurve, Connection, SavedConnection, SavedState, SmartState, TypeOfAutomata, User};
 
 use app::schema::saved_connections::{self};
 use app::schema::users;
@@ -90,8 +90,8 @@ fn save_states_to_db(workspace_id: &i32, states: &HashMap<String, State>, conn: 
     states_to_be_inserted.push((
       saved_states::workspace_id.eq(workspace_id),
       saved_states::position.eq(state_pos_key),
-      saved_states::is_start.eq(state.is_start),
-      saved_states::is_final.eq(state.is_final),
+      saved_states::is_start.eq(state.is_start()),
+      saved_states::is_final.eq(state.is_final()),
     ));
   }
 
@@ -241,10 +241,10 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (Option
   for connection in retrieved_connections {
     let parsed_connection = Connection {
       curve: BezierCurve {
-        start_point: parse_position_key_to_coordinate(&connection.start_point),
-        control_point_one: parse_position_key_to_coordinate(&connection.control_point_one),
-        control_point_two: parse_position_key_to_coordinate(&connection.control_point_two),
-        end_point: parse_position_key_to_coordinate(&connection.end_point),
+        start_point: connection.start_point.try_into().unwrap(),
+        control_point_one: connection.control_point_one.try_into().unwrap(),
+        control_point_two: connection.control_point_two.try_into().unwrap(),
+        end_point: connection.end_point.try_into().unwrap()
       },
       connection_character: connection.connection_character,
       element: "Connection".to_owned()
@@ -258,13 +258,10 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (Option
 
 fn parse_saved_state_to_regular_state(state: &SavedState, workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> State {
 
-  let mut parsed_state = State {
-    position: parse_position_key_to_coordinate(&state.position), 
-    states_connected_to: HashMap::<String, Vec<String>>::new(),
-    is_start: state.is_start,
-    is_final: state.is_final,
-    element: "State".to_owned()
-  };
+  let parsed_state_position = state.position.to_owned().try_into()
+    .expect("The string should be castable into Coordinate form");
+
+  let mut parsed_state = State::new(parsed_state_position, state.is_start, state.is_final);
 
   let states_connected_to_given_state: Vec<SavedConnection> = saved_connections::table
     .filter(saved_connections::workspace_id.eq(&workspace.id))
@@ -273,40 +270,9 @@ fn parse_saved_state_to_regular_state(state: &SavedState, workspace: &SavedWorks
     .expect("There was an issue getting the workspace's states");
 
   for connected_state in states_connected_to_given_state {
-    let binding: Vec<String> = vec![];
-    let mut current_connections = match parsed_state.states_connected_to
-      .get_mut(&connected_state.connection_character){
-          Some(states) => states,
-          None => &binding
-      }
-      .to_owned();
-
-    current_connections.push(connected_state.end_point);
-    parsed_state.states_connected_to.insert(
-      connected_state.connection_character, 
-      current_connections);
+    parsed_state.add_connection(&connected_state.connection_character, connected_state.end_point);
   }
   parsed_state
-}
-
-fn parse_position_key_to_coordinate(key: &String) -> Coordinate {
-
-  let split_key: Vec<&str> = key.split(",").collect();
-
-  let coord_x = split_key
-    .get(0)
-    .expect("There was an error parsing the state's coordinates")
-    .to_owned();
-
-  let coord_y = split_key
-    .get(1)
-    .expect("There was an error parsing the state's coordinates")
-    .to_owned();
-
-  Coordinate { 
-    x: coord_x.parse::<i32>().unwrap(), 
-    y: coord_y.parse::<i32>().unwrap()  
-  }
 }
 
 #[tauri::command]
@@ -326,5 +292,24 @@ pub fn get_users_saved_workspaces(email: String) -> Vec<String> {
     .collect();
 
   return workspace_names.to_owned();
+
+}
+
+#[tauri::command]
+pub fn manually_update_type_of_automata(email: String, workspace_name: String, type_of_automata: TypeOfAutomata) {
+  // This function is useful in the event we want to update the automata type, say after
+  // performing an nfa to dfa conversion WITHOUT using the function contract of entirely saving the workspace
+  // As provided in an earlier function
+  let mut conn = establish_connection();
+
+  let user_id = get_user_id(&email, &mut conn);
+  let saved_workspace = get_workspace(&workspace_name, &user_id, &mut conn)
+    .expect("There was an error rerieving the saved workspace");
+
+  diesel::update(saved_workspaces::table
+    .filter(saved_workspaces::id.eq(saved_workspace.id)))
+    .set(saved_workspaces::type_of_automata.eq(type_of_automata))
+    .execute(&mut conn)
+    .expect("There was an error setting the type of autmata");
 
 }

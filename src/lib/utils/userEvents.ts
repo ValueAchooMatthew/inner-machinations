@@ -168,7 +168,7 @@ const addState = (cursor_coords: Coordinate, cursor_coords_as_string: string, ma
 
   const new_state: State = {
     position: cursor_coords,
-    states_connected_to: new Map<string, Array<String>>(),
+    states_connected_to: new Map(),
     is_start: make_start,
     is_final: false,
     element: "State",
@@ -201,12 +201,13 @@ const update_start_state_information = (new_start_state: State): void => {
   if(previous_start_state_index !== null) {
     list_of_states.update((states)=>{
       const previous_start_state = states[previous_start_state_index];
+      console.log(previous_start_state_index, states);
       previous_start_state.is_start = false;
       states[previous_start_state_index] = previous_start_state;
       return states;
     });
   }
-  start_state_index.set(get(list_of_states).length - 1);
+  start_state_index.set(get(list_of_states).length);
   start_state_position.set(convertCoordinateToString(new_start_state.position));
 
 }

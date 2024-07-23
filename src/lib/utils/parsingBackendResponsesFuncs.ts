@@ -63,7 +63,11 @@ export const setTauriResponses = (tauri_response: TauriGeneratedAutomataInformat
     null
   );
 
-
+  // We're doing this as some functions don't NEED specify this parameter so in the case
+  // we're not passed this value we can just leave the type of automata unchanged
+  if(tauri_response[4] === undefined){
+    return;
+  }
   // For some reason, if i set the type of automata as an integer rather than the enum type directly,
   // the value of get[type_of_automata] becomes an integer instead of the enum type, which
   // messes up the way all my other functions work

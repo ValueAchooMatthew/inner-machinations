@@ -11,10 +11,7 @@ export const removeStateFromConnections = (given_state: State, state_to_remove: 
     return given_state;
   }
 
-  states_connected_by_char = removeFirstElementFromArray(states_connected_by_char, 
-    convertCoordinateToString(state_to_remove.position));
-
-  given_state.states_connected_to.set(connection_character, states_connected_by_char);
+  states_connected_by_char.delete(convertCoordinateToString(state_to_remove.position));
 
   state_positions.update((positions)=>{
     positions.set(convertCoordinateToString(given_state.position), given_state);

@@ -1,6 +1,37 @@
 mod regex_models;
+use std::collections::HashMap;
+
+
+use app::create_unique_state_coordinates;
 use regex_models::{BinaryOperator, KleeneOperator, OrOperator, ParsingError, Token, UnaryOperator, Operator};
+
+use app::models::{SmartState, State};
 mod tests;
+
+pub fn covert_parse_tree_to_nfa(parse_tree: Token) {
+  let mut state_positions = HashMap::new();
+
+  let start_state_coordinates  = create_unique_state_coordinates(&state_positions);
+
+  // Need to change to include epsilon as well
+  let start_state = State::new(start_state_coordinates, true, false);
+
+  // Create states representative of the parse tree connected to the start_state
+  let mut current_state = start_state;
+  let mut current_token = parse_tree;
+
+  match current_token {
+    Token::Literal(literal) => {
+      // current_state.states_connected_to = 
+
+
+    },
+    Token::GroupedExpression(_) => todo!(),
+    Token::OrOperator(_) => todo!(),
+    Token::KleeneOperator(_) => todo!(),
+  }
+
+}
 
 #[tauri::command]
 pub fn interpret_regex(regex: &str) -> Result<Token, ParsingError> {

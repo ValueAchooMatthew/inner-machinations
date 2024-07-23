@@ -134,10 +134,7 @@
     const start_state = $state_positions
       .get(start_state_key);
 
-    const end_state = $state_positions
-      .get(end_state_key);
-
-    if (start_state === undefined || end_state === undefined) {
+    if (start_state === undefined) {
       return;
     }
 
@@ -150,14 +147,15 @@
     if (state_connections_of_previous_character === undefined) {
       return;
     }
-    // Removing the end state from the old connection character's hashmap
-    state_connections_of_previous_character = removeFirstElementFromArray(state_connections_of_previous_character, end_state_key);
+    // Removing the end state from the old connection character's hashset
+    state_connections_of_previous_character = removeFirstElementFromArray(state_connections_of_previous_character, end_state_key)
 
-    // Adding end state to new connection character's hashmap
+    // Adding end state to new connection character's hashset
     if (state_connections_of_new_character === undefined) {
+
       start_state.states_connected_to.set(
         new_character,
-        new Array<String>(end_state_key),
+        new Array(end_state_key)
       );
     } else {
       state_connections_of_new_character.push(end_state_key);
@@ -168,9 +166,12 @@
       connections[$selected_connection_index] = selected_connection;
       return connections;
     })
-    list_of_states
 
-    $state_positions = $state_positions;
+    state_positions.update((previous_state_positions)=>{
+      previous_state_positions.set(start_state_key, start_state);
+      return previous_state_positions;
+    });
+
     selected_connection_index.set(null);
     current_action.set(Action.CLICKING)
   };
@@ -233,8 +234,7 @@
   on:keydown={handleUndoEvent}
   on:mousedown={handleDragStart}
   on:mouseup={handleDragEnd}
-  on:mousemove={handleDrag}
-/>
+  on:mousemove={handleDrag}/>
   <!-- Setting tabindex is necessary so element is focusable and can thus listen to keydown events -->
   <!-- svelte-ignore a11y-positive-tabindex -->
   <canvas
@@ -255,7 +255,6 @@
     }}
     on:keyup={handleCharChange}
     on:mousedown={handleDragStart}
-    on:mouseup={handleDragEnd}
-  >
+    on:mouseup={handleDragEnd}>
   </canvas>
 

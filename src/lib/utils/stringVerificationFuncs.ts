@@ -35,7 +35,7 @@ export const checkInputtedString = async (
     // the string and displaying to the user whether the string was accepted
     case Automata.DFA:
       [is_string_accepted_after_test, states_traversed_after_test] = await invoke("test_string_dfa", {
-        stateConnections: state_positions,
+        statePositions: state_positions,
         startStateCoordinates: start_state_coordinates,
         stringToCheck: string_to_check,
       });

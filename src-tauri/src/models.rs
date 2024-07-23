@@ -57,14 +57,118 @@ pub struct SavedConnection {
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::hash::Hash;
 #[derive(Debug, Deserialize, Serialize, Clone, Eq)]
 pub struct State { 
-  pub position: Coordinate,
-  pub states_connected_to: HashMap<String, Vec<String>>,
-  pub is_start: bool,
-  pub is_final: bool,
-  pub element: String
+  position: Coordinate,
+  states_connected_to: HashMap<String, HashSet<String>>,
+  is_start: bool,
+  is_final: bool,
+  element: String
+}
+
+pub trait SmartState {
+  fn new(position: Coordinate, is_start: bool, is_final: bool) -> Self;
+  fn add_connection(&mut self, connection_character: &str, state_key_to_connect: impl Into<String>);
+  fn get_connections_by_character(&self, connection_character: &str) -> Option<&HashSet<String>>;
+  fn get_all_connections(&self) -> &HashMap<String, HashSet<String>>;
+  fn get_all_connections_mut(&mut self) -> &mut HashMap<String, HashSet<String>>;
+  fn set_all_connections(&mut self, connections: HashMap<String, HashSet<String>>);
+  // Add better error typing in future
+  fn remove_connection_by_character(&mut self, connection_character: &str, state_key_to_remove: impl Into<String>) -> Result<(), ()>;
+  fn get_all_connected_state_keys(&self) -> HashSet<&String>;
+  fn is_final(&self) -> bool;
+  fn is_start(&self) -> bool;
+  fn make_start(&mut self);
+  fn get_position(&self) -> Coordinate;
+  fn get_position_as_string(&self) -> String;
+}
+
+impl SmartState for State {
+
+  fn new(position: Coordinate, is_start: bool, is_final: bool) -> Self {
+    return State {
+      position,
+      states_connected_to: HashMap::new(),
+      is_start,
+      is_final,
+      element: String::from("State")
+    };
+  }
+
+  fn add_connection(&mut self, connection_character: &str, state_key_to_connect: impl Into<String>) {
+    
+    if let Some(currently_connected_state_keys) = self.states_connected_to.get_mut(connection_character) {
+      currently_connected_state_keys.insert(state_key_to_connect.into());
+    } else {
+      self.states_connected_to.insert(connection_character.to_owned(), HashSet::from([state_key_to_connect.into()]));
+    }
+  }
+  
+  fn get_all_connected_state_keys(&self) -> HashSet<&String> {
+
+    let mut all_connected_state_keys = HashSet::new();
+
+    for all_state_keys in self.states_connected_to.values() {
+      for key in all_state_keys {
+        all_connected_state_keys.insert(key);
+      }
+    }
+
+    return all_connected_state_keys;
+
+  }
+
+  fn get_all_connections(&self) -> &HashMap<std::string::String, HashSet<std::string::String>> {
+    return &self.states_connected_to; 
+  }
+
+  fn get_all_connections_mut(&mut self) -> &mut HashMap<std::string::String, HashSet<std::string::String>> {
+    return &mut self.states_connected_to; 
+  }
+  
+  fn is_final(&self) -> bool { 
+    return self.is_final;
+  }
+
+  fn is_start(&self) -> bool {
+    return self.is_start;
+  }
+
+  fn make_start(&mut self) {
+    self.is_start = true;
+  }
+  
+  fn get_connections_by_character(&self, connection_character: &str) -> Option<&HashSet<String>> {
+    return self.states_connected_to
+      .get(connection_character);
+  }
+
+  fn get_position(&self) -> Coordinate {
+    return self.position;
+  }
+
+  fn get_position_as_string(&self) -> String {
+    return self.position.into();
+  }
+
+  fn set_all_connections(&mut self, connections: HashMap<String, HashSet<String>>) {
+    self.states_connected_to = connections;
+  }
+  
+  fn remove_connection_by_character(&mut self, connection_character: &str, state_key_to_remove: impl Into<String>) -> Result<(), ()> {
+    let connected_states_by_character = self.states_connected_to
+      .get_mut(connection_character)
+      .ok_or(())?;
+
+    connected_states_by_character.remove(&state_key_to_remove.into());
+
+    Ok(())
+
+  }
+
+
 }
 
 impl PartialEq for State {

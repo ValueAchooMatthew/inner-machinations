@@ -6,16 +6,16 @@
   let language_of_automata: string;
 
   $: {
-    if($type_of_automata === Automata.DFA && $start_state_position !== null)
-    invoke("determine_language_of_dfa", {statePositions: $state_positions, startStateKey: $start_state_position})
-    .then((data)=>{
-      if(typeof(data) === "string") {
-        language_of_automata = data
-      }
-    })
-    .catch((e)=>{
-      console.log(e)
-    });
+    // if($type_of_automata === Automata.DFA && $start_state_position !== null)
+    // invoke("determine_language_of_dfa", {statePositions: $state_positions, startStateKey: $start_state_position})
+    // .then((data)=>{
+    //   if(typeof(data) === "string") {
+    //     language_of_automata = data
+    //   }
+    // })
+    // .catch((e)=>{
+    //   console.log(e)
+    // });
 
   }
 
