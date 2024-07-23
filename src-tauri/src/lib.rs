@@ -17,7 +17,7 @@ pub fn establish_connection() -> SqliteConnection {
     .unwrap_or_else(|_| panic!("Error connecting to database"))
 }
 
-use models::{BezierCurve, Connection, Coordinate, SmartState, State, User};
+use models::{BezierCurve, Connection, Coordinate, Locatable, SmartState, State, User};
 
 use magic_crypt::{MagicCrypt256, MagicCryptTrait};
 pub fn encrypt_user_data(cipher: &MagicCrypt256, email: &str, password: &str) -> [String; 2] {
@@ -86,7 +86,7 @@ pub fn set_working_directory() {
 
 }
 
-pub fn create_unique_state_coordinates(state_positions: &HashMap<String, RefCell<State>>) -> Coordinate {
+pub fn create_unique_state_coordinates(state_positions: &HashMap<String, impl Locatable>) -> Coordinate {
   
   let mut x_position = 300;
   let mut y_position = 300;

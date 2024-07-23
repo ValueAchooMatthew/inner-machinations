@@ -239,6 +239,7 @@ pub fn minimize_dfa(
 
 }
 
+// Todo: Fix epsilon transition conversions
 #[tauri::command]
 pub fn convert_nfa_to_dfa (
   state_positions: HashMap<String, State>,

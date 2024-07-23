@@ -19,7 +19,7 @@ pub mod language_determination_funcs;
 pub mod verification_funcs;
 pub mod regular_expression_funcs;
 
-use regular_expression_funcs::interpret_regex;
+use regular_expression_funcs::{interpret_regex, convert_parse_tree_to_nfa};
 use registration_funcs::{is_correct_log_in, register_user, is_user_registered};
 use advanced_automata_funcs::{minimize_dfa, convert_nfa_to_dfa};
 use testing_automata_funcs::{test_string_dfa, test_string_nfa};
@@ -49,8 +49,8 @@ fn main() {
     register_user, is_user_registered, is_correct_log_in,
     send_verification_email, verify_user, is_user_verified, test_string_dfa,
     test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, 
-    get_users_saved_workspaces, minimize_dfa, convert_nfa_to_dfa, determine_language_of_dfa, interpret_regex, manually_update_type_of_automata
-    ]
+    get_users_saved_workspaces, minimize_dfa, convert_nfa_to_dfa, determine_language_of_dfa, interpret_regex, manually_update_type_of_automata,
+    convert_parse_tree_to_nfa]
   )
   .run(tauri::generate_context!())
   .expect("error while running tauri application");

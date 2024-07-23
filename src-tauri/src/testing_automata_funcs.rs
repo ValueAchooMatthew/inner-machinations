@@ -59,6 +59,21 @@ fn nfa_delta_function<'a>(state_positions: &'a HashMap<String, State>,
   
   if string_to_check.is_empty() && current_state.is_final() {
     return (true, states_visited);
+  } else if string_to_check.is_empty() {
+    let states_connected_by_epsilon = get_states_connected_by_epsilon_in_nfa(
+      state_positions, 
+      current_state);
+
+    if states_connected_by_epsilon.is_some() {
+      for state in states_connected_by_epsilon.unwrap() {
+
+        // Checking if the bool value of states visited is true
+        if nfa_delta_function(state_positions, state, string_to_check, states_visited).0 {
+          return (true, states_visited);
+        }
+      };
+    }
+  
   }
   
   for character in string_to_check.chars() {
@@ -70,9 +85,8 @@ fn nfa_delta_function<'a>(state_positions: &'a HashMap<String, State>,
     let states_connected_by_epsilon = get_states_connected_by_epsilon_in_nfa(
       state_positions, 
       current_state);
-    
+
     if states_connected_by_character.is_none() && states_connected_by_epsilon.is_none() {
-      println!("{:?}", states_visited);
       return (false, states_visited);
     }
 
@@ -115,17 +129,17 @@ fn get_states_connected_by_character_in_nfa<'a>(
   s.get_connections_by_character(connection_character)
     .and_then(|connected_state_keys| {
 
-      let mut reduced_state_references = HashSet::new();
+      let mut state_references = HashSet::new();
 
       for connected_state_key in connected_state_keys {
         let connected_state = state_positions
           .get(connected_state_key)?;
 
-        reduced_state_references.insert(connected_state);
+        state_references.insert(connected_state);
 
       }
 
-      return Some(reduced_state_references);
+      return Some(state_references);
       
     })
     
@@ -165,6 +179,8 @@ pub fn test_string_nfa(
   string_to_check: String
   ) -> (bool, Vec<State>) {
 
+  println!("P: {state_positions:?}");
+  println!("S: {start_state_coordinates:?}");
   let mut states_visited: Vec<State> = vec![];
 
   let start_state = match state_positions.get(&start_state_coordinates) {

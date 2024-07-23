@@ -56,6 +56,7 @@ pub struct SavedConnection {
 
 use serde::Deserialize;
 use serde::Serialize;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hash;
@@ -66,6 +67,23 @@ pub struct State {
   is_start: bool,
   is_final: bool,
   element: String
+}
+// Done to allow impl of any State and RefCell States to be used in function signatures
+pub trait Locatable {
+  fn get_location(&self) -> Coordinate;
+}
+
+impl Locatable for State {
+  fn get_location(&self) -> Coordinate {
+    return self.position.clone();
+  }
+}
+
+impl Locatable for RefCell<State> {
+  fn get_location(&self) -> Coordinate {
+    return self.borrow().position.clone();
+  }
+
 }
 
 pub trait SmartState {
@@ -167,7 +185,6 @@ impl SmartState for State {
     Ok(())
 
   }
-
 
 }
 

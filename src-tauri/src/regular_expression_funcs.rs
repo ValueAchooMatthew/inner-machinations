@@ -1,35 +1,171 @@
 mod regex_models;
 use std::collections::HashMap;
 
-
-use app::create_unique_state_coordinates;
+use app::{create_unique_state_coordinates, models::Coordinate};
 use regex_models::{BinaryOperator, KleeneOperator, OrOperator, ParsingError, Token, UnaryOperator, Operator};
 
 use app::models::{SmartState, State};
+
+use crate::{advanced_automata_funcs::convert_nfa_to_dfa, testing_automata_funcs::test_string_dfa};
 mod tests;
 
-pub fn covert_parse_tree_to_nfa(parse_tree: Token) {
+#[tauri::command]
+pub fn convert_parse_tree_to_nfa(parse_tree: Token) -> (HashMap<String, State>, String) {
+
   let mut state_positions = HashMap::new();
 
-  let start_state_coordinates  = create_unique_state_coordinates(&state_positions);
+  let start_state_coords  = create_unique_state_coordinates(&state_positions);
+  let start_state = State::new(start_state_coords, true, false);
+  state_positions.insert(start_state_coords.into(), start_state.to_owned());
+
+  let end_state_coords = create_unique_state_coordinates(&state_positions);
+  let end_state = State::new(end_state_coords, false, true);
+  state_positions.insert(end_state_coords.into(), end_state.to_owned());
+
+  convert_token_to_nfa(
+    &mut state_positions,
+    start_state_coords.into(),
+    parse_tree,
+    end_state_coords);
+
+  return (state_positions, start_state_coords.into());
+
+}
+
+fn convert_token_to_nfa(state_positions: &mut HashMap<String, State>, current_state_coords: Coordinate, token_to_convert: Token, end_state_coords: Coordinate) {
 
   // Need to change to include epsilon as well
-  let start_state = State::new(start_state_coordinates, true, false);
 
   // Create states representative of the parse tree connected to the start_state
-  let mut current_state = start_state;
-  let mut current_token = parse_tree;
+  match token_to_convert {
+    Token::Literal(literal) => {
+
+      let new_state_coords = create_unique_state_coordinates(&state_positions);
+      let current_state = state_positions
+        .get_mut::<String>(&current_state_coords.into())
+        .expect("Failed to retrieve the requested state");
+
+      let mut new_state = State::new(new_state_coords, false, false);
+      current_state.add_connection(&literal, new_state_coords);
+      new_state.add_connection("ϵ", end_state_coords);
+      state_positions.insert(new_state_coords.into(), new_state);
+
+    },
+    Token::GroupedExpression(_) => {
+      // Unreachable state, should never occur if parse tree is properly verified
+      panic!("All grouped expressions should be parsed after generating the parse tree");
+    },
+    Token::OrOperator(operator) => {
+
+      let left_token = operator
+        .get_left_argument()
+        .expect("The left argument should not have a None value
+        make sure to verify validity of parse tree before running this function");
+
+      let right_token = operator
+        .get_right_argument()
+        .expect("The right argument should not have a None value
+        make sure to verify validity of parse tree before running this function");
+
+      convert_token_to_nfa(state_positions, current_state_coords, left_token.to_owned(), end_state_coords);
+      convert_token_to_nfa(state_positions, current_state_coords, right_token.to_owned(), end_state_coords);
+    },
+
+    // Will need to alter in future to accomodate concatonation
+    Token::KleeneOperator(operator) => {
+
+      let inner_argument = operator
+        .get_inner_argument()
+        .expect("The inner argument should not have a None value
+        make sure to verify validity of parse tree before running this function");
+
+        // Here's my thinking. A kleene operator allows an indefinite number of repeats of characters
+        // Thus I am thinking we treat any instances of a kleene operator as almost a separate nfa which, at its end,
+        // loops back to the current state that we're on and is connected by the current state via an epsilon transition
+
+        let new_state_coords = create_unique_state_coordinates(&state_positions);
+
+        let current_state = state_positions
+          .get_mut::<String>(&current_state_coords.into())
+          .expect("Failed to retrieve the requested state");
+        
+        current_state.add_connection("ϵ", end_state_coords);
+        current_state.add_connection("ϵ", new_state_coords);
+        state_positions.insert(new_state_coords.into(), State::new(new_state_coords, false, false));
+
+        handle_kleene_token_to_nfa_conversion(current_state_coords, state_positions, 
+          inner_argument.to_owned(), new_state_coords);
+
+    },
+  }
+
+}
+
+fn handle_kleene_token_to_nfa_conversion(
+  coords_of_state_to_loop_to: Coordinate, 
+  state_positions: &mut HashMap<String, State>, 
+  current_token: Token, 
+  current_state_coords: Coordinate) {
 
   match current_token {
     Token::Literal(literal) => {
-      // current_state.states_connected_to = 
+      let current_state = state_positions
+        .get_mut::<String>(&current_state_coords.into())
+        .expect("Failed to retrieve the requested state");
 
+      current_state.add_connection(&literal, coords_of_state_to_loop_to);
+
+      
+    },
+    Token::GroupedExpression(_) => {
+      // Unreachable state, should never occur if parse tree is properly verified
+      panic!("All grouped expressions should be parsed after generating the parse tree");
+    },
+    Token::OrOperator(operator) => {
+      let left_token = operator
+        .get_left_argument()
+        .expect("The left argument should not have a None value
+        make sure to verify validity of parse tree before running this function");
+      
+      let right_token = operator
+        .get_right_argument()
+        .expect("The right argument should not have a None value
+        make sure to verify validity of parse tree before running this function");
+
+      handle_kleene_token_to_nfa_conversion(
+        coords_of_state_to_loop_to, 
+        state_positions, 
+        left_token.to_owned(), 
+        current_state_coords);
+
+      handle_kleene_token_to_nfa_conversion(
+        coords_of_state_to_loop_to, 
+        state_positions, 
+        right_token.to_owned(), 
+        current_state_coords);
 
     },
-    Token::GroupedExpression(_) => todo!(),
-    Token::OrOperator(_) => todo!(),
-    Token::KleeneOperator(_) => todo!(),
+    Token::KleeneOperator(operator) => {
+      
+      let inner_argument = operator
+        .get_inner_argument()
+        .expect("The inner argument should not have a None value
+        make sure to verify validity of parse tree before running this function");
+
+      let new_state_coords = create_unique_state_coordinates(&state_positions);
+
+      let current_state = state_positions
+        .get_mut::<String>(&current_state_coords.into())
+        .expect("Failed to retrieve the requested state");
+      
+      current_state.add_connection("ϵ", new_state_coords);
+
+      handle_kleene_token_to_nfa_conversion(current_state_coords, state_positions, 
+        inner_argument.to_owned(), new_state_coords);
+
+    },
   }
+ 
 
 }
 
@@ -39,7 +175,6 @@ pub fn interpret_regex(regex: &str) -> Result<Token, ParsingError> {
   let (tokens, _) = tokenize_regular_expression(regex);
   let parsed_tokens = parse_tokens(tokens)?;
   verify_syntactic_correctness_of_parse_tree(&parsed_tokens)?;
-  println!("{:?}", &parsed_tokens);
   return Ok(parsed_tokens);
 }
 

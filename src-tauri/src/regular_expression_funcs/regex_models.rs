@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
+// Need to add concatonated tokens in future
 pub enum Token {
   Literal(String),
   GroupedExpression(Box<Vec<Token>>),
@@ -38,7 +39,6 @@ pub trait Operator {
   // Just using insert for now as a test
   fn insert_token(&mut self, token_to_insert: Token) -> Result<(), ParsingError>;
   fn has_empty_arg(&self) -> bool;
-
 }
 
 pub trait BinaryOperator {
