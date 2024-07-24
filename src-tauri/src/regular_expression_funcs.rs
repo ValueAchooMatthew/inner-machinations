@@ -10,7 +10,7 @@ use crate::{advanced_automata_funcs::convert_nfa_to_dfa, testing_automata_funcs:
 mod tests;
 
 #[tauri::command]
-pub fn convert_parse_tree_to_nfa(parse_tree: Token) -> (HashMap<String, State>, String) {
+pub fn test_string_regex(parse_tree: Token, string_to_check: String) -> bool {
 
   let mut state_positions = HashMap::new();
 
@@ -28,7 +28,9 @@ pub fn convert_parse_tree_to_nfa(parse_tree: Token) -> (HashMap<String, State>, 
     parse_tree,
     end_state_coords);
 
-  return (state_positions, start_state_coords.into());
+  let (_, _, _, state_positions) = convert_nfa_to_dfa(state_positions, start_state_coords.into());
+
+  return test_string_dfa(state_positions.into(), start_state_coords.into(), string_to_check).0;
 
 }
 

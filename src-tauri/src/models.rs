@@ -97,6 +97,7 @@ pub trait SmartState {
   fn remove_connection_by_character(&mut self, connection_character: &str, state_key_to_remove: impl Into<String>) -> Result<(), ()>;
   fn get_all_connected_state_keys(&self) -> HashSet<&String>;
   fn is_final(&self) -> bool;
+  fn make_final(&mut self);
   fn is_start(&self) -> bool;
   fn make_start(&mut self);
   fn get_position(&self) -> Coordinate;
@@ -148,6 +149,10 @@ impl SmartState for State {
   
   fn is_final(&self) -> bool { 
     return self.is_final;
+  }
+
+  fn make_final(&mut self) {
+    self.is_final = true;
   }
 
   fn is_start(&self) -> bool {

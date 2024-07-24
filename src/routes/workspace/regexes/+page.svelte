@@ -21,8 +21,6 @@
     }
 
     const parsed_regex = await invoke("interpret_regex", {regex: regex});
-    await invoke("convert_parse_tree_to_nfa", {parseTree: parsed_regex});
-
   }
 
   async function handleStringChecking(event: SubmitEvent): Promise<boolean> {
@@ -36,12 +34,7 @@
     const string_to_test = data.get("string_test");
 
     const parsed_regex = await invoke("interpret_regex", {regex: global_regex});
-    const nfa = await invoke("convert_parse_tree_to_nfa", {parseTree: parsed_regex});
-    
-    const state_positions = parseStatePositions(nfa[0]);
-
-    // const dfa = await invoke("convert_nfa_to_dfa", {statePositions: nfa[0], startStatePosition: nfa[1]});
-    const accepted: boolean = await invoke("test_string_nfa", {statePositions: state_positions, startStateCoordinates: nfa[1], stringToCheck: string_to_test?.toString()});
+    const accepted: boolean = await invoke("test_string_regex", {parseTree: parsed_regex, stringToCheck: string_to_test});
     console.log(accepted);
     return accepted;
   }

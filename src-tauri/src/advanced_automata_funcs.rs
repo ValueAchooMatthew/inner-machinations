@@ -242,10 +242,12 @@ pub fn minimize_dfa(
 // Todo: Fix epsilon transition conversions
 #[tauri::command]
 pub fn convert_nfa_to_dfa (
-  state_positions: HashMap<String, State>,
+  mut state_positions: HashMap<String, State>,
   start_state_position: String
-  ) -> (Option<usize>, Vec<State>, Vec<Connection>, HashMap<String, RefCell<State>>) {
-
+  ) -> (Option<usize>, Vec<State>, Vec<Connection>, HashMap<String, State>) {
+  
+  remove_all_epsilon_transitions(&mut state_positions);
+    
   let mut reconstructed_state_positions: HashMap<String, RefCell<State>> = HashMap::new();
   let mut start_state_index: Option<usize> = None;
   let mut reconstructed_states: Vec<State> = vec![];
@@ -253,14 +255,14 @@ pub fn convert_nfa_to_dfa (
   // Hashsets cannot be hashed so we have to convert and ensure that we correctly sort
   // hashsets we push into vecs
   let mut hashed_state_keys: HashMap<Vec<String>, String> = HashMap::new();
-
+  
   let start_state = state_positions
     .get(&start_state_position)
     .expect("There was an error retrieving the start state")
     .to_owned();
 
   reconstructed_state_positions
-    .insert(start_state_position, RefCell::from(start_state));
+    .insert(start_state_position.to_owned(), RefCell::from(start_state.to_owned()));
   
   let mut finished = false;
 
@@ -357,14 +359,19 @@ pub fn convert_nfa_to_dfa (
   // All necessary changes have been made to the reconstructed state positions, thus
   // we are safe to reconstruct the states and connections without fear they may later
   // become incorrect
+  let mut reconstructed_state_positions_as_owned = HashMap::new();
 
-  for state in reconstructed_state_positions.values_mut() {
+  let connections = create_connections_from_state_positions(&reconstructed_state_positions);
 
-    let state = state
-      .get_mut();
+  for (state_key, state) in reconstructed_state_positions {
+
+    let state = state.borrow();
 
     reconstructed_states
       .push(state.to_owned());
+
+    reconstructed_state_positions_as_owned
+      .insert(state_key, state.to_owned());
 
     if state.is_start() {
       start_state_index = Some(reconstructed_states.len() - 1);
@@ -372,11 +379,74 @@ pub fn convert_nfa_to_dfa (
   
   };
 
-  let connections = create_connections_from_state_positions(&reconstructed_state_positions);
-
-  return (start_state_index, reconstructed_states, connections, reconstructed_state_positions);
+  return (start_state_index, reconstructed_states, connections, reconstructed_state_positions_as_owned);
 
 }
+
+fn remove_all_epsilon_transitions(state_positions: &mut HashMap<String, State>) {
+
+  let mut make_final;
+  let mut finished = false;
+
+  while !finished {
+    finished = true;
+    let cloned_state_positions = state_positions.clone();
+    for (_, state) in &mut *state_positions {
+
+      make_final = false;
+
+      let connections = state
+        .get_all_connections_mut();
+
+      if let Some(epsilon_state_keys) = connections.clone().get("ϵ") {
+        if epsilon_state_keys.len() == 0 {
+          connections.remove("ϵ");
+          break;
+        }
+
+        finished = false;
+        for epsilon_state_key in epsilon_state_keys {
+          let epsilon_state = cloned_state_positions
+            .get(epsilon_state_key)
+            .expect("Could not retrieve the requested state");
+
+          if epsilon_state.is_final() {
+            make_final = true;
+          }
+
+            let connections_from_epsilon_state = epsilon_state.get_all_connections();
+
+          for (character, keys) in connections_from_epsilon_state {
+            connections
+              .entry(character.to_owned())
+              .and_modify(|current_set| {
+                for key in keys {
+                  current_set.insert(key.to_owned());
+                }
+              })
+              .or_insert(keys.to_owned());
+          }
+          connections
+            .entry("ϵ".to_owned())
+            .and_modify(|current_set| {
+              current_set.remove(epsilon_state_key);
+          });
+
+          if make_final {
+            state.make_final();
+          }
+          break;
+
+        }
+
+      }
+
+    }
+
+  }
+
+}
+
 
 fn get_all_connected_state_keys (
   state_positions: &HashMap<String, State>, 
@@ -392,6 +462,12 @@ fn get_all_connected_state_keys (
 
     for (connection_character, states_connected_by_character) in state.get_all_connections() {
 
+      // In a DFA, we are not permitted to have epsilon state transitions and thus if we encounter an epsilon transition
+      // We instead follow it and add the states which can be accessed by the epsilon transition
+      if connection_character == "ϵ" {
+        continue;
+      }
+
       let previous_connections_by_character = all_connected_state_keys
         .get(connection_character)
         .cloned();
@@ -401,13 +477,50 @@ fn get_all_connected_state_keys (
         .cloned()
         .collect();
 
-      all_connected_state_keys.insert(connection_character.to_owned(), unionized_state_connections_by_character);
+      let state_connections_by_character_including_epsilon = 
+        add_state_keys_connected_by_epsilon_in_nfa(state_positions, unionized_state_connections_by_character);
+
+      all_connected_state_keys.insert(connection_character.to_owned(), state_connections_by_character_including_epsilon);
       
     };
 
   };
 
   return all_connected_state_keys;
+
+}
+
+fn add_state_keys_connected_by_epsilon_in_nfa(state_positions: &HashMap<String, State>, state_keys: HashSet<String>) -> HashSet<String> {
+
+  let mut finished = false;
+  let mut final_state_keys = state_keys.clone();
+  while !finished {
+    finished = true;
+    for state_key in &state_keys {
+
+      let state = state_positions
+        .get(state_key)
+        .expect("Could not retrieve the requested state");
+
+      let state_keys_connected_by_epsilon = state
+        .get_connections_by_character("ϵ")
+        .cloned();
+
+      let previous_length = final_state_keys.len();
+
+      final_state_keys = final_state_keys
+        .union(&state_keys_connected_by_epsilon.unwrap_or_else(|| HashSet::new()))
+        .cloned()
+        .collect();
+      
+      if final_state_keys.len() != previous_length {
+        finished = false;
+      }
+
+    }
+  };
+
+  return final_state_keys;
 
 }
 

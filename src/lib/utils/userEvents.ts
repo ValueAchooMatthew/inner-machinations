@@ -201,7 +201,6 @@ const update_start_state_information = (new_start_state: State): void => {
   if(previous_start_state_index !== null) {
     list_of_states.update((states)=>{
       const previous_start_state = states[previous_start_state_index];
-      console.log(previous_start_state_index, states);
       previous_start_state.is_start = false;
       states[previous_start_state_index] = previous_start_state;
       return states;

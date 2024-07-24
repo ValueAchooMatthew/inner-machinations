@@ -1,4 +1,4 @@
-use crate::models::{SmartState, State};
+use app::models::{SmartState, State};
 use std::collections::{HashMap, HashSet};
 
 #[tauri::command]
@@ -179,8 +179,6 @@ pub fn test_string_nfa(
   string_to_check: String
   ) -> (bool, Vec<State>) {
 
-  println!("P: {state_positions:?}");
-  println!("S: {start_state_coordinates:?}");
   let mut states_visited: Vec<State> = vec![];
 
   let start_state = match state_positions.get(&start_state_coordinates) {
