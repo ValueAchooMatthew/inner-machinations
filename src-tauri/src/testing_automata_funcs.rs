@@ -4,18 +4,20 @@ use std::collections::{HashMap, HashSet};
 #[tauri::command]
 pub fn test_string_dfa(state_positions: HashMap<String, State>, start_state_coordinates: String, string_to_check: String) -> (bool, Vec<State>) {
 
-  let mut is_string_accepted: bool = false;
   let mut states_visited: Vec<State> = vec![];
-
+  
   let start_state: &State = match state_positions.get(&start_state_coordinates){
     Some(state) => state,
     None => return (false, states_visited)
   };
+  
+  let mut is_string_accepted: bool = start_state.is_final();
+
   states_visited.push(start_state.to_owned());
 
   let mut current_state: &State = start_state;
 
-  for connection_char in string_to_check.chars(){
+  for connection_char in string_to_check.chars() {
 
     let next_state = match dfa_delta_function(&state_positions, current_state, connection_char.to_string()) {
       Some(state) => state,

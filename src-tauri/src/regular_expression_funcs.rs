@@ -28,10 +28,9 @@ pub fn test_string_regex(parse_tree: Token, string_to_check: String) -> bool {
     parse_tree,
     end_state_coords);
 
-
   let (_, _, _, state_positions) = convert_nfa_to_dfa(state_positions, start_state_coords.into());
 
-
+    
   return test_string_dfa(state_positions.into(), start_state_coords.into(), string_to_check).0;
 
 }
@@ -135,6 +134,7 @@ fn convert_token_to_nfa(
 
 }
 
+// Need to fix for 
 fn handle_kleene_token_to_nfa_conversion(
   coords_of_state_to_loop_to: Coordinate, 
   state_positions: &mut HashMap<String, State>, 

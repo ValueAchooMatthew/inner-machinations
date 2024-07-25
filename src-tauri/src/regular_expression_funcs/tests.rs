@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod tests {
-  use crate::regular_expression_funcs::{interpret_regex, regex_models::{BinaryOperator, KleeneOperator, OrOperator, ParsingError, Token, UnaryOperator}};
+  use crate::regular_expression_funcs::{interpret_regex, regex_models::{BinaryOperator, KleeneOperator, OrOperator, ParsingError, Token, UnaryOperator}, test_string_regex};
 
   #[test]
   fn test_parsing_or_operator() {
@@ -79,6 +79,47 @@ pub mod tests {
     let expected_result = ParsingError::NoRightArg;
 
     assert_eq!(Err(expected_result), interpret_regex(regex_to_test));
+  }
+
+  #[test]
+  fn test_kleene_string_checking() {
+    let regex_to_test: &str = "(abc)*";
+
+    let parse_tree = interpret_regex(regex_to_test).unwrap();
+
+    assert!(test_string_regex(parse_tree.clone(), "".to_owned()));
+    assert!(test_string_regex(parse_tree.clone(), "abc".to_owned()));
+    assert!(test_string_regex(parse_tree.clone(), "abcabc".to_owned()));
+    assert!(test_string_regex(parse_tree.clone(), "abcabcabcabcabcabcabcabc".to_owned()));
+    assert!(!test_string_regex(parse_tree.clone(), "ab".to_owned()));
+
+  }
+
+  #[test]
+  fn test_or_string_checking() {
+    let regex_to_test: &str = "a+b";
+
+    let parse_tree = interpret_regex(regex_to_test).unwrap();
+
+    assert!(test_string_regex(parse_tree.clone(), "a".to_owned()));
+    assert!(test_string_regex(parse_tree.clone(), "b".to_owned()));
+    assert!(!test_string_regex(parse_tree.clone(), "ab".to_owned()));
+
+  }
+
+  #[test]
+  fn test_all_operators_string_checking() {
+    let regex_to_test: &str = "(a+b)*";
+
+    let parse_tree = interpret_regex(regex_to_test).unwrap();
+
+    assert!(test_string_regex(parse_tree.clone(), "a".to_owned()));
+    assert!(test_string_regex(parse_tree.clone(), "b".to_owned()));
+    assert!(test_string_regex(parse_tree.clone(), "ab".to_owned()));
+    assert!(test_string_regex(parse_tree.clone(), "bbbbbbbbb".to_owned()));
+    assert!(test_string_regex(parse_tree.clone(), "aaaaaaaaa".to_owned()));
+    assert!(test_string_regex(parse_tree.clone(), "abababababbabababbbababababba".to_owned()));
+    assert!(!test_string_regex(parse_tree.clone(), "c".to_owned()));
 
   }
 
