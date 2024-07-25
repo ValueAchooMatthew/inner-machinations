@@ -1,5 +1,5 @@
 use std::{cell::RefCell, collections::{HashMap, HashSet}};
-use app::{create_connections_from_state_positions, create_unique_state_coordinates};
+use app::{create_connections_from_state_positions, create_unique_state_coordinates, remove_all_epsilon_transitions};
 
 use app::models::{Connection, Coordinate, SmartState, State};
 
@@ -303,7 +303,18 @@ pub fn convert_nfa_to_dfa (
         } if !hashed_state_keys.contains_key(&connected_state_keys_as_vec) && connected_state_keys_as_vec.len() > 0 { 
 
           finished = false;
-          let unique_state_coords = create_unique_state_coordinates(&reconstructed_state_positions);
+
+          let state_positions_in_reconstructed: HashSet<String> = reconstructed_state_positions
+            .keys()
+            .cloned()
+            .collect();
+
+          let all_reserved_positions: HashSet<String> = state_positions_in_reconstructed
+            .union(&state_positions.keys().cloned().collect())
+            .cloned()
+            .collect();
+
+          let unique_state_coords = create_unique_state_coordinates(&all_reserved_positions);
           let should_be_final = does_contain_final_state(&state_positions, &connected_state_keys);
 
           let all_connected_states = get_all_connected_state_keys(&state_positions, connected_state_keys);
@@ -382,71 +393,6 @@ pub fn convert_nfa_to_dfa (
   return (start_state_index, reconstructed_states, connections, reconstructed_state_positions_as_owned);
 
 }
-
-fn remove_all_epsilon_transitions(state_positions: &mut HashMap<String, State>) {
-
-  let mut make_final;
-  let mut finished = false;
-
-  while !finished {
-    finished = true;
-    let cloned_state_positions = state_positions.clone();
-    for (_, state) in &mut *state_positions {
-
-      make_final = false;
-
-      let connections = state
-        .get_all_connections_mut();
-
-      if let Some(epsilon_state_keys) = connections.clone().get("ϵ") {
-        if epsilon_state_keys.len() == 0 {
-          connections.remove("ϵ");
-          break;
-        }
-
-        finished = false;
-        for epsilon_state_key in epsilon_state_keys {
-          let epsilon_state = cloned_state_positions
-            .get(epsilon_state_key)
-            .expect("Could not retrieve the requested state");
-
-          if epsilon_state.is_final() {
-            make_final = true;
-          }
-
-            let connections_from_epsilon_state = epsilon_state.get_all_connections();
-
-          for (character, keys) in connections_from_epsilon_state {
-            connections
-              .entry(character.to_owned())
-              .and_modify(|current_set| {
-                for key in keys {
-                  current_set.insert(key.to_owned());
-                }
-              })
-              .or_insert(keys.to_owned());
-          }
-          connections
-            .entry("ϵ".to_owned())
-            .and_modify(|current_set| {
-              current_set.remove(epsilon_state_key);
-          });
-
-          if make_final {
-            state.make_final();
-          }
-          break;
-
-        }
-
-      }
-
-    }
-
-  }
-
-}
-
 
 fn get_all_connected_state_keys (
   state_positions: &HashMap<String, State>, 

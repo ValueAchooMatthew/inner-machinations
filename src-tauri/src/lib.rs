@@ -5,6 +5,7 @@ pub mod schema;
 pub mod models;
 
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::{collections::HashMap, fs};
 use std::io::Write;
 use std::env;
@@ -17,7 +18,7 @@ pub fn establish_connection() -> SqliteConnection {
     .unwrap_or_else(|_| panic!("Error connecting to database"))
 }
 
-use models::{BezierCurve, Connection, Coordinate, Locatable, SmartState, State, User};
+use models::{BezierCurve, Connection, Coordinate, SmartState, State, User};
 
 use magic_crypt::{MagicCrypt256, MagicCryptTrait};
 pub fn encrypt_user_data(cipher: &MagicCrypt256, email: &str, password: &str) -> [String; 2] {
@@ -86,14 +87,14 @@ pub fn set_working_directory() {
 
 }
 
-pub fn create_unique_state_coordinates(state_positions: &HashMap<String, impl Locatable>) -> Coordinate {
+pub fn create_unique_state_coordinates(state_positions: &HashSet<String>) -> Coordinate {
   
   let mut x_position = 300;
   let mut y_position = 300;
 
   let mut hashed_position = x_position.to_string() + "," + y_position.to_string().as_str();
 
-  while state_positions.contains_key(&hashed_position) {
+  while state_positions.contains(&hashed_position) {
 
     if x_position < 800 {
       x_position += 200;
@@ -170,5 +171,70 @@ pub fn create_connections_from_state_positions(state_positions: &HashMap<String,
   };
 
   return connections;
+
+}
+
+
+pub fn remove_all_epsilon_transitions(state_positions: &mut HashMap<String, State>) {
+
+  let mut make_final;
+  let mut finished = false;
+
+  while !finished {
+    finished = true;
+    let cloned_state_positions = state_positions.clone();
+    for (_, state) in &mut *state_positions {
+
+      make_final = false;
+
+      let connections = state
+        .get_all_connections_mut();
+
+      if let Some(epsilon_state_keys) = connections.clone().get("ϵ") {
+        if epsilon_state_keys.len() == 0 {
+          connections.remove("ϵ");
+          continue;
+        }
+
+        finished = false;
+        for epsilon_state_key in epsilon_state_keys {
+          let epsilon_state = cloned_state_positions
+            .get(epsilon_state_key)
+            .expect("Could not retrieve the requested state");
+
+          if epsilon_state.is_final() {
+            make_final = true;
+          }
+
+          let connections_from_epsilon_state = epsilon_state.get_all_connections();
+
+          for (character, keys) in connections_from_epsilon_state {
+            connections
+              .entry(character.to_owned())
+              .and_modify(|current_set| {
+                for key in keys {
+                  current_set.insert(key.to_owned());
+                }
+              })
+              .or_insert(keys.to_owned());
+          }
+          connections
+            .entry("ϵ".to_owned())
+            .and_modify(|current_set| {
+              current_set.remove(epsilon_state_key);
+          });
+
+          if make_final {
+            state.make_final();
+          }
+          break;
+
+        }
+
+      }
+
+    }
+
+  }
 
 }

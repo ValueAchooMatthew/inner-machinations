@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 // Need to add concatonated tokens in future
 pub enum Token {
   Literal(String),
+  ConcatenatedLiterals(Box<(Token, Token)>),
   GroupedExpression(Box<Vec<Token>>),
   OrOperator(Box<OrOperator>),
   KleeneOperator(Box<KleeneOperator>)
