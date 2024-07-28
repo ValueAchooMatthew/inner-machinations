@@ -181,6 +181,8 @@ pub fn test_string_nfa(
   string_to_check: String
   ) -> (bool, Vec<State>) {
 
+  println!("{state_positions:?}");
+
   let mut states_visited: Vec<State> = vec![];
 
   let start_state = match state_positions.get(&start_state_coordinates) {

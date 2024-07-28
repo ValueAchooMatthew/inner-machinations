@@ -174,7 +174,6 @@ pub fn create_connections_from_state_positions(state_positions: &HashMap<String,
 
 }
 
-
 pub fn remove_all_epsilon_transitions(state_positions: &mut HashMap<String, State>) {
 
   let mut make_final;

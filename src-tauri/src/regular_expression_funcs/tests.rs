@@ -52,12 +52,64 @@ pub mod tests {
           Some(Token::Literal(String::from("a"))), 
           Some(Token::Literal(String::from("b")))
         )))
-    )))
+      )))
     );
 
     let expected_result = Token::OrOperator(Box::new(OrOperator::new(
       Some(Token::Literal(String::from("a"))), 
       Some(inner_expression_as_token)
+    )));
+
+    assert_eq!(expected_result, interpret_regex(regex_to_test).unwrap());
+
+  }
+
+
+  #[test]
+  fn test_parsing_concatenation() {
+    let regex_to_test = "a(a+b)*";
+    // representing the (a+b)* part
+    let inner_expression_as_token = Token::KleeneOperator(
+      Box::new(KleeneOperator::new(
+        Some(Token::OrOperator(Box::new(OrOperator::new(
+          Some(Token::Literal(String::from("a"))), 
+          Some(Token::Literal(String::from("b")))
+        )))
+      )))
+    );
+
+    let expected_result = Token::ConcatenatedExpression(Box::new((
+      Token::Literal(String::from("a")), 
+      inner_expression_as_token
+    )
+    ));
+
+    assert_eq!(expected_result, interpret_regex(regex_to_test).unwrap());
+
+    let regex_to_test = "(a+b)*a";
+    // representing the (a+b)* part
+    let inner_expression_as_token = Token::KleeneOperator(
+      Box::new(KleeneOperator::new(
+        Some(Token::OrOperator(Box::new(OrOperator::new(
+          Some(Token::Literal(String::from("a"))), 
+          Some(Token::Literal(String::from("b")))
+        )))
+      )))
+    );
+
+    let expected_result = Token::ConcatenatedExpression(Box::new((
+      inner_expression_as_token,
+      Token::Literal(String::from("a")) 
+    )
+    ));
+
+    assert_eq!(expected_result, interpret_regex(regex_to_test).unwrap());
+
+    let regex_to_test = "(a)(b)";
+
+    let expected_result = Token::ConcatenatedExpression(Box::new((
+      Token::Literal(String::from("a")),
+      Token::Literal(String::from("b"))
     )));
 
     assert_eq!(expected_result, interpret_regex(regex_to_test).unwrap());
@@ -91,8 +143,8 @@ pub mod tests {
     assert!(test_string_regex(parse_tree.clone(), "abc".to_owned()));
     assert!(test_string_regex(parse_tree.clone(), "abcabc".to_owned()));
     assert!(test_string_regex(parse_tree.clone(), "abcabcabcabcabcabcabcabc".to_owned()));
-    assert!(!test_string_regex(parse_tree.clone(), "ab".to_owned()));
 
+    assert!(!test_string_regex(parse_tree.clone(), "ab".to_owned()));
   }
 
   #[test]
@@ -103,8 +155,8 @@ pub mod tests {
 
     assert!(test_string_regex(parse_tree.clone(), "a".to_owned()));
     assert!(test_string_regex(parse_tree.clone(), "b".to_owned()));
-    assert!(!test_string_regex(parse_tree.clone(), "ab".to_owned()));
 
+    assert!(!test_string_regex(parse_tree.clone(), "ab".to_owned()));
   }
 
   #[test]
@@ -113,15 +165,15 @@ pub mod tests {
 
     let parse_tree = interpret_regex(regex_to_test).unwrap();
 
+    assert!(test_string_regex(parse_tree.clone(), "".to_owned()));
     assert!(test_string_regex(parse_tree.clone(), "a".to_owned()));
     assert!(test_string_regex(parse_tree.clone(), "b".to_owned()));
     assert!(test_string_regex(parse_tree.clone(), "ab".to_owned()));
     assert!(test_string_regex(parse_tree.clone(), "bbbbbbbbb".to_owned()));
     assert!(test_string_regex(parse_tree.clone(), "aaaaaaaaa".to_owned()));
     assert!(test_string_regex(parse_tree.clone(), "abababababbabababbbababababba".to_owned()));
+
     assert!(!test_string_regex(parse_tree.clone(), "c".to_owned()));
-
   }
-
 
 }

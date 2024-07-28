@@ -239,7 +239,7 @@ pub fn minimize_dfa(
 
 }
 
-// Todo: Fix epsilon transition conversions
+// Todo: Fix for a+b* and similar such cases
 #[tauri::command]
 pub fn convert_nfa_to_dfa (
   mut state_positions: HashMap<String, State>,
@@ -247,6 +247,8 @@ pub fn convert_nfa_to_dfa (
   ) -> (Option<usize>, Vec<State>, Vec<Connection>, HashMap<String, State>) {
   
   remove_all_epsilon_transitions(&mut state_positions);
+
+  // println!("{:?}", state_positions.values());
     
   let mut reconstructed_state_positions: HashMap<String, RefCell<State>> = HashMap::new();
   let mut start_state_index: Option<usize> = None;

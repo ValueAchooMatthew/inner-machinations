@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 // Need to add concatonated tokens in future
 pub enum Token {
   Literal(String),
-  ConcatenatedLiterals(Box<(Token, Token)>),
+  ConcatenatedExpression(Box<(Token, Token)>),
   GroupedExpression(Box<Vec<Token>>),
   OrOperator(Box<OrOperator>),
   KleeneOperator(Box<KleeneOperator>)
@@ -14,9 +14,11 @@ pub enum Token {
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum ParsingError {
   NoEmptySpaceInParseTree,
+  NoneTokenProvided,
   NoLeftArg,
   NoRightArg,
-  NoInnerArg
+  NoInnerArg,
+  UnableToConcatenate
 }
 
 // Consider ditching specific operators in future and instead store the
@@ -37,7 +39,7 @@ pub trait Operator {
   fn get_operator_character() -> String;
   fn get_operator_name() -> String;
   // Just using insert for now as a test
-  fn insert_token(&mut self, token_to_insert: Token) -> Result<(), ParsingError>;
+  fn insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError>;
   fn has_empty_arg(&self) -> bool;
 }
 
@@ -46,8 +48,8 @@ pub trait BinaryOperator {
   // For now, using Or operator as concrete type in trait since I cannot use any operator using binary operator
   // as it's unsized and thus unsafe
   // Will refactor to work in future
-  fn left_insert_token(&mut self, token_to_insert: Token) -> Result<(), ParsingError>;
-  fn right_insert_token(&mut self, token_to_insert: Token) -> Result<(), ParsingError>;
+  fn left_insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError>;
+  fn right_insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError>;
   fn get_left_argument(&self) -> Option<&Token>;
   fn get_right_argument(&self) -> Option<&Token>; 
 
@@ -70,8 +72,12 @@ impl BinaryOperator for OrOperator {
   // Introduce if let some for non and non none exigent arguments in future
   // Lot's of code duplication, will need to revise later likely with an additional impl statement
   // specifying how to add values to and from left
-  fn left_insert_token(&mut self, token_to_insert: Token) -> Result<(), ParsingError> {
+  fn left_insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError> {
 
+    if token_to_insert.is_none() {
+      return Err(ParsingError::NoneTokenProvided);
+    }
+    let token_to_insert = token_to_insert.unwrap();
     match token_to_insert {
       // We don't ever want to insert a grouped expression as we want it to get broken down
       // into an operator by the parser before insertion
@@ -82,10 +88,10 @@ impl BinaryOperator for OrOperator {
         if let Some(left_side_token) = &mut self.left_argument {
           match left_side_token {
             Token::OrOperator(left_operator) => {
-              left_operator.insert_token(token_to_insert)?;
+              left_operator.insert_token(Some(token_to_insert))?;
             },
             Token::KleeneOperator(left_operator) => {
-              left_operator.insert_token(token_to_insert)?;
+              left_operator.insert_token(Some(token_to_insert))?;
             },
             _ => return Err(ParsingError::NoEmptySpaceInParseTree)
           }
@@ -100,8 +106,13 @@ impl BinaryOperator for OrOperator {
     
   }
   
-  fn right_insert_token(&mut self, token_to_insert: Token) -> Result<(), ParsingError> {
+  fn right_insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError> {
 
+    if token_to_insert.is_none() {
+      return Err(ParsingError::NoneTokenProvided);
+    }
+    let token_to_insert = token_to_insert.unwrap();
+    
     match token_to_insert {
       // We don't ever want to insert a grouped expression as we want it to get broken down
       // into an operator by the parser before insertion
@@ -114,10 +125,10 @@ impl BinaryOperator for OrOperator {
         if let Some(right_side_token) = &mut self.right_argument {
           match right_side_token {
             Token::OrOperator(right_operator) => {
-              right_operator.insert_token(token_to_insert)?;
+              right_operator.insert_token(Some(token_to_insert))?;
             },
             Token::KleeneOperator(right_operator) => {
-              right_operator.insert_token(token_to_insert)?;
+              right_operator.insert_token(Some(token_to_insert))?;
             },
             _ => {
               return Err(ParsingError::NoEmptySpaceInParseTree);
@@ -152,7 +163,6 @@ impl UnaryOperator for KleeneOperator {
   fn get_inner_argument(&self) -> Option<&Token> {
     return self.inner_argument.as_ref();
   }
-
 }
 
 impl Operator for OrOperator {
@@ -163,7 +173,7 @@ impl Operator for OrOperator {
     return String::from("Or Operator");
   }
 
-  fn insert_token(&mut self, literal_to_insert: Token) -> Result<(), ParsingError> {
+  fn insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError> {
     // Inserts a token into the first available spot found on either side of the tree
     // Done via BFS to minimize tree depth
     let mut token_queue: Vec<&mut Option<Token>> = vec![];
@@ -193,7 +203,7 @@ impl Operator for OrOperator {
         None => {
           // Found spot for token, we dereference the current token
           // and assign it to be the token we want then return out
-          *current_token = Some(literal_to_insert);
+          *current_token = token_to_insert;
           return Ok(());
         }
       }
@@ -218,9 +228,13 @@ impl Operator for KleeneOperator {
     return String::from("Kleene Operator");
   }
 
-  fn insert_token(&mut self, literal_to_insert: Token) -> Result<(), ParsingError> {
+  fn insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError> {
     // Inserts a token into the first available spot found on either side of the tree
     // Done via BFS to minimize tree depth
+    if token_to_insert.is_none() {
+      return Err(ParsingError::NoneTokenProvided);
+    }
+
     let mut token_queue: Vec<&mut Option<Token>> = vec![];
     token_queue.push(&mut self.inner_argument);
     while !token_queue.is_empty() {
@@ -247,7 +261,7 @@ impl Operator for KleeneOperator {
         None => {
           // Found spot for token, we dereference the current token
           // and assign it to be the token we want then return out
-          *current_token = Some(literal_to_insert);
+          *current_token = token_to_insert;
           return Ok(());
         }
       }

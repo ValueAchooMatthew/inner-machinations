@@ -6,7 +6,7 @@ use regex_models::{BinaryOperator, KleeneOperator, OrOperator, ParsingError, Tok
 
 use app::models::{SmartState, State, Coordinate};
 
-use crate::{advanced_automata_funcs::convert_nfa_to_dfa, testing_automata_funcs::test_string_dfa};
+use crate::{advanced_automata_funcs::convert_nfa_to_dfa, testing_automata_funcs::{test_string_dfa, test_string_nfa}};
 mod tests;
 
 #[tauri::command]
@@ -27,10 +27,13 @@ pub fn test_string_regex(parse_tree: Token, string_to_check: String) -> bool {
     start_state_coords.into(),
     parse_tree,
     end_state_coords);
+  
+  println!("{state_positions:?}");
+
+  println!{"{:?}", test_string_nfa(state_positions.clone(), start_state_coords.clone().into(), string_to_check.clone()).0};
 
   let (_, _, _, state_positions) = convert_nfa_to_dfa(state_positions, start_state_coords.into());
 
-    
   return test_string_dfa(state_positions.into(), start_state_coords.into(), string_to_check).0;
 
 }
@@ -134,7 +137,6 @@ fn convert_token_to_nfa(
 
 }
 
-// Need to fix for 
 fn handle_kleene_token_to_nfa_conversion(
   coords_of_state_to_loop_to: Coordinate, 
   state_positions: &mut HashMap<String, State>, 
@@ -239,8 +241,10 @@ pub fn interpret_regex(regex: &str) -> Result<Token, ParsingError> {
 
   let (tokens, _) = tokenize_regular_expression(regex);
   let parsed_tokens = parse_tokens(tokens)?;
-  verify_syntactic_correctness_of_parse_tree(&parsed_tokens)?;
-  return Ok(parsed_tokens);
+  let final_parse_tree = concatenate_tokens(parsed_tokens);
+
+  verify_syntactic_correctness_of_parse_tree(&final_parse_tree)?;
+  return Ok(final_parse_tree);
 }
 
 fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), ParsingError> {
@@ -291,63 +295,99 @@ fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), 
 
 }
 
-fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
+fn parse_tokens(mut tokens: Vec<Token>) -> Result<Vec<Token>, ParsingError> {
 
   if tokens.len() == 0 {
     return Err(ParsingError::NoInnerArg)
   } else if tokens.len() == 1 {
-
-    let final_token = tokens
-      .get(0)
-      .expect("The vec should have at least 1 element")
-      .to_owned();
-
-    match final_token {
-      Token::GroupedExpression(_) => {
-        // do nothing and continue, so the grouped expression continues to be broken apart
-      },
-      final_token => return Ok(final_token)
-
-    } 
+    match tokens.get(0).expect("The array should have at least a single element") {
+      // If it's a grouped expression, do nothing and continue breaking it apart
+      Token::GroupedExpression(_) => (),
+      _ => {
+        return Ok(tokens)
+      }
+    }
+  } else if !can_continue_parsing(&tokens) {
+    return Ok(tokens);
   }
-
+  // Very gross code will definitely be rewriten in future
   for (index, token) in tokens.clone().into_iter().enumerate() {
     match token {
       Token::OrOperator(mut current_or_op) => {
-        let duplicate_tokens = tokens.clone();
-        let (left_argument, right_argument) = duplicate_tokens.split_at(index);
-        // Done so we don't include the current token in the right argument
-        let mut right_argument = right_argument.to_owned();
-        right_argument.remove(0);
-        tokens.remove(index);
-
-        if left_argument.len() > 0 {
-          tokens.drain(0..left_argument.len());
-
-          let left_argument = parse_tokens(left_argument.to_owned())?;
-          current_or_op.left_insert_token(left_argument)?;
-          tokens.insert(0, Token::OrOperator(current_or_op.clone()));
-          break;
+        if !current_or_op.has_empty_arg() {
+          continue;
         }
 
+        let duplicate_tokens = tokens.clone();
+        let left_argument = &duplicate_tokens[0..index];
+        let right_argument = &duplicate_tokens[index+1..];
+        tokens.remove(index);
+        let mut left_tokens_to_concat = Vec::new();
+        let mut right_tokens_to_concat = Vec::new();
+
+        if left_argument.len() > 0 { 
+          tokens.drain(0..left_argument.len());
+          let left_argument = parse_tokens(left_argument.to_owned())?;
+          if left_argument.len() == 1 {
+            current_or_op.left_insert_token(left_argument.get(0).cloned());
+          } else {
+            // If the result of attempting to group the left argument does not result in a single token, 
+            // We must resort to bubbling up the parts which we could not adequtely group to be concatonated later
+            let retrieved_parsed_operator = 
+              get_operator_and_tokens_to_concatenate(left_argument.to_owned()).0;
+
+            left_tokens_to_concat = get_operator_and_tokens_to_concatenate(left_argument.to_owned()).1;
+            
+            current_or_op.left_insert_token(retrieved_parsed_operator);
+          }
+        }
+        
         if right_argument.len() > 0 {
           tokens.drain(0..right_argument.len());
-          let right_argument = parse_tokens(right_argument)?;
-          current_or_op.right_insert_token(right_argument)?;
-          tokens.insert(index, Token::OrOperator(current_or_op));
-          break;
+          let right_argument = parse_tokens(right_argument.to_owned())?;
+          if right_argument.len() == 1 {
+            current_or_op.right_insert_token(right_argument.get(0).cloned());
+          } else {
+            // If the result of attempting to group the right argument does not result in a single token, 
+            // We must resort to bubbling up the parts which we could not adequtely group to be concatonated later
+            let retrieved_parsed_operator = 
+              get_operator_and_tokens_to_concatenate(right_argument.to_owned()).0;
+
+            right_tokens_to_concat = get_operator_and_tokens_to_concatenate(right_argument.to_owned()).1;
+            
+            current_or_op.right_insert_token(retrieved_parsed_operator);
+          }
         }
+        for t in left_tokens_to_concat {
+          tokens.push(t);
+        }
+        tokens.push(Token::OrOperator(current_or_op));
+        for t in right_tokens_to_concat {
+          tokens.push(t);
+        }
+        
+        break;
       },
       Token::KleeneOperator(mut current_kleene_op) => {
-
-        let mut duplicate_tokens = tokens.clone();
-        let _ = duplicate_tokens.split_off(index);
-        let left_of_kleene_operator = duplicate_tokens;
+        if !current_kleene_op.has_empty_arg() {
+          continue;
+        }
+        let left_of_kleene_operator = &tokens.clone()[..index];
         if left_of_kleene_operator.len() > 0 {
-          tokens.drain(0..=left_of_kleene_operator.len());
-          let inner_argument = parse_tokens(left_of_kleene_operator)?;
-          current_kleene_op.insert_token(inner_argument)?;
-          tokens.insert(0, Token::KleeneOperator(current_kleene_op));
+          tokens.drain(..=left_of_kleene_operator.len());
+          let inner_argument = parse_tokens(left_of_kleene_operator.to_owned())?;
+          if inner_argument.len() == 1 {
+            current_kleene_op.insert_token(inner_argument.get(0).cloned())?;
+            tokens.insert(0, Token::KleeneOperator(current_kleene_op));
+          } else {
+            let (operator_to_insert, tokens_to_concat) = 
+              get_operator_and_tokens_to_concatenate(inner_argument.to_owned());
+            current_kleene_op.insert_token(operator_to_insert);
+            tokens.insert(0, Token::KleeneOperator(current_kleene_op));
+            for t in tokens_to_concat {
+              tokens.insert(0, t);
+            }
+          }
           break;
         }
 
@@ -356,7 +396,12 @@ fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
         let expanded_tokens = token_pointer
           .to_vec();
         tokens.remove(index);
-        tokens.insert(index, parse_tokens(expanded_tokens)?);
+        let mut current_working_index = index;
+        for token in parse_tokens(expanded_tokens)? {
+          tokens.insert(index, token);
+          current_working_index += 1;
+        }
+        break;
       },
       _ => continue
     }
@@ -366,6 +411,151 @@ fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
   return parse_tokens(tokens);
 
 }
+
+// May have to change to in case token position matters
+// Function assumes that the operator in the vec has been fully grouped to the extent it can
+fn get_operator_and_tokens_to_concatenate(tokens: Vec<Token>) -> (Option<Token>, Vec<Token>) {
+
+  let mut grouped_op_token = None;
+  let mut tokens_to_concatenate = Vec::new();
+
+  for token in tokens {
+    match token {
+      Token::OrOperator(_) | Token::KleeneOperator(_) => {
+        grouped_op_token = Some(token);
+      },
+      _ => tokens_to_concatenate.push(token)
+
+    }
+  };
+
+  return (grouped_op_token, tokens_to_concatenate); 
+}
+
+
+fn can_continue_parsing(tokens: &Vec<Token>) -> bool {
+  for token in tokens {
+    match token {
+      Token::OrOperator(or_operator) => {
+        if or_operator.has_empty_arg() {
+          return true;
+        }
+      },
+      Token::KleeneOperator(kleene_operator) => {
+        if kleene_operator.has_empty_arg() {
+          return true;
+        }
+      },
+      // Done so grouped expressions are continued to be broked up in the parsing step
+      Token::GroupedExpression(_) => {
+        return true;
+      },
+      _=> continue
+    }
+  }
+  return false;
+
+}
+
+fn concatenate_tokens(tokens: Vec<Token>) -> Token {
+
+  if tokens.len() == 1 {
+    return tokens
+      .get(0)
+      .expect("The array should have at least a single element")
+      .to_owned();
+
+  } else if tokens.len() == 2 {
+
+    let first_token = tokens
+      .get(0)
+      .expect("The array should have at least 2 elements");
+
+    let second_token = tokens
+      .get(1)
+      .expect("The array should have at least 2 elements");
+    return Token::ConcatenatedExpression(Box::new((first_token.to_owned(), second_token.to_owned())));
+  }
+
+
+  let midpoint = tokens.len().div_ceil(2);
+  let first_half_of_tokens = &tokens[0..midpoint];
+  let second_half_of_tokens = &tokens[midpoint+1..];
+
+  return Token::ConcatenatedExpression(Box::new((
+    concatenate_tokens(first_half_of_tokens.to_owned()),
+    concatenate_tokens(second_half_of_tokens.to_owned())
+  )));
+
+}
+
+
+// May need to change into has empty left or right arguments respecively for or operator to work
+pub fn can_concatenate_tokens(first_token: Token, second_token: Token) -> bool {
+  match first_token.clone() {
+    Token::Literal(_) | Token::ConcatenatedExpression(_) | Token::GroupedExpression(_) => {
+      match second_token.clone() {
+        Token::OrOperator(operator) => {
+          if !operator.has_empty_arg() {
+            return true;
+          }
+        },
+        Token::KleeneOperator(operator) => {
+          if !operator.has_empty_arg() {
+            return true;
+          }
+        },
+        _ => {
+          return true;
+        }
+      }
+    },
+    Token::KleeneOperator(kleene_operator) => {
+      if kleene_operator.has_empty_arg() {
+        return false;
+      }
+      match second_token.clone() {
+        Token::OrOperator(operator) => {
+          if !operator.has_empty_arg() {
+            return true;
+          }
+        },
+        Token::KleeneOperator(operator) => {
+          if !operator.has_empty_arg() {
+            return true;
+          }
+        }, 
+        _ => {
+          return true;
+        }
+      }
+    },
+    Token::OrOperator(or_operator) => {
+      if or_operator.has_empty_arg() {
+        return false;
+      }
+      match second_token.clone() {
+        Token::OrOperator(operator) => {
+          if !operator.has_empty_arg() {
+            return true;
+          }
+        },
+        Token::KleeneOperator(operator) => {
+          if !operator.has_empty_arg() {
+            return true;
+          }
+        }, 
+        _ => {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+
+}
+
 
 fn tokenize_regular_expression(regex: &str) -> (Vec<Token>, Option<usize>) {
 
