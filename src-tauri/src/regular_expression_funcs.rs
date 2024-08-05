@@ -308,12 +308,6 @@ fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), 
 
 }
 
-fn parse_kleene_operators(mut tokens: Vec<Token>) ->  Result<Vec<Token>, ParsingError> {
-  
-
-
-}
-
 
 fn parse_tokens(mut tokens: Vec<Token>) -> Result<Vec<Token>, ParsingError> {
 
