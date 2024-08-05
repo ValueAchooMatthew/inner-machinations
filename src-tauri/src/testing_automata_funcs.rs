@@ -54,7 +54,8 @@ fn dfa_delta_function<'a>(state_positions: &'a HashMap<String, State>, s: &'a St
 // To allow for easier communication to and from the nfa string checking function
 // The reason for the hashmap is so that, if a s
 
-fn nfa_delta_function<'a>(state_positions: &'a HashMap<String, State>, 
+fn nfa_delta_function<'a>(
+  state_positions: &'a HashMap<String, State>, 
   current_state: &'a State, 
   string_to_check: &String,
   states_visited: &'a mut Vec<State>) -> (bool, &'a mut Vec<State>) {
@@ -75,50 +76,42 @@ fn nfa_delta_function<'a>(state_positions: &'a HashMap<String, State>,
         }
       };
     }
+
+    return  (false, states_visited);
   
   }
   
-  for character in string_to_check.chars() {
-    let states_connected_by_character = get_states_connected_by_character_in_nfa(
-      state_positions, 
-      current_state,
-      &character.to_string());
-    
-    let states_connected_by_epsilon = get_states_connected_by_epsilon_in_nfa(
-      state_positions, 
-      current_state);
-
-    if states_connected_by_character.is_none() && states_connected_by_epsilon.is_none() {
-      return (false, states_visited);
+  let states_connected_by_character = get_states_connected_by_character_in_nfa(
+    state_positions, 
+    current_state,
+    &string_to_check.chars().nth(0).unwrap().to_string());
+  
+  let states_connected_by_epsilon = get_states_connected_by_epsilon_in_nfa(
+    state_positions, 
+    current_state);
+  if states_connected_by_character.is_none() && states_connected_by_epsilon.is_none() {
+    return (false, states_visited);
+  }
+  if states_connected_by_character.is_some() {
+    for state in states_connected_by_character.unwrap() {
+      // The rest of the string to be checked will be everything excluding the first character
+      // Which was consumed when retrieving states_connected_by_character
+      let string_to_check = String::from(&string_to_check[1..]);
+      // Checking if the bool value of states visited is true
+      if nfa_delta_function(state_positions, state, &string_to_check, states_visited).0 {
+        states_visited.insert(0, state.to_owned());
+        return (true, states_visited);
+      } 
     }
-
-    if states_connected_by_character.is_some() {
-
-      for state in states_connected_by_character.unwrap() {
-
-        // The rest of the string to be checked will be everything excluding the first character
-        // Which was consumed when retrieving states_connected_by_character
-        let string_to_check = String::from(&string_to_check[1..]);
-
-        // Checking if the bool value of states visited is true
-        if nfa_delta_function(state_positions, state, &string_to_check, states_visited).0 {
-          states_visited.insert(0, state.to_owned());
-          return (true, states_visited);
-        } 
+  }
+  if states_connected_by_epsilon.is_some() {
+    for state in states_connected_by_epsilon.unwrap() {
+      // Checking if the bool value of states visited is true
+      if nfa_delta_function(state_positions, state, string_to_check, states_visited).0 {
+        return (true, states_visited);
       }
-    }
-
-    if states_connected_by_epsilon.is_some() {
-
-      for state in states_connected_by_epsilon.unwrap() {
-
-        // Checking if the bool value of states visited is true
-        if nfa_delta_function(state_positions, state, string_to_check, states_visited).0 {
-          return (true, states_visited);
-        }
-      };
-    }
-  };
+    };
+  }
   return (false, states_visited);
 }
 
@@ -180,8 +173,6 @@ pub fn test_string_nfa(
   start_state_coordinates: String, 
   string_to_check: String
   ) -> (bool, Vec<State>) {
-
-  println!("{state_positions:?}");
 
   let mut states_visited: Vec<State> = vec![];
 

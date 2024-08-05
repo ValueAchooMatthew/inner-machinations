@@ -16,7 +16,6 @@
     .catch((e)=>{
       console.log(e)
     });
-    console.log($type_of_automata == Automata.NFA);
   }
 
 </script>

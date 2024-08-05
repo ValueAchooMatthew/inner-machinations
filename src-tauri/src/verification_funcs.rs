@@ -25,7 +25,7 @@ pub fn send_verification_email(email: &str) -> Option<String> {
     .body("Please enter the following code to verify your email: ".to_owned() + &code)
     .unwrap();
 
-  let creds = Credentials::new("matthewtamerfarah@gmail.com".to_owned(), "ygiv jpki lzas irzd".to_owned());
+  let creds = Credentials::new("matthewtamerfarah@gmail.com".to_owned(), "djdw kldc kuki gwsf".to_owned());
   
   // Open a remote connection to gmail
   let mailer = SmtpTransport::relay("smtp.gmail.com")
@@ -36,7 +36,7 @@ pub fn send_verification_email(email: &str) -> Option<String> {
   // Send the email
   match mailer.send(&email) {
     Ok(_) => println!("Email sent successfully!"),
-    Err(_) => return None,
+    Err(_) => return None
   }
   return Some(code);
 

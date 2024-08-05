@@ -15,8 +15,8 @@ pub enum Token {
 pub enum ParsingError {
   NoEmptySpaceInParseTree,
   NoneTokenProvided,
-  NoLeftArg,
-  NoRightArg,
+  EmptyLeftArg,
+  EmptyRightArg,
   NoInnerArg,
   UnableToConcatenate
 }
@@ -78,29 +78,21 @@ impl BinaryOperator for OrOperator {
       return Err(ParsingError::NoneTokenProvided);
     }
     let token_to_insert = token_to_insert.unwrap();
-    match token_to_insert {
-      // We don't ever want to insert a grouped expression as we want it to get broken down
-      // into an operator by the parser before insertion
-      Token::GroupedExpression(_) => {
-        return Ok(())
-      },
-      token_to_insert => {
-        if let Some(left_side_token) = &mut self.left_argument {
-          match left_side_token {
-            Token::OrOperator(left_operator) => {
-              left_operator.insert_token(Some(token_to_insert))?;
-            },
-            Token::KleeneOperator(left_operator) => {
-              left_operator.insert_token(Some(token_to_insert))?;
-            },
-            _ => return Err(ParsingError::NoEmptySpaceInParseTree)
-          }
-          
-        } else {
-          self.left_argument = Some(token_to_insert);
-        }
-        }
+
+    if let Some(left_side_token) = &mut self.left_argument {
+      match left_side_token {
+        Token::OrOperator(left_operator) => {
+          left_operator.insert_token(Some(token_to_insert))?;
+        },
+        Token::KleeneOperator(left_operator) => {
+          left_operator.insert_token(Some(token_to_insert))?;
+        },
+        _ => return Err(ParsingError::NoEmptySpaceInParseTree)
       }
+      
+    } else {
+      self.left_argument = Some(token_to_insert);
+    }
       
     Ok(())
     
@@ -113,34 +105,25 @@ impl BinaryOperator for OrOperator {
     }
     let token_to_insert = token_to_insert.unwrap();
     
-    match token_to_insert {
-      // We don't ever want to insert a grouped expression as we want it to get broken down
-      // into an operator by the parser before insertion
-      Token::GroupedExpression(_) => {
-        return Ok(())
-      },
-      token_to_insert => {
-        // First, we have to traverse the left side of the tree from the root to find
-        // an or operator token which has a free left or right argument if not we return a parsing error
-        if let Some(right_side_token) = &mut self.right_argument {
-          match right_side_token {
-            Token::OrOperator(right_operator) => {
-              right_operator.insert_token(Some(token_to_insert))?;
-            },
-            Token::KleeneOperator(right_operator) => {
-              right_operator.insert_token(Some(token_to_insert))?;
-            },
-            _ => {
-              return Err(ParsingError::NoEmptySpaceInParseTree);
-            }
-          }
-        } else {
-          self.right_argument = Some(token_to_insert);
+    // First, we have to traverse the right side of the tree from the root to find
+    // an or operator token which has a free right argument if not we return a parsing error
+    if let Some(right_side_token) = &mut self.right_argument {
+      match right_side_token {
+        Token::OrOperator(right_operator) => {
+          right_operator.insert_token(Some(token_to_insert))?;
+        },
+        Token::KleeneOperator(right_operator) => {
+          right_operator.insert_token(Some(token_to_insert))?;
+        },
+        _ => {
+          return Err(ParsingError::NoEmptySpaceInParseTree);
         }
-      
-        Ok(())
       }
+    } else {
+      self.right_argument = Some(token_to_insert);
     }
+  
+    Ok(())
   }
 
   fn get_left_argument(&self) -> Option<&Token> {
@@ -184,29 +167,26 @@ impl Operator for OrOperator {
         .pop()
         .expect("The queue should have at least one value in it");
 
-      match current_token {
-        Some(current_token) => {
-          // Only the or and kleene operator can have children elements so we continue
-          // If the current token is neither
-          match current_token {
-            Token::OrOperator(current_token) => {
-              token_queue.push(&mut current_token.left_argument);
-              token_queue.push(&mut current_token.right_argument);
-            },
-            Token::KleeneOperator(current_token) => {
-              token_queue.push(&mut current_token.inner_argument);
-            },
-            _ => continue
-          }
-
-        },
-        None => {
-          // Found spot for token, we dereference the current token
-          // and assign it to be the token we want then return out
-          *current_token = token_to_insert;
-          return Ok(());
+      if let Some(current_token) = current_token {
+        // Only the or and kleene operator can have children elements so we continue
+        // If the current token is neither
+        match current_token {
+          Token::OrOperator(current_token) => {
+            token_queue.insert(0, &mut current_token.left_argument);
+            token_queue.insert(0, &mut current_token.right_argument);
+          },
+          Token::KleeneOperator(current_token) => {
+            token_queue.insert(0, &mut current_token.inner_argument);
+          },
+          _ => continue
         }
+      } else {
+        // Found spot for token, we dereference the current token
+        // and assign it to be the token we want then return out
+        *current_token = token_to_insert;
+        return Ok(());
       }
+
     }
 
     return Err(ParsingError::NoEmptySpaceInParseTree)

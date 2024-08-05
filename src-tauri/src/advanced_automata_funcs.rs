@@ -247,17 +247,15 @@ pub fn convert_nfa_to_dfa (
   ) -> (Option<usize>, Vec<State>, Vec<Connection>, HashMap<String, State>) {
   
   remove_all_epsilon_transitions(&mut state_positions);
-
-  // println!("{:?}", state_positions.values());
     
   let mut reconstructed_state_positions: HashMap<String, RefCell<State>> = HashMap::new();
   let mut start_state_index: Option<usize> = None;
   let mut reconstructed_states: Vec<State> = vec![];
   // I would like to be able to use a hashset of Strings here however unfortunately 
-  // Hashsets cannot be hashed so we have to convert and ensure that we correctly sort
+  // Hashsets cannot be hashed so we have to convert and ensure that we correctly sort the
   // hashsets we push into vecs
   let mut hashed_state_keys: HashMap<Vec<String>, String> = HashMap::new();
-  
+
   let start_state = state_positions
     .get(&start_state_position)
     .expect("There was an error retrieving the start state")
@@ -270,18 +268,18 @@ pub fn convert_nfa_to_dfa (
 
   while !finished {
     finished = true;
-    let mut states_to_add = vec![];
+    let mut states_to_add = HashSet::new();
 
-    for state in reconstructed_state_positions.values() {
+    'outer: for state in reconstructed_state_positions.values() {
 
       let mut state = state.borrow_mut();
       
       // The state's connection has to be be cloned to allow us to iterate over the existing states
       // without requiring an immutable reference, which would prevent us from later mutating the states 
       // based on the information obtained by iterating
-      let state_copy = state.clone();
-      let connected_states = state_copy
-        .get_all_connections();
+      let connected_states = &state
+        .get_all_connections()
+        .to_owned();
       
       for (connection_character, connected_state_keys) in connected_states {
 
@@ -294,15 +292,16 @@ pub fn convert_nfa_to_dfa (
           let state_key_reference = connected_state_keys_as_vec
             .get(0)
             .expect("The hashset should contain at least 1 value");
-
           if reconstructed_state_positions.contains_key(state_key_reference) {
             // If the above condition is met, the state connection we're iterating over is a previously hashed vec which
             // we have renamed via the next else if clause. we thus do not need to keep renaming it and should continue
             // iterating
             continue;
           }
+          finished = false;
 
-        } if !hashed_state_keys.contains_key(&connected_state_keys_as_vec) && connected_state_keys_as_vec.len() > 0 { 
+        } 
+        if !hashed_state_keys.contains_key(&connected_state_keys_as_vec) && connected_state_keys_as_vec.len() > 0 { 
 
           finished = false;
 
@@ -326,41 +325,37 @@ pub fn convert_nfa_to_dfa (
             .set_all_connections(all_connected_states);
 
           state
-            .add_connection(connection_character, unique_state_coords);
+            .remove_all_connections_by_character(connection_character);
 
-          // Make cleaner in future
-          for state_key_to_remove in &connected_state_keys_as_vec {
-            state
-            .remove_connection_by_character(connection_character, state_key_to_remove)
-            .expect("There was an error removing the state key from the connected states");
-          }
+          state
+            .add_connection(connection_character, unique_state_coords);
 
           hashed_state_keys
             .insert(connected_state_keys_as_vec, unique_state_coords.into());
 
           states_to_add
-            .push((unique_state_coords, new_state));
+            .insert(new_state);
+          break 'outer;
 
         } else if connected_state_keys.len() > 0 { 
 
-          for state_key_to_remove in &connected_state_keys_as_vec {
-            state
-            .remove_connection_by_character(connection_character, state_key_to_remove)
-            .expect("There was an error removing the state key from the connected states");
-          }
+          finished = false;
+
+          state
+            .remove_all_connections_by_character(connection_character);
 
           state.add_connection(connection_character, 
             hashed_state_keys.get(&connected_state_keys_as_vec)
             .unwrap()
             .to_owned()
           );
+          break 'outer;
         };
       };
     }
 
-    for (state_coords, state) in states_to_add {
-      let state_key: String = state_coords
-        .into();
+    for state in states_to_add {
+      let state_key = state.get_position_as_string();
 
       if !reconstructed_state_positions.contains_key(&state_key) {
         reconstructed_state_positions.insert(state_key, RefCell::from(state));
@@ -391,6 +386,7 @@ pub fn convert_nfa_to_dfa (
     }
   
   };
+  // println!("{:?}", reconstructed_state_positions_as_owned.values());
 
   return (start_state_index, reconstructed_states, connections, reconstructed_state_positions_as_owned);
 
@@ -408,7 +404,7 @@ fn get_all_connected_state_keys (
       .get(state_key)
       .expect("Could not retrieve the specified state");
 
-    for (connection_character, states_connected_by_character) in state.get_all_connections() {
+    for (connection_character, state_keys_connected_by_character) in state.get_all_connections().clone() {
 
       // In a DFA, we are not permitted to have epsilon state transitions and thus if we encounter an epsilon transition
       // We instead follow it and add the states which can be accessed by the epsilon transition
@@ -416,59 +412,21 @@ fn get_all_connected_state_keys (
         continue;
       }
 
-      let previous_connections_by_character = all_connected_state_keys
-        .get(connection_character)
-        .cloned();
+      all_connected_state_keys
+        .entry(connection_character)
+        .and_modify(|current_entries: &mut HashSet<String>| {
+          for key in &state_keys_connected_by_character {
+            current_entries.insert(key.to_owned()); 
+          }
+        }
+      )
+      .or_insert(state_keys_connected_by_character);
 
-      let unionized_state_connections_by_character = states_connected_by_character.to_owned()
-        .union(&previous_connections_by_character.unwrap_or_else(|| HashSet::new()))
-        .cloned()
-        .collect();
-
-      let state_connections_by_character_including_epsilon = 
-        add_state_keys_connected_by_epsilon_in_nfa(state_positions, unionized_state_connections_by_character);
-
-      all_connected_state_keys.insert(connection_character.to_owned(), state_connections_by_character_including_epsilon);
-      
     };
 
   };
 
   return all_connected_state_keys;
-
-}
-
-fn add_state_keys_connected_by_epsilon_in_nfa(state_positions: &HashMap<String, State>, state_keys: HashSet<String>) -> HashSet<String> {
-
-  let mut finished = false;
-  let mut final_state_keys = state_keys.clone();
-  while !finished {
-    finished = true;
-    for state_key in &state_keys {
-
-      let state = state_positions
-        .get(state_key)
-        .expect("Could not retrieve the requested state");
-
-      let state_keys_connected_by_epsilon = state
-        .get_connections_by_character("ϵ")
-        .cloned();
-
-      let previous_length = final_state_keys.len();
-
-      final_state_keys = final_state_keys
-        .union(&state_keys_connected_by_epsilon.unwrap_or_else(|| HashSet::new()))
-        .cloned()
-        .collect();
-      
-      if final_state_keys.len() != previous_length {
-        finished = false;
-      }
-
-    }
-  };
-
-  return final_state_keys;
 
 }
 

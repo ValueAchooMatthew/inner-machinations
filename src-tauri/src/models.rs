@@ -84,6 +84,7 @@ pub trait SmartState {
   fn make_start(&mut self);
   fn get_position(&self) -> Coordinate;
   fn get_position_as_string(&self) -> String;
+  fn remove_all_connections_by_character(&mut self, connection_character: &str);
 }
 
 impl SmartState for State {
@@ -162,6 +163,7 @@ impl SmartState for State {
     self.states_connected_to = connections;
   }
   
+  // Make make customer error type in future for this case
   fn remove_connection_by_character(&mut self, connection_character: &str, state_key_to_remove: impl Into<String>) -> Result<(), ()> {
     let connected_states_by_character = self.states_connected_to
       .get_mut(connection_character)
@@ -171,6 +173,10 @@ impl SmartState for State {
 
     Ok(())
 
+  }
+
+  fn remove_all_connections_by_character(&mut self, connection_character: &str) {
+    self.states_connected_to.remove(connection_character);
   }
 
 }

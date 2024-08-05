@@ -99,7 +99,7 @@ pub fn create_unique_state_coordinates(state_positions: &HashSet<String>) -> Coo
     if x_position < 800 {
       x_position += 200;
     } else {
-      x_position = 100;
+      x_position = 300;
       y_position += 200;
     }
 
