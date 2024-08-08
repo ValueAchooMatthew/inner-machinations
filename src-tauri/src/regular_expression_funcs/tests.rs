@@ -144,16 +144,15 @@ pub mod tests {
 
     assert_eq!(expected_result, interpret_regex(regex_to_test).unwrap());
 
-    // Problem is that currently, a regex that looks like a(b)*
-    // and ((a)(b))* are treated the same, due to the fact grouped expressions are always
-    // Broken down by the compiler into ab* (with kleene working on the nearest token, that being 'b')
-    // To try and fix this I should try reworking the compiler such that operators take on the nearest grouped expression
-    // As their argument, (and making an expression a grouped expression if none exist)
-    // And then expanding out grouped expressions within the parse tree rather than prior to insertion
+    let regex_to_test = "(a(b))*";
 
-    // A final parse tree should never consist of grouped expressions, but inserting should (maybe?)
+    let expected_result = Token::KleeneOperator(Box::new(KleeneOperator::new(
+      Some(Token::ConcatenatedExpression(Box::new((
+        Token::Literal(String::from("a")),
+        Token::Literal(String::from("b"))
+      )))))));
 
-    // IMPORTANT: Consider a(b)* case vs (a(b))* case (one should become ab* the other should become (ab*))
+    assert_eq!(expected_result, interpret_regex(regex_to_test).unwrap());
 
     let regex_to_test = "((a)(b))*";
 
@@ -182,9 +181,15 @@ pub mod tests {
   #[test]
   fn test_parsing_invalid_or() {
     let regex_to_test: &str = "a+";
-    let expected_result = ParsingError::EmptyRightArg;
+    let expected_result = ParsingError::NoneTokenProvided;
 
     assert_eq!(Err(expected_result), interpret_regex(regex_to_test));
+
+    let regex_to_test: &str = "+b";
+    let expected_result = ParsingError::NoneTokenProvided;
+
+    assert_eq!(Err(expected_result), interpret_regex(regex_to_test));
+
   }
 
   #[test]

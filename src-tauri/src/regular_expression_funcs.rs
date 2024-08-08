@@ -1,12 +1,12 @@
 mod regex_models;
 use std::collections::HashMap;
 
-use app::create_unique_state_coordinates;
+use app::{create_unique_state_coordinates, remove_all_epsilon_transitions};
 use regex_models::{BinaryOperator, KleeneOperator, OrOperator, ParsingError, Token, UnaryOperator, Operator};
 
 use app::models::{SmartState, State, Coordinate};
 
-use crate::{advanced_automata_funcs::convert_nfa_to_dfa, testing_automata_funcs::test_string_dfa};
+use crate::{advanced_automata_funcs::convert_nfa_to_dfa, testing_automata_funcs::{test_string_dfa, test_string_nfa}};
 mod tests;
 
 #[tauri::command]
@@ -31,7 +31,8 @@ pub fn test_string_regex(parse_tree: Token, string_to_check: String) -> bool {
 
   let (_, _, _, state_positions) = convert_nfa_to_dfa(state_positions, start_state_coords.into());
 
-  return test_string_dfa(state_positions.into(), start_state_coords.into(), string_to_check).0;
+  return test_string_nfa(state_positions, start_state_coords.into(), string_to_check).0;
+
 }
 
 fn convert_parse_tree_to_nfa(
@@ -243,7 +244,27 @@ fn handle_kleene_token_to_nfa_conversion(
         inner_argument.to_owned(), new_state_coords);
 
       },
-      _=> todo!()
+      Token::ConcatenatedExpression(concatenated_expression)=> {
+        let left_token = concatenated_expression.0;
+        let right_token = concatenated_expression.1;
+  
+        let right_token_start_state_coords = create_unique_state_coordinates(&state_positions.keys().cloned().collect());
+  
+        state_positions
+          .insert(right_token_start_state_coords.into(), 
+          State::new(right_token_start_state_coords, false, false));
+  
+        convert_parse_tree_to_nfa(state_positions, 
+          current_state_coords, 
+          left_token, right_token_start_state_coords);
+  
+        convert_parse_tree_to_nfa(state_positions, 
+          right_token_start_state_coords, 
+          right_token,
+          coords_of_state_to_loop_to);
+
+
+      }
   }
  
 
@@ -254,10 +275,9 @@ pub fn interpret_regex(regex: &str) -> Result<Token, ParsingError> {
 
   let (tokens, _) = tokenize_regular_expression(regex);
   let parsed_tokens = parse_tokens(tokens)?;
-  let final_parse_tree = concatenate_tokens(parsed_tokens);
 
-  verify_syntactic_correctness_of_parse_tree(&final_parse_tree)?;
-  return Ok(final_parse_tree);
+  verify_syntactic_correctness_of_parse_tree(&parsed_tokens)?;
+  return Ok(parsed_tokens);
 }
 
 fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), ParsingError> {
@@ -309,8 +329,45 @@ fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), 
 }
 
 
-fn parse_tokens(mut tokens: Vec<Token>) -> Result<Vec<Token>, ParsingError> {
+// Checks for grouped expression in list of tokens and returns index and owned copy of first grouped expression if found
+fn does_contain_grouped_expression(tokens: &Vec<Token>) -> Option<(Token, usize)> {
 
+  for (index, token) in tokens.into_iter().enumerate() {
+    match token {
+      Token::GroupedExpression(_) => return Some((token.to_owned(), index)),
+      _ => continue
+    }
+
+  }
+
+  return None;
+
+}
+
+// Checks for kleene token in list of tokens and returns index and owned copy of first grouped expression if found
+fn does_contain_kleene_operator(tokens: &Vec<Token>) -> Option<(Token, usize)> {
+
+  for (index, token) in tokens.into_iter().enumerate() {
+    match token {
+      Token::KleeneOperator(kleene_operator) => {
+        // If a kleene operator is already filled we continue
+        if kleene_operator.has_empty_arg() {
+          return Some((token.to_owned(), index))
+        }
+      },
+        
+      _ => continue
+    }
+
+  }
+
+  return None;
+
+}
+
+fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
+  // Must give priority to grouped expressions
+  // Parse grouped expressions first?
   if tokens.len() == 0 {
     return Err(ParsingError::NoInnerArg)
   } else if tokens.len() == 1 {
@@ -318,154 +375,91 @@ fn parse_tokens(mut tokens: Vec<Token>) -> Result<Vec<Token>, ParsingError> {
       // If it's a grouped expression, do nothing and continue breaking it apart
       Token::GroupedExpression(_) => (),
       _ => {
-        return Ok(tokens)
+        return Ok(concatenate_tokens(tokens))
       }
     }
   } else if !can_continue_parsing(&tokens) {
-    return Ok(vec![concatenate_tokens(tokens)]);
+    return Ok(concatenate_tokens(tokens));
   }
-  // Very gross code will definitely be rewriten in future
-  for (index, token) in tokens.clone().into_iter().enumerate() {
-    match token {
-      Token::OrOperator(mut current_or_op) => {
-        if !current_or_op.has_empty_arg() {
-          continue;
-        }
 
-        let duplicate_tokens = tokens.clone();
-        let left_argument = &duplicate_tokens[0..index];
-        let right_argument = &duplicate_tokens[index+1..];
-        tokens.remove(index);
-        let mut left_unparsed_tokens = Vec::new();
-        let mut right_unparsed_tokens = Vec::new();
-
-        if left_argument.len() > 0 { 
-          tokens.drain(0..left_argument.len());
-          let left_argument = parse_tokens(left_argument.to_owned())?;
-          if left_argument.len() == 1 {
-            current_or_op.left_insert_token(left_argument.get(0).cloned())?;
-          } else {
-            // If the result of attempting to group the left argument does not result in a single token, 
-            // We must resort to bubbling up the parts which we could not adequtely group to be concatonated later
-            let retrieved_parsed_operator = 
-              get_operator_and_unparsed_tokens(left_argument.to_owned()).0;
-
-            left_unparsed_tokens = get_operator_and_unparsed_tokens(left_argument.to_owned()).1;
-            
-           let successful_insertion = current_or_op
-            .left_insert_token(retrieved_parsed_operator);
-
-           if let Err(error) = successful_insertion {
-              match error {
-                ParsingError::NoneTokenProvided => {
-                  let literal_to_insert = left_unparsed_tokens
-                    .get(left_unparsed_tokens.len() - 1)
-                    .cloned();
-                  current_or_op.insert_token(literal_to_insert)?;
-                left_unparsed_tokens.remove(left_unparsed_tokens.len() - 1);
-                },
-                other_error => return Err(other_error)
-              }
-            }
-          }
-        }
-        
-        if right_argument.len() > 0 {
-          tokens.drain(0..right_argument.len());
-          let right_argument = parse_tokens(right_argument.to_owned())?;
-          if right_argument.len() == 1 {
-            current_or_op.right_insert_token(right_argument.get(0).cloned())?;
-          } else {
-            // If the result of attempting to group the right argument does not result in a single token, 
-            // We must resort to bubbling up the parts which we could not adequtely group to be concatonated later
-            let retrieved_parsed_operator = 
-              get_operator_and_unparsed_tokens(right_argument.to_owned()).0;
-
-            right_unparsed_tokens = get_operator_and_unparsed_tokens(right_argument.to_owned()).1;
-            
-            let successful_insertion = current_or_op.right_insert_token(retrieved_parsed_operator);
-
-            if let Err(error) = successful_insertion {
-              match error {
-                ParsingError::NoneTokenProvided => {
-                  let literal_to_insert = right_unparsed_tokens
-                  .get(0)
-                  .cloned();
-                  current_or_op.insert_token(literal_to_insert)?;
-                
-                right_unparsed_tokens.remove(0);
-                },
-                other_error => return Err(other_error)
-              }
-            }
-          }
-        }
-        for t in left_unparsed_tokens {
-          tokens.push(t);
-        }
-        tokens.push(Token::OrOperator(current_or_op));
-        for t in right_unparsed_tokens {
-          tokens.push(t);
-        }
-        
-        break;
+  // parsing all regular expressions into their proper form FIRST prior to any operations
+  let mut has_grouped_expression = does_contain_grouped_expression(&tokens);
+  while has_grouped_expression.is_some() {
+    let (grouped_expression, index) = has_grouped_expression.unwrap();
+    tokens
+      .remove(index);
+    match grouped_expression {
+      Token::GroupedExpression(grouped_expression) => {
+        let parsed_grouped_expression = parse_tokens(*grouped_expression)?;
+        tokens.insert(index, parsed_grouped_expression);
       },
-      Token::KleeneOperator(mut current_kleene_op) => {
-        if !current_kleene_op.has_empty_arg() {
-          continue;
-        }
-        let left_of_kleene_operator = &tokens.clone()[..index];
-        if left_of_kleene_operator.len() > 0 {
-          tokens.drain(..=left_of_kleene_operator.len());
-          let inner_argument = parse_tokens(left_of_kleene_operator.to_owned())?;
-          if inner_argument.len() == 1 {
-            current_kleene_op.insert_token(inner_argument.get(0).cloned())?;
-            tokens.insert(0, Token::KleeneOperator(current_kleene_op));
-          } else {
-            let (operator_to_insert, mut unparsed_tokens) = 
-              get_operator_and_unparsed_tokens(inner_argument.to_owned());
-            
-            let successful_insertion = current_kleene_op.insert_token(operator_to_insert);
-            if let Err(error) = successful_insertion {
-              match error {
-                ParsingError::NoneTokenProvided => {
-                  let literal_to_insert = unparsed_tokens
-                    .get(unparsed_tokens.len() - 1)
-                    .cloned();
-                    current_kleene_op.insert_token(literal_to_insert)?;
-                  
-                  unparsed_tokens.remove(unparsed_tokens.len() - 1);
-                },
-                other_error => return Err(other_error)
-              }
-            }
-
-            tokens.insert(0, Token::KleeneOperator(current_kleene_op));
-            for t in unparsed_tokens {
-              tokens.insert(0, t);
-            }
-          }
-          break;
-        }
-
-      },
-      Token::GroupedExpression(token_pointer) => {
-        let expanded_tokens = token_pointer
-          .to_vec();
-        tokens.remove(index);
-        let mut parsed_tokens = parse_tokens(expanded_tokens)?;
-        // Reversed so if inserting multiple tokens, they are inserted into the
-        // broader tokens vec in the order in which they appear in parsed_tokens
-        parsed_tokens.reverse();
-        for token in parsed_tokens {
-          tokens.insert(index, token);
-        }
-        break;
-      },
-      _ => continue
+      _ => panic!("The supplied token should be a grouped expression!")
     }
-  
+    has_grouped_expression = does_contain_grouped_expression(&tokens);
   };
+
+  let mut has_kleene_token = does_contain_kleene_operator(&tokens);
+  while has_kleene_token.is_some() {
+    let (kleene_token, index) = has_kleene_token.unwrap();
+    
+    match kleene_token {
+      Token::KleeneOperator(mut kleene_operator) => {
+        let left_token = tokens
+        .get(index.checked_sub(1).ok_or_else( || {ParsingError::NoneTokenProvided})?)
+        .cloned();
+
+      kleene_operator
+        .insert_token(left_token)?;
+
+      tokens.drain(index-1..=index);
+
+      tokens.insert(index-1, Token::KleeneOperator(kleene_operator));
+      },
+      _ => panic!("The supplied token should be a grouped expression!")
+    }
+    has_kleene_token = does_contain_kleene_operator(&tokens);
+  };
+
+  // Very gross code will definitely be rewriten in future
+  let mut finished = false;
+  
+  while !finished {
+    let duplicate_tokens = tokens.clone();
+    finished = true;
+    for (index, token) in duplicate_tokens.into_iter().enumerate() {
+      match token {
+        Token::OrOperator(mut current_or_op) => {
+          if !current_or_op.has_empty_arg() {
+            continue;
+          }
+          finished = false;
+  
+          let left_token = tokens
+            .get(index.checked_sub(1).ok_or_else( || {ParsingError::NoneTokenProvided})?)
+            .cloned();
+    
+          let right_token = tokens
+            .get(index + 1)
+            .cloned();
+  
+          current_or_op
+            .left_insert_token(left_token)?;
+          current_or_op
+            .right_insert_token(right_token)?;
+  
+          tokens.drain(index - 1..=index + 1);
+          tokens.insert(index - 1, Token::OrOperator(current_or_op));
+          break;
+  
+        },
+
+        Token::GroupedExpression(_) => panic!("All grouped expressions should be parsed prior to this step"),
+        _ => continue
+      }
+    
+    };
+
+  }  
   
   return parse_tokens(tokens);
 
