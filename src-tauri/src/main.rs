@@ -19,13 +19,13 @@ pub mod language_determination_funcs;
 pub mod verification_funcs;
 pub mod regular_expression_funcs;
 
-use regular_expression_funcs::{interpret_regex, test_string_regex};
+use regular_expression_funcs::{build_parse_tree, test_string_regex};
 use registration_funcs::{is_correct_log_in, register_user, is_user_registered};
 use advanced_automata_funcs::{minimize_dfa, convert_nfa_to_dfa};
 use testing_automata_funcs::{test_string_dfa, test_string_nfa};
 use saving_automata_funcs::{save_workspace, delete_workspace, retrieve_workspace_data, get_users_saved_workspaces, manually_update_type_of_automata};
 use validation_automata_funcs::verify_valid_dfa;
-use language_determination_funcs::determine_language_of_dfa;
+use language_determination_funcs::determine_language_of_automata;
 use verification_funcs::{send_verification_email, is_user_verified, verify_user};
 use app::establish_connection;
 
@@ -49,7 +49,7 @@ fn main() {
     register_user, is_user_registered, is_correct_log_in,
     send_verification_email, verify_user, is_user_verified, test_string_dfa,
     test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, 
-    get_users_saved_workspaces, minimize_dfa, convert_nfa_to_dfa, determine_language_of_dfa, interpret_regex, manually_update_type_of_automata,
+    get_users_saved_workspaces, minimize_dfa, convert_nfa_to_dfa, determine_language_of_automata, build_parse_tree, manually_update_type_of_automata,
     test_string_regex]
   )
   .run(tauri::generate_context!())

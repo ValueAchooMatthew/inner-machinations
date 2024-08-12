@@ -1,16 +1,18 @@
 mod regex_models;
 use std::collections::HashMap;
 
-use app::{create_unique_state_coordinates, remove_all_epsilon_transitions};
+use app::create_unique_state_coordinates;
 use regex_models::{BinaryOperator, KleeneOperator, OrOperator, ParsingError, Token, UnaryOperator, Operator};
 
 use app::models::{SmartState, State, Coordinate};
 
-use crate::{advanced_automata_funcs::convert_nfa_to_dfa, testing_automata_funcs::{test_string_dfa, test_string_nfa}};
+use crate::{advanced_automata_funcs::convert_nfa_to_dfa, testing_automata_funcs::test_string_nfa};
 mod tests;
 
 #[tauri::command]
-pub fn test_string_regex(parse_tree: Token, string_to_check: String) -> bool {
+pub fn test_string_regex(regex: &str, string_to_check: String) -> Result<bool, ParsingError> {
+
+  let parse_tree = build_parse_tree(regex)?;
 
   let mut state_positions = HashMap::new();
 
@@ -31,8 +33,16 @@ pub fn test_string_regex(parse_tree: Token, string_to_check: String) -> bool {
 
   let (_, _, _, state_positions) = convert_nfa_to_dfa(state_positions, start_state_coords.into());
 
-  return test_string_nfa(state_positions, start_state_coords.into(), string_to_check).0;
+  return Ok(test_string_nfa(state_positions, start_state_coords.into(), string_to_check).0);
 
+}
+
+#[tauri::command]
+pub fn build_parse_tree(regex: &str) -> Result<Token, ParsingError> {
+  let (tokenized_expression, _) = tokenize_regular_expression(regex);
+  let parse_tree = parse_tokens(tokenized_expression)?;
+  verify_syntactic_correctness_of_parse_tree(&parse_tree)?;
+  return Ok(parse_tree);
 }
 
 fn convert_parse_tree_to_nfa(
@@ -263,21 +273,10 @@ fn handle_kleene_token_to_nfa_conversion(
           right_token,
           coords_of_state_to_loop_to);
 
-
       }
   }
  
 
-}
-
-#[tauri::command]
-pub fn interpret_regex(regex: &str) -> Result<Token, ParsingError> {
-
-  let (tokens, _) = tokenize_regular_expression(regex);
-  let parsed_tokens = parse_tokens(tokens)?;
-
-  verify_syntactic_correctness_of_parse_tree(&parsed_tokens)?;
-  return Ok(parsed_tokens);
 }
 
 fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), ParsingError> {
@@ -463,26 +462,6 @@ fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
   
   return parse_tokens(tokens);
 
-}
-
-// May have to change to in case token position matters
-// Function assumes that the operator in the vec has been fully grouped to the extent it can
-fn get_operator_and_unparsed_tokens(tokens: Vec<Token>) -> (Option<Token>, Vec<Token>) {
-
-  let mut grouped_op_token = None;
-  let mut unparsed_tokens = Vec::new();
-
-  for token in tokens {
-    match token {
-      Token::OrOperator(_) | Token::KleeneOperator(_) => {
-        grouped_op_token = Some(token);
-      },
-      _ => unparsed_tokens.push(token)
-
-    }
-  };
-
-  return (grouped_op_token, unparsed_tokens); 
 }
 
 fn can_continue_parsing(tokens: &Vec<Token>) -> bool {

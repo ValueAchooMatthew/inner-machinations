@@ -14,7 +14,7 @@
   let is_verified = false;
   let response = "";
 
-  onMount(async ()=> {
+  onMount(async () => {
     correct_code = await invoke("send_verification_email", { email: data.email });
   })
 

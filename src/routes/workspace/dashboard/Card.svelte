@@ -38,7 +38,7 @@
       height,
       retrieved_data[1],
       retrieved_data[2],
-      retrieved_data[0],
+      null,
       null,
       5
     );

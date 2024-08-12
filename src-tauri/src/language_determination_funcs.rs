@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::models::{SmartState, State};
+use app::models::TypeOfAutomata;
+
+use app::models::{State, SmartState};
+use crate::advanced_automata_funcs::convert_nfa_to_dfa;
 
 // Need to refactor to use less cloning in future
 fn find_all_paths_to_final_state(start_state: &State, 
@@ -143,14 +146,37 @@ fn convert_acceptance_paths_to_string(acceptance_paths: &HashMap<String, HashSet
 
   };
 
-  representation_of_acceptance_path += " | n ε N\u{207A}}";
+  representation_of_acceptance_path += " | n ε \u{2115}}";
 
   return representation_of_acceptance_path;
 
 }
 
 #[tauri::command]
-pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_state_key: String) -> String {
+pub fn determine_language_of_automata(state_positions: HashMap<String, State>, start_state_key: String, type_of_automata: TypeOfAutomata) -> String {
+
+  match type_of_automata {
+    TypeOfAutomata::DFA => {
+      return determine_language_of_dfa(state_positions, start_state_key);
+    },
+    TypeOfAutomata::NFA => {
+      let (start_state_index, list_of_states, _, state_positions) = 
+        convert_nfa_to_dfa(state_positions, start_state_key);
+
+      let start_state_key = list_of_states
+        .get(start_state_index.expect("The start state should be defined"))
+        .expect("The state should exist in the list of states")
+        .get_position_as_string();
+
+      return determine_language_of_dfa(state_positions, start_state_key);
+
+    }
+  }
+
+}
+
+fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_state_key: String) -> String {
+
 
   // Here's what I'm thinking
   // To determine the language of this dfa, i'm going to find every single unique path that leads to a final state.
@@ -230,4 +256,5 @@ pub fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_
   return convert_acceptance_paths_to_string(&all_paths_to_acceptance);
 
 }
+
 

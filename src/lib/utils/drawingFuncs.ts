@@ -31,7 +31,7 @@ export const draw = (
       connection,
       index,
       selected_connection_index,
-      scale,
+      scale
     );
   });
 };
@@ -53,6 +53,7 @@ const drawConnection = (
   context.lineWidth = 5 / scale;
 
   if (selected_connection_index === index) {
+    console.log(selected_connection_index);
     context.strokeStyle = "#00008B";
   } else {
     context.strokeStyle = "black";
@@ -173,3 +174,7 @@ const drawNode = (
     context.fillStyle = "rgb(22, 163, 74)";
   }
 };
+
+// export function drawParseTree(parse_tree: Token) {
+
+// }

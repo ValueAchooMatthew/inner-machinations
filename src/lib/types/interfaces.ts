@@ -1,4 +1,7 @@
 // Reworked so every state has a reference to it's position, to allow for a single state interface for use
+
+import type { Token } from "./types";
+
 // In both drawing states to the canvas and connecting data in the rust
 export interface State {
   // Specifying coordinates of node as an identification for a node
@@ -37,3 +40,22 @@ export interface CheckedStringResponse {
   is_string_accepted: boolean | null,
   states_traversed: Array<State>
 }
+
+// export interface balls {
+
+
+// }
+
+
+// export interface OrOperator {
+//   left_argument: Token,
+//   right_argument: Token
+// }
+
+// export interface KleeneOperator {
+//   inner_argument: Token
+// }
+
+// export interface ConcatenatedExpression {
+  
+// }
