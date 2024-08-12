@@ -1,4 +1,4 @@
-import type { Connection, KleeneOperator, OrOperator, State } from "./interfaces";
+import type { Connection,  State } from "./interfaces";
 
 export type TauriGeneratedAutomataInformation = [
   number | null, // Corresponds to start state index
@@ -9,4 +9,4 @@ export type TauriGeneratedAutomataInformation = [
   string  // Corresponds to date of last update (not necessary to set anything with this)
 ];
 
-export type Token = OrOperator | KleeneOperator;
+// export type Token = OrOperator | KleeneOperator;
