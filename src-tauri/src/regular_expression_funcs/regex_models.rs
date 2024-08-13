@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 // Need to add concatonated tokens in future
 pub enum Token {
   Literal(String),
-  ConcatenatedExpression(Box<(Token, Token)>),
+  ConcatenatedExpression(Box<ConcatenatedExpression>),
   GroupedExpression(Box<Vec<Token>>),
   OrOperator(Box<OrOperator>),
   KleeneOperator(Box<KleeneOperator>)
@@ -25,6 +25,8 @@ pub enum ParsingError {
 // 'type of' an operator in a field in the obj
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
 pub struct OrOperator {
+  operator_character: String,
+  operator_name: String,
   // For now their arguments will exclusively be a single literal
   left_argument: Option<Token>,
   right_argument: Option<Token>
@@ -32,12 +34,20 @@ pub struct OrOperator {
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
 pub struct KleeneOperator {
+  operator_character: String,
+  operator_name: String,
   inner_argument: Option<Token>
 }
 
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
+pub struct ConcatenatedExpression {
+  operator_character: String,
+  operator_name: String,
+  left_argument: Option<Token>,
+  right_argument: Option<Token>
+}
+
 pub trait Operator {
-  fn get_operator_character() -> String;
-  fn get_operator_name() -> String;
   // Just using insert for now as a test
   fn insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError>;
   fn has_empty_arg(&self) -> bool;
@@ -60,9 +70,62 @@ pub trait UnaryOperator {
   fn get_inner_argument(&self) -> Option<&Token>;
 }
 
+impl Operator for ConcatenatedExpression {
+  fn insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError> {
+    if !self.has_empty_arg() {
+      return Err(ParsingError::NoEmptySpaceInParseTree)
+    }
+    if self.get_left_argument().is_none() {
+      self.left_insert_token(token_to_insert)?;
+    } else {
+      self.right_insert_token(token_to_insert)?;
+    }
+
+    Ok(())
+    
+  }
+  fn has_empty_arg(&self) -> bool {
+    return self.left_argument.is_none() || self.right_argument.is_none();
+  }
+}
+
+impl BinaryOperator for ConcatenatedExpression {
+  fn new(left_argument: Option<Token>, right_argument: Option<Token>) -> Self {
+    return ConcatenatedExpression {
+      operator_character: String::from("⋅"),
+      operator_name: String::from("Concatenated Expressions"),
+      left_argument,
+      right_argument
+    }
+  }
+  fn left_insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError> {
+    if token_to_insert.is_none() {
+      return Err(ParsingError::NoneTokenProvided);
+    }
+    self.left_argument = token_to_insert;
+    Ok(())
+  }
+  fn right_insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError> {
+    if token_to_insert.is_none() {
+      return Err(ParsingError::NoneTokenProvided);
+    }
+    self.right_argument = token_to_insert;
+    Ok(())
+  }
+  fn get_left_argument(&self) -> Option<&Token> {
+    return self.left_argument.as_ref();
+  }
+  fn get_right_argument(&self) -> Option<&Token> {
+    return self.right_argument.as_ref();
+  }
+}
+
+
 impl BinaryOperator for OrOperator {
   fn new(left_argument: Option<Token>, right_argument: Option<Token>) -> Self {
     return OrOperator {
+      operator_character: String::from("+"),
+      operator_name: String::from("Or"),
       left_argument,
       right_argument
     }
@@ -139,6 +202,8 @@ impl BinaryOperator for OrOperator {
 impl UnaryOperator for KleeneOperator {
   fn new(inner_argument: Option<Token>) -> Self {
     return KleeneOperator {
+      operator_character: String::from("*"),
+      operator_name: String::from("Kleene"),
       inner_argument
     }
   }
@@ -149,13 +214,6 @@ impl UnaryOperator for KleeneOperator {
 }
 
 impl Operator for OrOperator {
-  fn get_operator_character() -> String {
-    return String::from("+");
-  }
-  fn get_operator_name() -> String {
-    return String::from("Or Operator");
-  }
-
   fn insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError> {
     // Inserts a token into the first available spot found on either side of the tree
     // Done via BFS to minimize tree depth
@@ -200,14 +258,6 @@ impl Operator for OrOperator {
 }
 
 impl Operator for KleeneOperator {
-  fn get_operator_character() -> String {
-    return String::from("*")
-  }
-
-  fn get_operator_name() -> String {
-    return String::from("Kleene Operator");
-  }
-
   fn insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError> {
     // Inserts a token into the first available spot found on either side of the tree
     // Done via BFS to minimize tree depth
@@ -263,10 +313,10 @@ impl Into<Token> for &str {
   fn into(self) -> Token {
     let mut value = String::new();
 
-    let forbidden_characters = HashSet::from(['(', ')', '[', ']', '*', '+']);
+    let forbidden_operator_characters = HashSet::from(['(', ')', '[', ']', '*', '+']);
 
     for c in self.chars() {
-      if !c.is_whitespace() && !forbidden_characters.contains(&c) {
+      if !c.is_whitespace() && !forbidden_operator_characters.contains(&c) {
         value.push(c);
       } else {
         return Token::Literal(value);

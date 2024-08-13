@@ -24,7 +24,7 @@
 
 </script>
 
-<nav class="text-center select-none flex flex-col justify-between self-end gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 py-4 mr-0.5 z-10 transition-all duration-300">
+<nav class="text-center select-none flex flex-col justify-between self-center gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 py-4 mr-0.5 z-10 transition-all duration-300">
   <div class="flex flex-col gap-2">
     <button
       on:click={() => {

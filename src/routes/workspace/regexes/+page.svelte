@@ -1,46 +1,67 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api";
   import TitleHeader from "$lib/components/TitleHeader.svelte";
+  import TestFeedback from "../workbench/TestFeedback.svelte"
   import Banner from "./Banner.svelte";
+  import { drawParseTree } from "$lib/utils/drawingFuncs";
+  import type { Token } from "$lib/types/types";
 
-  let was_string_accepted: boolean | undefined = undefined
-  let regex: string | undefined = undefined;
+  let was_string_accepted: boolean | null = null;
+  let regex: string = "";
+  let string_to_test: string = "";
+  let canvas: HTMLCanvasElement | undefined;
+  const width = 1000;
+  const height = 1000;
+
+  async function processRegex(regex: string, string_to_test: string) {
+    const context = canvas?.getContext("2d");
+    if (!context) {
+      return false;
+    }
+    context.clearRect(0, 0, width, height);
+    const accepted: boolean = await invoke("test_string_regex", {regex: regex, stringToCheck: string_to_test});
+    const parse_tree: Token = await invoke("build_parse_tree", {regex: regex});
+    drawParseTree(parse_tree, context, {x: width/2, y: 50});
+    was_string_accepted = accepted;
+    return accepted;
+  }
+
+
+  $: {
+    processRegex(regex, string_to_test);
+  }
 
   function handleUpdatingRegex(event: Event & {currentTarget: EventTarget & HTMLInputElement}): void {
     regex = event.currentTarget.value;
   }
 
-  async function handleStringChecking(event: Event & {currentTarget: EventTarget & HTMLInputElement}): Promise<boolean> {
-
-    const string_to_test = event.currentTarget.value;
-
-    const accepted: boolean = await invoke("test_string_regex", {regex: regex, stringToCheck: string_to_test});
-    console.log(await invoke("build_parse_tree", {regex: regex}));
-    was_string_accepted = accepted;
-    return accepted;
+  function handleStringChecking(event: Event & {currentTarget: EventTarget & HTMLInputElement}): void {
+    string_to_test = event.currentTarget.value;
   }
 
 </script>
 <Banner />
-<div class="flex flex-col justify-center p-24">
-  <div class="flex flex-col justify-center mt-30 gap-3 font-semibold text-2xl">
-    <form class="self-center" action="">
-      <label for="regex">Build Regular Expression</label>
-      <input class="text-3xl px-1 py-0.5 border-black border-2 rounded-md self-center" on:input={handleUpdatingRegex} id="regex" name="regex" type="text">
-    </form>
-    <form class="self-center" >
-      <label for="string_test">Check String: </label>
-      <input class="text-3xl px-1 py-0.5 border-black border-2 rounded-md" on:input={handleStringChecking} id="string_test" name="string_test" type="text">
-    </form>
-    <div class="self-center mt-64">
-      {#if (was_string_accepted === true)}
-      The string was accepted!
-      {:else if (was_string_accepted === false)}
-      The string wasn't accepted :(
-      {/if}
-    </div>
-  </div>
-  <canvas>
+<div class="flex flex-col justify-center h-fit p-12 font-semibold">
+  <div class="flex justify-between gap-3 font-semibold text-2xl">
+    <div class="w-48 h-24">
 
+    </div>
+    <form class="self-center flex flex-col gap-6" action="">
+      <div>
+        <label for="regex">Build Regular Expression: </label>
+        <input class="text-3xl px-1 py-0.5 border-black border-2 rounded-md self-center" on:input={handleUpdatingRegex} id="regex" name="regex" type="text">
+      </div>
+      <div>
+        <label for="string_test">Check String: </label>
+        <input class="text-3xl px-1 py-0.5 border-black border-2 rounded-md" on:input={handleStringChecking} id="string_test" name="string_test" type="text">
+      </div>
+    </form>
+    <TestFeedback is_string_accepted={was_string_accepted} />
+  </div>
+  <canvas class="self-center"
+    style={`width: ${width}px; height: ${height}px;`}
+    {width}
+    {height}
+    bind:this={canvas}>
   </canvas>
 </div>

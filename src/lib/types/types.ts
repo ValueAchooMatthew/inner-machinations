@@ -1,4 +1,4 @@
-import type { Connection,  State } from "./interfaces";
+import type { ConcatenatedExpression, Connection, KleeneOperator, Literal, OrOperator, State } from "./interfaces";
 
 export type TauriGeneratedAutomataInformation = [
   number | null, // Corresponds to start state index
@@ -9,4 +9,5 @@ export type TauriGeneratedAutomataInformation = [
   string  // Corresponds to date of last update (not necessary to set anything with this)
 ];
 
-// export type Token = OrOperator | KleeneOperator;
+// Not including grouped expressions as they are parsed out in rust backend before being passed to ts
+export type Token = OrOperator | KleeneOperator | ConcatenatedExpression | Literal;

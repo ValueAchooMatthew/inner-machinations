@@ -2,7 +2,7 @@ mod regex_models;
 use std::collections::HashMap;
 
 use app::create_unique_state_coordinates;
-use regex_models::{BinaryOperator, KleeneOperator, OrOperator, ParsingError, Token, UnaryOperator, Operator};
+use regex_models::{BinaryOperator, ConcatenatedExpression, KleeneOperator, Operator, OrOperator, ParsingError, Token, UnaryOperator};
 
 use app::models::{SmartState, State, Coordinate};
 
@@ -111,7 +111,6 @@ fn convert_parse_tree_to_nfa(
       convert_parse_tree_to_nfa(state_positions, current_state_coords, right_token.to_owned(), end_state_coords);
     },
 
-    // Will need to alter in future to accomodate concatonation
     Token::KleeneOperator(operator) => {
 
       let inner_argument = operator
@@ -140,8 +139,10 @@ fn convert_parse_tree_to_nfa(
 
     },
     Token::ConcatenatedExpression(concatenated_expression) => {
-      let left_token = concatenated_expression.0;
-      let right_token = concatenated_expression.1;
+      // We are once again assuming the parse tree has been accurately constructed such that
+      // concatenated expressions have both some arguments
+      let left_token = concatenated_expression.get_left_argument().cloned();
+      let right_token = concatenated_expression.get_right_argument().cloned();
 
       let right_token_start_state_coords = create_unique_state_coordinates(&state_positions.keys().cloned().collect());
 
@@ -151,11 +152,12 @@ fn convert_parse_tree_to_nfa(
 
       convert_parse_tree_to_nfa(state_positions, 
         current_state_coords, 
-        left_token, right_token_start_state_coords);
+        left_token.unwrap(), 
+        right_token_start_state_coords);
 
       convert_parse_tree_to_nfa(state_positions, 
         right_token_start_state_coords, 
-        right_token,
+        right_token.unwrap(),
         end_state_coords);
 
     }
@@ -255,8 +257,8 @@ fn handle_kleene_token_to_nfa_conversion(
 
       },
       Token::ConcatenatedExpression(concatenated_expression)=> {
-        let left_token = concatenated_expression.0;
-        let right_token = concatenated_expression.1;
+        let left_token = concatenated_expression.get_left_argument().cloned();
+        let right_token = concatenated_expression.get_right_argument().cloned();
   
         let right_token_start_state_coords = create_unique_state_coordinates(&state_positions.keys().cloned().collect());
   
@@ -266,11 +268,12 @@ fn handle_kleene_token_to_nfa_conversion(
   
         convert_parse_tree_to_nfa(state_positions, 
           current_state_coords, 
-          left_token, right_token_start_state_coords);
+          left_token.unwrap(),
+           right_token_start_state_coords);
   
         convert_parse_tree_to_nfa(state_positions, 
           right_token_start_state_coords, 
-          right_token,
+          right_token.unwrap(),
           coords_of_state_to_loop_to);
 
       }
@@ -504,16 +507,19 @@ fn concatenate_tokens(tokens: Vec<Token>) -> Token {
     let second_token = tokens
       .get(1)
       .expect("The array should have at least 2 elements");
-    return Token::ConcatenatedExpression(Box::new((first_token.to_owned(), second_token.to_owned())));
+    return Token::ConcatenatedExpression(Box::new(ConcatenatedExpression::new(
+      Some(first_token.to_owned()), 
+      Some(second_token.to_owned())
+    )));
   }
 
   let midpoint = tokens.len().div_ceil(2);
   let first_half_of_tokens = &tokens[..midpoint];
   let second_half_of_tokens = &tokens[midpoint..];
 
-  return Token::ConcatenatedExpression(Box::new((
-    concatenate_tokens(first_half_of_tokens.to_owned()),
-    concatenate_tokens(second_half_of_tokens.to_owned())
+  return Token::ConcatenatedExpression(Box::new(ConcatenatedExpression::new(
+    Some(concatenate_tokens(first_half_of_tokens.to_owned())), 
+    Some(concatenate_tokens(second_half_of_tokens.to_owned()))
   )));
 
 }

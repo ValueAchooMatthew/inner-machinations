@@ -1,6 +1,6 @@
 // Reworked so every state has a reference to it's position, to allow for a single state interface for use
 
-// import type { Token } from "./types";
+import type { Token } from "./types";
 
 // In both drawing states to the canvas and connecting data in the rust
 export interface State {
@@ -41,21 +41,26 @@ export interface CheckedStringResponse {
   states_traversed: Array<State>
 }
 
-// export interface balls {
+export interface OrOperator {
+  operator_character: "+",
+  operator_name: "Or",
+  left_argument: Token,
+  right_argument: Token
+}
 
+export interface KleeneOperator {
+  operator_character: "*",
+  operator_name: "Kleene",
+  inner_argument: Token
+}
 
-// }
+export interface ConcatenatedExpression {
+  operator_character: "⋅",
+  operator_name: "Concatenated Expressions",
+  left_argument: Token,
+  right_argument: Token
+}
 
-
-// export interface OrOperator {
-//   left_argument: Token,
-//   right_argument: Token
-// }
-
-// export interface KleeneOperator {
-//   inner_argument: Token
-// }
-
-// export interface ConcatenatedExpression {
-  
-// }
+export interface Literal {
+  Literal: string
+}
