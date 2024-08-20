@@ -1,70 +1,95 @@
 <script lang="ts">
-  import { input_alphabet } from "$lib/utils/automataStores";
+  import { input_alphabet, should_show_string_traversal, should_strict_check, 
+  default_connection_char, workspace_name, email } from "$lib/utils/automataStores";
+  import { convertFormDataEntriesToStringArray} from "$lib/utils/miscUtils";
+  import { saveOptions } from "$lib/utils/savingWorkspaceFuncs";
+  import { invoke } from "@tauri-apps/api";
 
-  export let default_connection_char: string = "a";
-  export let sidebar_open: boolean;
-  export let is_strict_checking: boolean = false;
-  export let is_showing_string_traversal: boolean = false;
+  export let is_option_menu_open: boolean = false;
+  let form: HTMLFormElement | undefined;
 
-  const handleDefaultCharChange = (event: Event) => {
-    if (!(event instanceof InputEvent)) {
-      return;
-    }
-    const data = event.data;
-    if (data === null || data === "") {
-      return;
-    }
-    default_connection_char = data;
-  };
-
-  const handleSubmitAll = (event: SubmitEvent) => {
-    event.preventDefault();
-    if (!(event.target instanceof HTMLFormElement)) {
-      return;
-    }
-
-    // Clearing input alphabet so form data becomes the new input alphabet 
-    input_alphabet.set(
-      new Array()
-    );
-
-    const form_data = new FormData(event.target);
-    form_data.forEach((entry) => {
-
-      // If the user attempts to add an empty string or multiple of the same character to the
-      // input alphabet, the character isnt added and no new characters are added
-      if ($input_alphabet.includes(entry.toString())) {
-        return;
-      }
-
-      input_alphabet.update((prev_input_alphabet: Array<string>) => {
-        prev_input_alphabet.push(entry.toString());
-        return prev_input_alphabet;
-      })
-    });
-  };
-
-  const handleAddingNewCharInput = () => {
+  const handleAddingInputElement = () => {
     input_alphabet.update((prev_input_alphabet) => {
       prev_input_alphabet.push("");
       return prev_input_alphabet;
     })
   }
 
-  const handleRemovingCharInput = (index: number) => {
+  const handleRemovingInputElement = (index: number) => {
     input_alphabet.update((prev_input_alphabet)=>{
       prev_input_alphabet.splice(index, 1);
       return prev_input_alphabet;
     })
   };
 
-</script>
+  async function handleClosingOptionMenu() {
+    is_option_menu_open = false;
+    if(form) {
 
+      const data = new FormData(form);
+
+      const alphabet = data.getAll("alphabet");
+      const stringified_array = convertFormDataEntriesToStringArray(alphabet);
+      const sanitized_alphabet: Array<string> = await invoke("update_workspace_alphabet", {
+        workspaceName: $workspace_name, email: $email, alphabet: stringified_array
+      });
+      input_alphabet.set(sanitized_alphabet);
+
+      // await invoke("");
+      
+      const default_connection_character = data.get("default_character")?.toString();
+      if(default_connection_character === undefined) {
+        return;
+      }
+      default_connection_char.set(default_connection_character)
+
+    }
+  }
+
+  async function handleKeyDownEvent(event: KeyboardEvent) {
+    if(event.key === "Escape") {
+      is_option_menu_open = !is_option_menu_open;
+      await saveOptions(form);
+    }
+  }
+
+</script>
+<style>
+  input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: #fff;
+    border-radius: 0.375rem;
+    border: 2px solid #ed8936; /* Orange border */
+    position: relative;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="checkbox"]:checked {
+    background-color: #ed8936; /* Orange background */
+    border-color: transparent;
+  }
+
+  input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 0.2rem;
+    left: 0.45rem;
+    width: 0.4rem;
+    height: 0.7rem;
+    border: solid white;
+    border-width: 0 0.2rem 0.2rem 0;
+    transform: rotate(45deg);
+  }
+</style>
+
+<svelte:window on:keydown={handleKeyDownEvent}/>
 <div class="flex justify-start">
   <button class="w-12 h-12 z-10 self-center ml-4 mt-4"
-    on:click={() => {
-      sidebar_open = !sidebar_open;
-    }}>
+    on:click={handleClosingOptionMenu}>
     <svg
       data-slot="icon"
       aria-hidden="true"
@@ -82,25 +107,24 @@
   </button>
 </div>
 <h1 class="text-5xl text-gray-100 text-center my-6 mt-24">Options</h1>
-<div class="font-bold h-fit bg-gray-100 flex flex-col text-3xl justify-start px-96 gap-12 mx-auto rounded-[3rem] p-12">
-  <form class="self-start" id="alphabetChange" on:submit={handleSubmitAll}>
-    <div class="flex justify-center gap-3">
+<div class="font-bold h-fit bg-gray-100 flex flex-col text-3xl justify-start px-72 gap-24 mx-auto rounded-[3rem] p-12">
+  <form class="self-start flex flex-col gap-4" bind:this={form} id="alphabetChange">
+    <div class="flex justify-between">
       <label for="alphabet"> Input Alphabet (works for DFA's only): </label>
       <div class="flex flex-col gap-2">
         <!-- Svelte way of iterating through an object with a length property, which I am using to place input elements in DOM -->
         {#each $input_alphabet as value, i}
           <div class="flex gap-1">
-            <input
+            <input class="border-black border-2 rounded-md px-1"
               maxlength="1"
               {value}
-              class="border-black border-2 rounded-md px-1"
               type="text"
               name="alphabet"
               id="alphabet"/>
             <button class="w-8 h-8">
               <svg
                 on:click={() => {
-                  handleRemovingCharInput(i);
+                  handleRemovingInputElement(i);
                 }}
                 data-slot="icon"
                 aria-hidden="true"
@@ -118,14 +142,8 @@
             </button>
           </div>
         {/each}
-        <button class="bg-orange-500 w-fit h-fit self-center px-2 py-1 rounded-md text-white text-md font-semibold border-black border-2"
-          on:submit={handleSubmitAll}
-          form="alphabetChange">
-          Submit All
-        </button>
-
       </div>
-      <button class="self-end mb-1" on:click={handleAddingNewCharInput}>
+      <button class="self-end mb-1" on:click={handleAddingInputElement}>
         <svg class="w-8 h-8"
           data-slot="icon"
           aria-hidden="true"
@@ -142,44 +160,43 @@
         </svg>
       </button>
     </div>
-  </form>
+    <div>
+      <label for="strict"> Strict Checking (works for DFA's only): </label>
+      <input class="w-6 h-6 accent-orange-500
+          checked:bg-orange-500 checked:border-transparent checked:ring-2 checked:ring-orange-500 checked:ring-offset-2
+          checked:ring-offset-white rounded-md px-2 py-1"
+        on:change={() => {
+          should_strict_check.set(!$should_strict_check);
+        }}
+        value={$should_strict_check}
+        type="checkbox"
+        name="strict"
+        id="strict"/>
+    </div>
+    <div>
+      <label for="traversal"> Show Step-By-Step String Traversal: </label>
+      <input class="w-6 h-6 accent-orange-500
+          checked:bg-orange-500 checked:border-transparent checked:ring-2 checked:ring-orange-500 checked:ring-offset-2
+          checked:ring-offset-white rounded-md px-2 py-1 checked:"
+        on:change={() => {
+          should_show_string_traversal.set(!$should_show_string_traversal);
+        }}
+        value={$should_show_string_traversal}
+        type="checkbox"
+        name="traversal"
+        id="traversal"/>
+    </div>
 
-
-  <form class="self-start">
-    <label for="strict"> Strict Checking (works for DFA's only): </label>
-    <input class="w-6 h-6 accent-orange-500
-        checked:bg-orange-500 checked:border-transparent checked:ring-2 checked:ring-orange-500 checked:ring-offset-2
-        checked:ring-offset-white rounded-md px-2 py-1"
-      on:change={() => {
-        is_strict_checking = !is_strict_checking;
-      }}
-      type="checkbox"
-      name="strict"
-      id="strict"/>
-  </form>
-  <form class="self-start">
-    <label for="showingTraversalSteps"> Show Step-By-Step String Traversal: </label>
-    <input class="w-6 h-6 accent-orange-500
-        checked:bg-orange-500 checked:border-transparent checked:ring-2 checked:ring-orange-500 checked:ring-offset-2
-        checked:ring-offset-white rounded-md px-2 py-1 checked:"
-      on:change={() => {
-        is_showing_string_traversal = !is_showing_string_traversal;
-      }}
-      type="checkbox"
-      name="showingTraversalSteps"
-      id="showingTraversalSteps"/>
-  </form>
-
-  <form class="self-start">
-    <label for="char">
-      Specify default connection character (default: a):
-    </label>
-    <input class="border-black border-2 rounded-md px-2 py-1"
-      value={default_connection_char}
-      maxlength="1"
-      on:input={handleDefaultCharChange}
-      type="text"
-      name="char"
-      id="char"/>
+    <div>
+      <label for="default_character">
+        Specify default connection character (default: a):
+      </label>
+      <input class="border-black border-2 rounded-md px-2 py-1"
+        value={$default_connection_char}
+        maxlength="1"
+        type="text"
+        name="default_character"
+        id="default_character"/>
+    </div>
   </form>
 </div>

@@ -29,6 +29,10 @@ diesel::table! {
         workspace_name -> Text,
         type_of_automata -> crate::models::TypeOfAutomataMapping,
         date_of_last_update -> Timestamp,
+        alphabet -> Text,
+        should_show_string_traversal -> Bool,
+        should_strict_check -> Bool,
+        default_connection_character -> Text,
     }
 }
 

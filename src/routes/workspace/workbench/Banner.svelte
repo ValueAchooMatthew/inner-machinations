@@ -1,38 +1,53 @@
 <script lang="ts">
   import { Automata } from "$lib/types/enums";
-  import { state_positions, list_of_connections, type_of_automata } from "$lib/utils/automataStores";
+  import { workspace_name, email, type_of_automata, dialogue_to_user } from "$lib/utils/automataStores";
+  import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
   import { invoke } from "@tauri-apps/api";
-  export let sidebar_open: boolean = false;
-  export let workspace_name: string | undefined;
-  export let email: string | undefined;
 
-  const handleSubmit = async (event: SubmitEvent) => {
-    if (!(event.target instanceof HTMLFormElement) || !email) {
+  export let is_option_menu_open: boolean;
+
+  // Current workaround to save workspace 500ms after typing has stopped
+  // as svelte doesn't provide on:inputend event natively
+  async function renameWorkspace(new_workspace_name: string) {
+    await invoke("rename_workspace", {originalWorkspaceName: $workspace_name, email: $email, newWorkspaceName: new_workspace_name});
+    workspace_name.set(new_workspace_name);
+  }
+
+  let timer: NodeJS.Timeout | undefined;
+  async function handleInputEvent(event: Event & {currentTarget: EventTarget & HTMLInputElement}): Promise<void> {
+    const new_workspace_name = event.currentTarget.value;
+    
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const does_new_workspace_name_already_exist: boolean = await invoke("does_workspace_name_exist", {workspaceName: new_workspace_name, email: $email});
+      if(does_new_workspace_name_already_exist) {
+        return;
+      }
+      await renameWorkspace(new_workspace_name);
+    }, 800);
+  }
+
+  async function handleSubmitEvent(event: SubmitEvent) {
+    // In case a user has finished typing and thus begun the timer for automatic input handling
+    // But then prior to submission fires submit event
+    clearTimeout(timer);
+    if (!(event.target instanceof HTMLFormElement)) {
       return;
     }
-
     const form_data = new FormData(event.target);
-    let new_workspace_name = form_data.get("renamedWorkspace");
-
-    if (!new_workspace_name) {
+    const new_workspace_name = form_data.get("workspaceName")?.toString();
+    if(!new_workspace_name) {
       return;
     }
-    new_workspace_name = new_workspace_name.toString();
+    const does_new_workspace_name_already_exist: boolean = await invoke("does_workspace_name_exist", {workspaceName: new_workspace_name, email: $email});
+    if(does_new_workspace_name_already_exist) {
+      dialogue_to_user.set("The entered workspace name already exists");
+      return;
+    }
+    await renameWorkspace(new_workspace_name)
 
-    await invoke("delete_workspace", {
-      workspaceName: workspace_name,
-      email: email
-    });
+  }
 
-    await invoke("save_workspace", {
-      workspaceName: new_workspace_name,
-      email: email,
-      states: $state_positions,
-      connections: $list_of_connections,
-      typeOfAutomata: Automata[$type_of_automata]
-    });
-    workspace_name = new_workspace_name;
-  };
 </script>
 
 <div class="bg-orange-500 flex shadow-lg py-4 pl-2 pr-4 w-full text-gray-100">
@@ -40,7 +55,7 @@
     <div class="w-[42rem] flex justify-between">
       <button class="w-12 h-12 z-10 self-center"
         on:click={() => {
-          sidebar_open = !sidebar_open;
+          is_option_menu_open = !is_option_menu_open;
         }}>
         <svg
           data-slot="icon"
@@ -53,24 +68,23 @@
           <path
             d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
             stroke-linecap="round"
-            stroke-linejoin="round" />
+            stroke-linejoin="round"/>
         </svg>
       </button>
       <div>
-        <form on:submit={handleSubmit} action="">
-          <input
-            name="renamedWorkspace"
-            id="renamedWorkspace"
-            class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2"
-            value={workspace_name}
-            type="text"
-          />
+        <form on:submit={handleSubmitEvent}>
+          <label for="workspaceName"></label>
+          <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2"
+            on:input={handleInputEvent}
+            id="workspaceName"
+            name="workspaceName"
+            value={$workspace_name}
+            type="text"/>
         </form>
       </div>
     </div>
     <div class="flex gap-2 font-bold self-center ml-auto mr-auto">
-      <button
-        class={$type_of_automata == Automata.DFA ? "" : "text-gray-950"}
+      <button class={$type_of_automata == Automata.DFA ? "" : "text-gray-950"}
         on:click={() => {
           type_of_automata.set(Automata.DFA);
         }}>
@@ -85,11 +99,10 @@
         NFA
       </button>
     </div>
-    <div class="w-[42rem] flex gap-3 justify-end">
+    <button class="w-[42rem] flex gap-3 justify-end" on:click={async () => {saveWorkspace()}}>
       <a class="flex gap-2 font-bold self-center justify-self-end"
         href="/workspace/dashboard">
-        <svg
-          class="w-10 h-10"
+        <svg class="w-10 h-10"
           data-slot="icon"
           aria-hidden="true"
           fill="none"
@@ -106,16 +119,14 @@
         <span> Dashboard </span>
       </a>
       <a class="flex gap-2 font-bold self-center justify-self-end" href="/">
-        <svg
-          class="w-10 h-10 inline-block"
+        <svg class="w-10 h-10 inline-block"
           data-slot="icon"
           aria-hidden="true"
           fill="none"
           stroke-width="1.5"
           stroke="currentColor"
           viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
             stroke-linecap="round"
@@ -124,6 +135,6 @@
         </svg>
         <span> Home </span>
       </a>
-    </div>
+    </button>
   </div>
 </div>

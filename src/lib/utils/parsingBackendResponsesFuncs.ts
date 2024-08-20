@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { list_of_connections, list_of_states, start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/automataStores";
+import { input_alphabet, list_of_connections, list_of_states, start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/automataStores";
 import type { State } from "$lib/types/interfaces";
 import { convertCoordinateToString } from "$lib/utils/miscUtils";
 import type { TauriGeneratedAutomataInformation } from "$lib/types/types";
@@ -81,5 +81,9 @@ export const setTauriResponses = (tauri_response: TauriGeneratedAutomataInformat
       Automata.NFA
     );
   }
+
+  input_alphabet.set(
+    tauri_response[6]
+  )
 
 }

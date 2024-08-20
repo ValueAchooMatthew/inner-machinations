@@ -7,13 +7,11 @@
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
   import { convertCoordinateToString, removeFirstElementFromArray } from "$lib/utils/miscUtils";
   import { list_of_states, list_of_connections, selected_connection_index, 
-  state_positions, current_action } from "$lib/utils/automataStores";
+  state_positions, current_action, email, workspace_name} from "$lib/utils/automataStores";
   import { undo } from "$lib/utils/deletionFuncs";
   import { handleUserClickingCanvas } from "$lib/utils/userEvents";
 
   export let default_connection_char: string = "a";
-  export let workspace_name: string | undefined;
-  export let email: string | undefined;
   export let highlighted_state: State | null;
 
   // DO NOT CHANGE ANY CODE IN FORM FOO = [...FOO, BAR]
@@ -91,12 +89,12 @@
 
   };
 
-  const handleUndoEvent = async (event: KeyboardEvent): Promise<void> => {
+  const handleKeyDownEvent = async (event: KeyboardEvent): Promise<void> => {
     // if (event.ctrlKey === true && event.key === "z") {
     //   undo();
     // } else 
     if (event.ctrlKey === true && event.key === "s") {
-      saveWorkspace(email, workspace_name);
+      saveWorkspace();
     }
   };
 
@@ -231,7 +229,7 @@
 </script>
 
 <svelte:window
-  on:keydown={handleUndoEvent}
+  on:keydown={handleKeyDownEvent}
   on:mousedown={handleDragStart}
   on:mouseup={handleDragEnd}
   on:mousemove={handleDrag}/>

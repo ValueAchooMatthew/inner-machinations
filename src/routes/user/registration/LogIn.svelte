@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { invoke } from "@tauri-apps/api/tauri";
+  import { email } from "$lib/utils/automataStores"
 
   let response = "";
 
@@ -13,32 +14,35 @@
     }
 
     const data = new FormData(event.target);
-    const email = data.get("email")?.toString();
+    const user_email = data.get("email")?.toString();
     const password = data.get("password")?.toString();
-    document.cookie = "email" + "=" + email + "; path=/";
+    document.cookie = "email" + "=" + user_email + "; path=/";
 
-    if (!email || !password) {
+    if (!user_email || !password) {
       return;
     }
-
+    email.set(
+      user_email
+    )
+    
     const isRegistered: boolean = await invoke("is_user_registered", {
-      email: email,
+      email: user_email,
       password: password,
     });
 
     if (!isRegistered) {
-      invoke("register_user", { email: email, password: password });
+      invoke("register_user", { email: user_email, password: password });
       goto("verification");
       return;
     }
 
     const isCorrectLogin: boolean = await invoke("is_correct_log_in", {
-      email: email,
+      email: user_email,
       password: password,
     });
 
     const isVerified: boolean = await invoke("is_user_verified", {
-      email: email,
+      email: user_email,
       password: password,
     });
 
@@ -62,20 +66,17 @@
   on:submit={handleSubmit}>
   <label class="self-center my-4">
     Email
-    <input
+    <input class="border-black border-[2px] rounded-md px-2 py-1"
       required
       aria-required="true"
-      class="border-black border-[2px] rounded-md px-2 py-1"
       name="email"
-      type="email"
-    />
+      type="email"/>
   </label>
   <label class="self-center">
   Password
-  <input
+  <input class="border-black border-[2px] rounded-md px-2 py-1 mr-[3.5rem]"
     required
     aria-required="true"
-    class="border-black border-[2px] rounded-md px-2 py-1 mr-[3.5rem]"
     name="password"
     type="password"/>
   </label>

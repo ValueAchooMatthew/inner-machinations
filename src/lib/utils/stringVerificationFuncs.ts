@@ -7,11 +7,11 @@ export const checkInputtedString = async (
   type_of_automata: Automata,
   state_positions: Map<string, State>,
   string_to_check: string | null,
-  is_strict_checking: boolean,
+  should_strict_check: boolean,
   input_alphabet: Array<string>
   ): Promise<CheckedStringResponse> => {
 
-  const is_dfa_valid: boolean = await checkValidityOfDFA(is_strict_checking, type_of_automata, state_positions, input_alphabet);
+  const is_dfa_valid: boolean = await checkValidityOfDFA(should_strict_check, type_of_automata, state_positions, input_alphabet);
   if(!is_dfa_valid){
     return {
       dialogue: `Your DFA either does not specify every connection provided in the input alphabet, or specifies them more than once.
@@ -62,14 +62,14 @@ export const checkInputtedString = async (
 }
 
 const checkValidityOfDFA = async (
-  is_strict_checking: boolean,
+  should_strict_check: boolean,
   type_of_automata: Automata,
   state_positions: Map<string, State>,
   input_alphabet: Array<string>
 ): Promise<boolean> => {
   // If we are not strict checking, or we are not testing a DFA, we should not alert the program
   // if the automata is not strictly valid
-  if(!is_strict_checking || type_of_automata !== Automata.DFA){
+  if(!should_strict_check || type_of_automata !== Automata.DFA){
     return true;
   }
   return await invoke("verify_valid_dfa", {

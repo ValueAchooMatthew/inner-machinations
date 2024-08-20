@@ -7,19 +7,14 @@
   import Notifications from "./Notifications.svelte";
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api";
-  import { dialogue_to_user, start_state_index, state_positions, input_alphabet, start_state_position, type_of_automata } from "$lib/utils/automataStores";
+  import { dialogue_to_user, start_state_index, state_positions, input_alphabet, 
+  start_state_position, type_of_automata, email, workspace_name } from "$lib/utils/automataStores";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
   import type { TauriGeneratedAutomataInformation } from "$lib/types/types";
-  import { getCookie } from "$lib/utils/miscUtils";
   import TestFeedback from "./TestFeedback.svelte";
   import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
   import Sidebar from "./Sidebar.svelte";
   import LanguageOfAutomata from "./LanguageOfAutomata.svelte";
-
-  let data = {
-    workspace_name: getCookie("workspace_name"),
-    email: getCookie("email")
-  };
 
   let string_to_check: string;
   let is_string_accepted: boolean | null = null;
@@ -27,21 +22,16 @@
 
   // let state_connections: Map<string, State> = new Map<string, State>();
   let highlighted_state: State | null = null;
-  let is_showing_string_traversal: boolean;
+  let should_show_string_traversal: boolean;
   let default_connection_char: string;
-  let sidebar_open: boolean;
-  let is_strict_checking: boolean;
-  let workspace_name: string | undefined = data.workspace_name;
-  let email: string | undefined = getCookie("email");
+  let is_option_menu_open: boolean;
+  let should_strict_check: boolean;
 
-  onMount(async ()=> {
-    if (!email || !workspace_name) {
-      return;
-    }
+  onMount(async () => {
     const tauri_response: TauriGeneratedAutomataInformation = 
     await invoke("retrieve_workspace_data", {
-      email: email,
-      workspaceName: workspace_name,
+      email: $email,
+      workspaceName: $workspace_name,
     });
 
     setTauriResponses(
@@ -72,7 +62,7 @@
       $type_of_automata, 
       $state_positions, 
       string_to_check,
-      is_strict_checking,
+      should_strict_check,
       $input_alphabet)
       .then((result: CheckedStringResponse) => {
         is_string_accepted = result.is_string_accepted;
@@ -84,7 +74,7 @@
       .catch((err)=>{
         console.log(err);
       });
-    if(is_showing_string_traversal) {
+    if(should_show_string_traversal) {
       handleIncrementalStringChecking();
     }
   };
@@ -103,7 +93,7 @@
         $type_of_automata, 
         $state_positions, 
         string_to_check,
-        is_strict_checking,
+        should_strict_check,
         $input_alphabet
         )
         .then((result: CheckedStringResponse) => {
@@ -128,62 +118,60 @@
 
   }
 
+  async function handleKeyDownEvent(event: KeyboardEvent) {
+    if(event.key === "Escape") {
+      is_option_menu_open = !is_option_menu_open;
+    }
+  }
+
 </script>
 
+<!-- <svelte:window on:keydown={handleKeyDownEvent}/> -->
 <div class="relative flex font-semibold w-full h-full bg-gray-200 min-h-screen">
   <aside class=" bg-orange-500 flex flex-col top-0
     absolute transition-all duration-300 overflow-hidden z-50 w-full h-full"
-    class:left-0={sidebar_open}
-    class:-left-full={!sidebar_open}>
+    class:left-0={is_option_menu_open}
+    class:-left-full={!is_option_menu_open}>
     <OptionsMenu
-      bind:is_strict_checking
-      bind:default_connection_char
-      bind:sidebar_open
-      bind:is_showing_string_traversal/>
+
+      bind:is_option_menu_open/>
   </aside>
   <div class="w-full min-w-0">
     <Banner
-      {email}
-      bind:workspace_name
-      bind:sidebar_open/>
+      bind:is_option_menu_open/>
     <main>
       <div class="w-full h-fit font-semibold flex align-middle justify-around">
         <div class="flex flex-col">
-        <Whiteboard
-          {email}
-          {workspace_name}
-          {highlighted_state}
-          {default_connection_char}/>
-      </div>
-      <div class="flex flex-col justify-center gap-3 py-3">
-        <TestFeedback {is_string_accepted} />
-        <Sidebar
-          {email}
-          {workspace_name}/>
-        <AdvancedAutomataFunctions />
-      </div>
-    </div>
-        <div class="flex justify-center mt-3 gap-4">
-            <form 
-            class="flex self-center gap-2 align-middle select-none"
-            id="stringCheckingForm"
-            on:submit|preventDefault={handleStringInput}
-            on:change={()=>{is_string_accepted = null}}>
-            <label class="w-40 text-2xl self-center" for="string">
-              String To Test:
-            </label>
-            <input class="border-black border-2 text-3xl rounded-md px-2 py-1"
-              type="text"
-              name="string"
-              id="string"/>
-            <button class="w-40 bg-orange-500 rounded-md text-xl font-semibold border-black 
-              border-2 hover:-translate-y-4 duration-300 transition-all will-change-transform" form="stringCheckingForm">
-              Check String
-            </button>
-          </form>      
-          <Notifications/>
+          <Whiteboard
+            {highlighted_state}
+            {default_connection_char}/>
         </div>
-        <LanguageOfAutomata />
+        <div class="flex flex-col justify-center gap-3 py-3">
+          <TestFeedback {is_string_accepted} />
+          <Sidebar/>
+          <AdvancedAutomataFunctions />
+        </div>
+      </div>
+      <div class="flex justify-center mt-3 gap-4">
+          <form class="flex self-center gap-2 align-middle select-none"
+          id="stringCheckingForm"
+          on:submit|preventDefault={handleStringInput}
+          on:change={()=>{is_string_accepted = null}}>
+          <label class="w-40 text-2xl self-center" for="string">
+            String To Test:
+          </label>
+          <input class="border-black border-2 text-3xl rounded-md px-2 py-1"
+            type="text"
+            name="string"
+            id="string"/>
+          <button class="w-40 bg-orange-500 rounded-md text-xl font-semibold border-black 
+            border-2 hover:-translate-y-4 duration-300 transition-all will-change-transform" form="stringCheckingForm">
+            Check String
+          </button>
+        </form>      
+        <Notifications/>
+      </div>
+      <LanguageOfAutomata />
     </main>
   </div>
 </div>

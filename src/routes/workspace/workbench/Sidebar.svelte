@@ -2,10 +2,8 @@
   import { Action } from "$lib/types/enums";
   import { undo } from "$lib/utils/deletionFuncs";
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
-  import { current_action, list_of_all_elements, list_of_connections, list_of_states, selected_connection_index, start_state_index, start_state_position, state_positions } from "$lib/utils/automataStores";
-
-  export let email: string | undefined;
-  export let workspace_name: string | undefined;
+  import { current_action, list_of_all_elements, list_of_connections, list_of_states, email, workspace_name,
+  selected_connection_index, start_state_index, start_state_position, state_positions } from "$lib/utils/automataStores";
 
   const clearCursor = (): void => {
     current_action.set(Action.CLICKING);
@@ -26,12 +24,11 @@
 
 <nav class="text-center select-none flex flex-col justify-between self-center gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 py-4 mr-0.5 z-10 transition-all duration-300">
   <div class="flex flex-col gap-2">
-    <button
+    <button class="flex flex-col self-center"
       on:click={() => {
         clearCursor();
         current_action.set(Action.ADDING_START_STATE);
       }}
-      class="flex flex-col self-center"
       style="line-height: 15px;">
       New Start State
       <div class="mt-2 self-center bg-green-600 rounded-full w-14 h-14 border-black border-[1px]">
@@ -160,9 +157,8 @@
         fill-rule="evenodd"
       ></path>
     </svg>
-    <svg
-      on:click={()=>{saveWorkspace(email, workspace_name)}}
-      class="hover:cursor-pointer w-6 mb-0.5"
+    <svg class="hover:cursor-pointer w-6 mb-0.5"
+      on:click={saveWorkspace}
       data-slot="icon"
       fill="currentColor"
       viewBox="0 0 24 24"

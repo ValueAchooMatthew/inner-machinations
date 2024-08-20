@@ -5,6 +5,7 @@ use diesel::query_builder::QueryId;
 // Any instances of a character being typed as a string is done due to the fact the deserialized datatype coming from the
 // type scripty back-end, despite being a single character is always of type string since typescript does not have a character data type
 
+// REMEMBER ORDER OF FIELDS IN STRUCTS MATTER
 #[derive(Queryable, Selectable, QueryableByName, Debug)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -16,7 +17,7 @@ pub struct User {
   pub code: Option<String>
 }
 
-#[derive(Queryable, Insertable, QueryableByName, QueryId, Selectable)]
+#[derive(Queryable, Insertable, QueryableByName, QueryId, Selectable, Identifiable, Serialize, Deserialize)]
 #[diesel(table_name = crate::schema::saved_workspaces)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
@@ -25,8 +26,14 @@ pub struct SavedWorkspace {
   pub user_id: i32,
   pub workspace_name: String,
   pub type_of_automata: TypeOfAutomata,
-  pub date_of_last_update: NaiveDateTime
+  pub date_of_last_update: NaiveDateTime,
+  pub alphabet: String,
+  pub should_show_string_traversal: bool,
+  pub should_strict_check: bool,
+  pub default_connection_character: String
 }
+
+
 
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
 #[diesel(table_name = crate::schema::saved_states)]
@@ -84,6 +91,7 @@ pub trait SmartState {
   fn make_start(&mut self);
   fn get_position(&self) -> Coordinate;
   fn get_position_as_string(&self) -> String;
+  fn get_first_connected_state_key_by_character(&self, connection_character: &str) -> Option<String>;
   fn remove_all_connections_by_character(&mut self, connection_character: &str);
 }
 
@@ -174,10 +182,27 @@ impl SmartState for State {
     Ok(())
 
   }
+  // This function is useful for the purpose of DFA minimization, as it's guarenteed that all valid DFA's can only possess a single
+  // unique connected by a character for every state, however this should NEVER be used with NFA's as for set sizes greater than 1
+  // It will return keys pseudo randomly and thus lead to undefinable behaviour 
+  fn get_first_connected_state_key_by_character(&self, connection_character: &str) -> Option<String> {
+
+    if let Some(state_keys_connected_by_character) = self.get_connections_by_character(connection_character) {
+      
+      let first_state_key_connected_by_character = state_keys_connected_by_character.iter().next();
+      return first_state_key_connected_by_character.cloned();
+
+    }
+
+    return None;
+
+
+  }
 
   fn remove_all_connections_by_character(&mut self, connection_character: &str) {
     self.states_connected_to.remove(connection_character);
   }
+
 
 }
 

@@ -13,7 +13,7 @@
     
     const tauri_response: TauriGeneratedAutomataInformation =
     await invoke("minimize_dfa", {
-      stateConnections: $state_positions, 
+      statePositions: $state_positions, 
       connections: $list_of_connections, 
       inputAlphabet: $input_alphabet});
 

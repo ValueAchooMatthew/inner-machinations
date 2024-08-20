@@ -6,6 +6,7 @@
 
   // Having to use getCookie instead of server file as prod version of app
   // cannot work with server files due to disabled SSR
+  // Currently implemented like this to mimic functionality of SSR in case workaround can be found
   let data = {
     email: getCookie("email")
   };
@@ -24,12 +25,12 @@
     }
 
     const form_data = new FormData(event.target);
-    const enteredCode = form_data.get("code");
+    const entered_code = form_data.get("code")?.toString();
     // Loose type checking as enteredCode is not of type string
     if(!correct_code) {
       response = "There was an error sending the verification code at this time";
       return;
-    } else if (enteredCode != correct_code) {
+    } else if (entered_code !== correct_code) {
       response =
         "The entered code was incorrect. Please ensure you are logging in with the correct email address. Another email has been sent with a code for verification to the provided email.";
       correct_code = await invoke("send_verification_email", { email: data.email });

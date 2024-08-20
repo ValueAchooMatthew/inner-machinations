@@ -1,12 +1,18 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { email, workspace_name } from "$lib/utils/automataStores";
+  import { invoke } from "@tauri-apps/api";
 
-  const handleClick = () => {
+  async function handleClick() {
     document.cookie =
       "workspace_name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     document.cookie = "workspace_name" + "=" + "Untitled Project" + "; path=/";
+    workspace_name.set(
+      "Untitled Project"
+    )
+    await invoke("create_workspace", {email: $email, workspaceName: "Untitled Project"});
     goto("/workspace/workbench");
-  };
+  }
 </script>
 
 <div class="bg-orange-500 flex shadow-lg py-4 pl-2 pr-4 w-full text-gray-100 text-4xl font-bold justify-between align-middle z-50 fixed top-0">
@@ -24,7 +30,7 @@
         stroke-linecap="round"
         stroke-linejoin="round"
         d="M12 4.5v15m7.5-7.5h-15">
-    </path>
+      </path>
     </svg>
   </div>
 
