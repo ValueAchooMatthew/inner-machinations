@@ -1,4 +1,4 @@
-use app::models::{SmartState, State};
+use app::models::State;
 use std::collections::{HashMap, HashSet};
 
 #[tauri::command]

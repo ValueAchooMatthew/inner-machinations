@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use app::{encrypt_user_data, sanitize_input_alphabet, establish_connection, models::State};
-use app::models::{BezierCurve, Connection, SavedConnection, SavedState, SmartState, TypeOfAutomata, User, SavedWorkspace};
+use app::models::{Connection, SavedWorkspace, TypeOfAutomata, User, WorkspaceData};
 use app::schema::{saved_connections, users, saved_states, saved_workspaces};
 
 use diesel::{ExpressionMethods, SqliteConnection};
@@ -58,8 +58,7 @@ pub fn update_workspace_alphabet(workspace_name: String, email: String, alphabet
 pub fn save_workspace(workspace_name: String, 
   states: HashMap<String, State>, 
   email: String, 
-  connections: Vec<Connection>, 
-  type_of_automata: TypeOfAutomata) {
+  connections: Vec<Connection>) {
 
   let mut conn = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
@@ -71,9 +70,6 @@ pub fn save_workspace(workspace_name: String,
 
   save_connections_to_db(&workspace.id, &connections, &mut conn)
     .expect("There was an error saving the connections to the database");
-
-  set_automata_type(&workspace.id, &type_of_automata, &mut conn)
-    .expect("There was an error setting the automata type of the workspace");
 
   set_current_time(&workspace.id, &mut conn)
     .expect("There was an error updating the last modified time of the workspace");
@@ -117,7 +113,7 @@ pub fn does_workspace_name_exist(workspace_name: String, email: String) -> bool 
 }
 
 #[tauri::command]
-pub fn rename_workspace(original_workspace_name: String, email: String, new_workspace_name: String) {
+pub fn update_workspace_name(original_workspace_name: String, email: String, new_workspace_name: String) {
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
 
@@ -131,6 +127,22 @@ pub fn rename_workspace(original_workspace_name: String, email: String, new_work
 }
 
 #[tauri::command]
+pub fn update_automata_type(workspace_name: String, email: String, type_of_automata: TypeOfAutomata) {
+
+  let mut conn: SqliteConnection = establish_connection();
+  let user_id = get_user_id(&email, &mut conn);
+
+  let workspace = get_workspace(&workspace_name, &user_id, &mut conn)
+    .expect("Could not retrieve the requested workspace");
+
+  diesel::update(&workspace)
+    .set(saved_workspaces::type_of_automata.eq(type_of_automata))
+    .execute(&mut conn)
+    .expect("Could not update the automata type of the workspace");
+
+}
+
+#[tauri::command]
 pub fn update_strict_checking(workspace_name: String, email: String, should_strict_check: bool) {
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
@@ -141,7 +153,7 @@ pub fn update_strict_checking(workspace_name: String, email: String, should_stri
   diesel::update(&workspace)
     .set(saved_workspaces::should_strict_check.eq(should_strict_check))
     .execute(&mut conn)
-    .expect("Could not update the workspace name");
+    .expect("Could not update the strict checking option for the workspace");
 }
 
 #[tauri::command]
@@ -155,7 +167,7 @@ pub fn update_showing_string_traversal(workspace_name: String, email: String, sh
   diesel::update(&workspace)
     .set(saved_workspaces::should_show_string_traversal.eq(should_show_traversal))
     .execute(&mut conn)
-    .expect("Could not update the workspace name");
+    .expect("Could not update string traversal option for the workspace");
 
 }
 
@@ -173,73 +185,23 @@ pub fn update_default_connection_character(workspace_name: String, email: String
   diesel::update(&workspace)
     .set(saved_workspaces::default_connection_character.eq(default_connection_character))
     .execute(&mut conn)
-    .expect("Could not update the workspace name");
+    .expect("Could not update the default connection character for the workspace");
 
 }
 
 #[tauri::command]
-pub fn retrieve_workspace_data(workspace_name: String, email: String) -> (
-  Option<usize>, 
-  Vec<State>, 
-  Vec<Connection>, 
-  HashMap<String, State>,
-  TypeOfAutomata, 
-  String,
-  Vec<String>) {
+pub fn retrieve_workspace_data(workspace_name: String, email: String) -> WorkspaceData {
     
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
   let workspace = get_workspace(&workspace_name, &user_id, &mut conn)
     .expect("There was an error retrieving the workspace");
 
-  let alphabet: Vec<String> = workspace.alphabet
-    .split(',')
-    .map(|s| s.to_string())
-    .collect();
-    
-  // First get the states and connections from the database
-  let retrieved_states: Vec<SavedState> = saved_states::table
-    .filter(saved_states::workspace_id.eq(&workspace.id))
-    .get_results::<SavedState>(&mut conn)
-    .expect("There was an issue getting the workspace's states");
+  let workspace_data = WorkspaceData::new(workspace);
 
-  let mut start_state_index: Option<usize> = None;
-  let mut state_connections: HashMap<String, State> = HashMap::new();
-  let mut connections: Vec<Connection> = vec![];
-  let mut states: Vec<State> = vec![];
-
-  for (index, state) in retrieved_states.iter().enumerate() {
-    if state.is_start {
-      start_state_index = Some(index);
-    }
-    let parsed_state = parse_saved_state_to_regular_state(state, &workspace, &mut conn);
-    state_connections.insert(state.position.to_owned(), parsed_state.to_owned());
-    states.push(parsed_state.to_owned());
-  }
-
-  let retrieved_connections: Vec<SavedConnection> = saved_connections::table
-    .filter(saved_connections::workspace_id.eq(&workspace.id))
-    .get_results::<SavedConnection>(&mut conn)
-    .expect("There was an issue getting the workspace's states");
-
-  for connection in retrieved_connections {
-    let parsed_connection = Connection {
-      curve: BezierCurve {
-        start_point: connection.start_point.try_into().unwrap(),
-        control_point_one: connection.control_point_one.try_into().unwrap(),
-        control_point_two: connection.control_point_two.try_into().unwrap(),
-        end_point: connection.end_point.try_into().unwrap()
-      },
-      connection_character: connection.connection_character,
-      element: "Connection".to_owned()
-    };
-    connections.push(parsed_connection);
-  };
-  // Fix for returning alphabet
-  return (start_state_index, states, connections, state_connections, workspace.type_of_automata, workspace.date_of_last_update.to_string(), alphabet);
+  return workspace_data;
 
 }
-
 
 #[tauri::command]
 pub fn get_users_saved_workspaces(email: String) -> Vec<String> {
@@ -258,26 +220,6 @@ pub fn get_users_saved_workspaces(email: String) -> Vec<String> {
     .collect();
 
   return workspace_names.to_owned();
-
-}
-
-// todo: Combine this with set_type_of_automata
-#[tauri::command]
-pub fn manually_update_type_of_automata(email: String, workspace_name: String, type_of_automata: TypeOfAutomata) {
-  // This function is useful in the event we want to update the automata type, say after
-  // performing an nfa to dfa conversion WITHOUT using the function contract of entirely saving the workspace
-  // As provided in an earlier function
-  let mut conn = establish_connection();
-
-  let user_id = get_user_id(&email, &mut conn);
-  let saved_workspace = get_workspace(&workspace_name, &user_id, &mut conn)
-    .expect("There was an error rerieving the saved workspace");
-
-  diesel::update(saved_workspaces::table
-    .filter(saved_workspaces::id.eq(saved_workspace.id)))
-    .set(saved_workspaces::type_of_automata.eq(type_of_automata))
-    .execute(&mut conn)
-    .expect("There was an error setting the type of autmata");
 
 }
 
@@ -319,25 +261,6 @@ fn save_states_to_db(workspace_id: &i32, states: &HashMap<String, State>, conn: 
 
   Ok(())
 
-}
-
-fn parse_saved_state_to_regular_state(state: &SavedState, workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> State {
-
-  let parsed_state_position = state.position.to_owned().try_into()
-    .expect("The string should be castable into Coordinate form");
-
-  let mut parsed_state = State::new(parsed_state_position, state.is_start, state.is_final);
-
-  let states_connected_to_given_state: Vec<SavedConnection> = saved_connections::table
-    .filter(saved_connections::workspace_id.eq(&workspace.id))
-    .filter(saved_connections::start_point.eq(&state.position))
-    .get_results::<SavedConnection>(conn)
-    .expect("There was an issue getting the workspace's states");
-
-  for connected_state in states_connected_to_given_state {
-    parsed_state.add_connection(&connected_state.connection_character, connected_state.end_point);
-  }
-  parsed_state
 }
 
 fn get_user_id(email: &String, conn: &mut SqliteConnection) -> i32 {
@@ -388,15 +311,7 @@ fn save_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, con
 
 }
 
-fn set_automata_type(workspace_id: &i32, type_of_automata: &TypeOfAutomata, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
 
-  diesel::update(saved_workspaces::table
-    .filter(saved_workspaces::id.eq(workspace_id)))
-    .set(saved_workspaces::type_of_automata.eq(type_of_automata))
-    .execute(conn)?;
-
-  Ok(())
-}
 
 fn set_current_time(workspace_id: &i32, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
 

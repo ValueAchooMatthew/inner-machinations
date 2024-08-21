@@ -4,7 +4,7 @@ import type { BezierCurve, Connection, Coordinate, State } from "../types/interf
 import { convertCoordinateToString } from "./miscUtils";
 import { Action } from "../types/enums";
 
-export const handleUserClickingCanvas = (cursor_x_pos: number, cursor_y_pos: number, default_connection_char: string) => {
+export const handleUserClickingCanvas = (cursor_x_pos: number, cursor_y_pos: number, default_connection_character: string) => {
   dialogue_to_user.set(null);
   const cursor_coords: Coordinate = { x: cursor_x_pos, y: cursor_y_pos };
   const cursor_coords_as_string: string = convertCoordinateToString(cursor_coords);
@@ -39,7 +39,7 @@ export const handleUserClickingCanvas = (cursor_x_pos: number, cursor_y_pos: num
       dialogue_to_user.set("You must place an arrow on top of a Node.");
       return;
     }
-    addConnection(cursor_coords, default_connection_char);
+    addConnection(cursor_coords, default_connection_character);
   } else if(current_user_action === Action.PLACING_START_OF_EPSILON_LINE) {
     if(selected_state === undefined) {
       dialogue_to_user.set("You must place an arrow on top of a Node.");

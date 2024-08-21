@@ -1,12 +1,11 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { draw } from "$lib/utils/drawingFuncs";
-  import type { TauriGeneratedAutomataInformation } from "$lib/types/types";
   import { invoke } from "@tauri-apps/api";
   import { onMount } from "svelte";
-  import { email, workspace_name } from "$lib/utils/automataStores";
+  import { dialogue_to_user, email, workspace_name } from "$lib/utils/automataStores";
+  import type { WorkspaceData } from "$lib/types/interfaces";
 
-  // 
   export let workspace_title: string;
   export let workspace_to_delete: string | null;
 
@@ -16,12 +15,15 @@
     document.cookie = "workspace_name" + "=" + workspace_title + "; path=/";
     workspace_name.set(
       workspace_title
-    )
+    );
+    dialogue_to_user.set(
+      ""
+    );
     goto("workbench");
   };
 
   let canvas: HTMLCanvasElement | null;
-  let retrieved_data: TauriGeneratedAutomataInformation;
+  let workspace_data: WorkspaceData;
 
   onMount(async () => {
     const context = canvas?.getContext("2d");
@@ -30,7 +32,7 @@
     if (!context || !width || !height) {
       return;
     }
-    retrieved_data =
+    workspace_data =
       await invoke("retrieve_workspace_data", {
         email: $email,
         workspaceName: workspace_title,
@@ -40,8 +42,8 @@
       context,
       width,
       height,
-      retrieved_data[1],
-      retrieved_data[2],
+      workspace_data.list_of_states,
+      workspace_data.list_of_connections,
       null,
       null,
       5
@@ -59,9 +61,9 @@
     <span class="font-bold text-white text-2xl my-2 self-center">
       {workspace_title}
       <br>
-      {#if retrieved_data}
+      {#if workspace_data}
         <span class="text-sm">
-          Last updated: {retrieved_data[5]}
+          Last updated: {workspace_data.date_of_last_update}
         </span>
       {/if}
     </span>

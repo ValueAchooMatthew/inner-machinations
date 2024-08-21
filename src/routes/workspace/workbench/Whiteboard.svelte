@@ -11,7 +11,7 @@
   import { undo } from "$lib/utils/deletionFuncs";
   import { handleUserClickingCanvas } from "$lib/utils/userEvents";
 
-  export let default_connection_char: string = "a";
+  export let default_connection_character: string = "a";
   export let highlighted_state: State | null;
 
   // DO NOT CHANGE ANY CODE IN FORM FOO = [...FOO, BAR]
@@ -62,7 +62,7 @@
   const handleClick = (event: MouseEvent): void => {
     const cursor_x_pos = roundToNearest(event.offsetX, 100);
     const cursor_y_pos = roundToNearest(event.offsetY, 100);
-    handleUserClickingCanvas(cursor_x_pos, cursor_y_pos, default_connection_char);
+    handleUserClickingCanvas(cursor_x_pos, cursor_y_pos, default_connection_character);
   };
 
   // Decent start

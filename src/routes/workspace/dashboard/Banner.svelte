@@ -1,15 +1,24 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { email, workspace_name } from "$lib/utils/automataStores";
+  import { dialogue_to_user, email, workspace_name } from "$lib/utils/automataStores";
   import { invoke } from "@tauri-apps/api";
 
   async function handleClick() {
     document.cookie =
-      "workspace_name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    "workspace_name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    const does_workspace_exist = await invoke("does_workspace_name_exist", {workspaceName: "Untitled Project", email: $email})
+    if(does_workspace_exist) {
+      dialogue_to_user.set(
+        "Untitled Project already exists"
+      )
+      return;
+    } 
+    
     document.cookie = "workspace_name" + "=" + "Untitled Project" + "; path=/";
     workspace_name.set(
       "Untitled Project"
     )
+    dialogue_to_user.set("");
     await invoke("create_workspace", {email: $email, workspaceName: "Untitled Project"});
     goto("/workspace/workbench");
   }
@@ -34,7 +43,7 @@
     </svg>
   </div>
 
-  <div class="flex flex-col justify-center">My Dashboard</div>
+  <div class="flex flex-col justify-center"> My Dashboard </div>
 
   <a class="flex gap-2 font-bold self-center justify-end w-64" href="/">
     <svg class="self-center w-10 h-10"

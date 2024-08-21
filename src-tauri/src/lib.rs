@@ -18,7 +18,7 @@ pub fn establish_connection() -> SqliteConnection {
     .unwrap_or_else(|_| panic!("Error connecting to database"))
 }
 
-use models::{BezierCurve, Connection, Coordinate, SmartState, State, User};
+use models::{BezierCurve, Connection, Coordinate, State, User};
 
 use magic_crypt::{MagicCrypt256, MagicCryptTrait};
 pub fn encrypt_user_data(cipher: &MagicCrypt256, email: &str, password: &str) -> [String; 2] {
@@ -245,7 +245,7 @@ pub fn sanitize_input_alphabet(alphabet: Vec<String>) -> Vec<String> {
 
   let mut previously_seen_input_characters = HashSet::new();
   let sanitized_alphabet = alphabet.into_iter().filter(|input_character| {
-    if !previously_seen_input_characters.contains(input_character) {
+    if !previously_seen_input_characters.contains(input_character) && input_character.len() == 1 {
       previously_seen_input_characters.insert(input_character.to_owned());
       return true;
     }

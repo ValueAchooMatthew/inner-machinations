@@ -1,11 +1,12 @@
 <script lang="ts">
+  // Todo: make scrolling alphabet input boxes for large alphabets and common cases providable (alphabet, alphanumeric, etc.)
   import { input_alphabet, should_show_string_traversal, should_strict_check, 
-  default_connection_char, workspace_name, email } from "$lib/utils/automataStores";
+  default_connection_character, workspace_name, email } from "$lib/utils/automataStores";
   import { convertFormDataEntriesToStringArray} from "$lib/utils/miscUtils";
   import { saveOptions } from "$lib/utils/savingWorkspaceFuncs";
   import { invoke } from "@tauri-apps/api";
 
-  export let is_option_menu_open: boolean = false;
+  export let is_option_menu_open: boolean;
   let form: HTMLFormElement | undefined;
 
   const handleAddingInputElement = () => {
@@ -35,13 +36,28 @@
       });
       input_alphabet.set(sanitized_alphabet);
 
-      // await invoke("");
+      await invoke("update_showing_string_traversal", {
+        workspaceName: $workspace_name, 
+        email: $email, 
+        shouldShowTraversal: $should_show_string_traversal
+      });
+
+      await invoke("update_strict_checking", {
+        workspaceName: $workspace_name, 
+        email: $email, 
+        shouldStrictCheck: $should_strict_check
+      });
       
-      const default_connection_character = data.get("default_character")?.toString();
-      if(default_connection_character === undefined) {
+      const default_connection_char = data.get("default_character")?.toString();
+      if(default_connection_char === undefined) {
         return;
       }
-      default_connection_char.set(default_connection_character)
+      default_connection_character.set(default_connection_char);
+      await invoke("update_default_connection_character", {
+        workspaceName: $workspace_name, 
+        email: $email, 
+        defaultConnectionCharacter: default_connection_char
+      });
 
     }
   }
@@ -62,14 +78,14 @@
     height: 1.5rem;
     background-color: #fff;
     border-radius: 0.375rem;
-    border: 2px solid #ed8936; /* Orange border */
+    border: 2px solid #f97316; 
     position: relative;
     outline: none;
     cursor: pointer;
   }
 
   input[type="checkbox"]:checked {
-    background-color: #ed8936; /* Orange background */
+    background-color: #f97316; 
     border-color: transparent;
   }
 
@@ -162,26 +178,24 @@
     </div>
     <div>
       <label for="strict"> Strict Checking (works for DFA's only): </label>
-      <input class="w-6 h-6 accent-orange-500
-          checked:bg-orange-500 checked:border-transparent checked:ring-2 checked:ring-orange-500 checked:ring-offset-2
-          checked:ring-offset-white rounded-md px-2 py-1"
+      <input class="w-6 h-6 accent-orange-500checked:bg-orange-500 checked:border-transparent 
+        checked:ring-2 checked:ring-orange-500 checked:ring-offset-2 checked:ring-offset-white rounded-md px-2 py-1"
         on:change={() => {
           should_strict_check.set(!$should_strict_check);
         }}
-        value={$should_strict_check}
+        bind:checked={$should_strict_check}
         type="checkbox"
         name="strict"
         id="strict"/>
     </div>
     <div>
       <label for="traversal"> Show Step-By-Step String Traversal: </label>
-      <input class="w-6 h-6 accent-orange-500
-          checked:bg-orange-500 checked:border-transparent checked:ring-2 checked:ring-orange-500 checked:ring-offset-2
-          checked:ring-offset-white rounded-md px-2 py-1 checked:"
+      <input class="w-6 h-6 accent-orange-500 checked:bg-orange-500 checked:border-transparent 
+        checked:ring-2 checked:ring-orange-500 checked:ring-offset-2 checked:ring-offset-white rounded-md px-2 py-1 checked:"
         on:change={() => {
           should_show_string_traversal.set(!$should_show_string_traversal);
         }}
-        value={$should_show_string_traversal}
+        bind:checked={$should_show_string_traversal}
         type="checkbox"
         name="traversal"
         id="traversal"/>
@@ -192,7 +206,7 @@
         Specify default connection character (default: a):
       </label>
       <input class="border-black border-2 rounded-md px-2 py-1"
-        value={$default_connection_char}
+        value={$default_connection_character}
         maxlength="1"
         type="text"
         name="default_character"

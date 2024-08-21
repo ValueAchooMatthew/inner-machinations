@@ -10,14 +10,15 @@ CREATE TABLE users (
 CREATE TABLE saved_workspaces (
   id INTEGER PRIMARY KEY NOT NULL UNIQUE,
   user_id INTEGER NOT NULL,
-  workspace_name TEXT NOT NULL UNIQUE,
+  workspace_name TEXT NOT NULL,
   type_of_automata TEXT CHECK(type_of_automata IN ('DFA', 'NFA')) NOT NULL,
   date_of_last_update TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   alphabet TEXT NOT NULL DEFAULT 'a,b',
   should_show_string_traversal BOOLEAN NOT NULL DEFAULT FALSE,
   should_strict_check BOOLEAN NOT NULL DEFAULT FALSE,
   default_connection_character TEXT NOT NULL DEFAULT 'a',
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  UNIQUE (user_id, workspace_name)
 );
 
 CREATE TABLE saved_states (

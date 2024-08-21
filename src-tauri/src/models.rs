@@ -33,8 +33,6 @@ pub struct SavedWorkspace {
   pub default_connection_character: String
 }
 
-
-
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
 #[diesel(table_name = crate::schema::saved_states)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -66,6 +64,10 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hash;
+
+use crate::establish_connection;
+use crate::schema::saved_connections;
+use crate::schema::saved_states;
 #[derive(Debug, Deserialize, Serialize, Clone, Eq)]
 pub struct State { 
   position: Coordinate,
@@ -75,29 +77,9 @@ pub struct State {
   element: String
 }
 
-pub trait SmartState {
-  fn new(position: Coordinate, is_start: bool, is_final: bool) -> Self;
-  fn add_connection(&mut self, connection_character: &str, state_key_to_connect: impl Into<String>);
-  fn get_connections_by_character(&self, connection_character: &str) -> Option<&HashSet<String>>;
-  fn get_all_connections(&self) -> &HashMap<String, HashSet<String>>;
-  fn get_all_connections_mut(&mut self) -> &mut HashMap<String, HashSet<String>>;
-  fn set_all_connections(&mut self, connections: HashMap<String, HashSet<String>>);
-  // Add better error typing in future
-  fn remove_connection_by_character(&mut self, connection_character: &str, state_key_to_remove: impl Into<String>) -> Result<(), ()>;
-  fn get_all_connected_state_keys(&self) -> HashSet<&String>;
-  fn is_final(&self) -> bool;
-  fn make_final(&mut self);
-  fn is_start(&self) -> bool;
-  fn make_start(&mut self);
-  fn get_position(&self) -> Coordinate;
-  fn get_position_as_string(&self) -> String;
-  fn get_first_connected_state_key_by_character(&self, connection_character: &str) -> Option<String>;
-  fn remove_all_connections_by_character(&mut self, connection_character: &str);
-}
+impl State {
 
-impl SmartState for State {
-
-  fn new(position: Coordinate, is_start: bool, is_final: bool) -> Self {
+  pub fn new(position: Coordinate, is_start: bool, is_final: bool) -> Self {
     return State {
       position,
       states_connected_to: HashMap::new(),
@@ -107,7 +89,7 @@ impl SmartState for State {
     };
   }
 
-  fn add_connection(&mut self, connection_character: &str, state_key_to_connect: impl Into<String>) {
+  pub fn add_connection(&mut self, connection_character: &str, state_key_to_connect: impl Into<String>) {
     
     if let Some(currently_connected_state_keys) = self.states_connected_to.get_mut(connection_character) {
       currently_connected_state_keys.insert(state_key_to_connect.into());
@@ -116,7 +98,7 @@ impl SmartState for State {
     }
   }
   
-  fn get_all_connected_state_keys(&self) -> HashSet<&String> {
+  pub fn get_all_connected_state_keys(&self) -> HashSet<&String> {
 
     let mut all_connected_state_keys = HashSet::new();
 
@@ -130,49 +112,49 @@ impl SmartState for State {
 
   }
 
-  fn get_all_connections(&self) -> &HashMap<std::string::String, HashSet<std::string::String>> {
+  pub fn get_all_connections(&self) -> &HashMap<std::string::String, HashSet<std::string::String>> {
     return &self.states_connected_to; 
   }
 
-  fn get_all_connections_mut(&mut self) -> &mut HashMap<std::string::String, HashSet<std::string::String>> {
+  pub fn get_all_connections_mut(&mut self) -> &mut HashMap<std::string::String, HashSet<std::string::String>> {
     return &mut self.states_connected_to; 
   }
   
-  fn is_final(&self) -> bool { 
+  pub fn is_final(&self) -> bool { 
     return self.is_final;
   }
 
-  fn make_final(&mut self) {
+  pub fn make_final(&mut self) {
     self.is_final = true;
   }
 
-  fn is_start(&self) -> bool {
+  pub fn is_start(&self) -> bool {
     return self.is_start;
   }
 
-  fn make_start(&mut self) {
+  pub fn make_start(&mut self) {
     self.is_start = true;
   }
   
-  fn get_connections_by_character(&self, connection_character: &str) -> Option<&HashSet<String>> {
+  pub fn get_connections_by_character(&self, connection_character: &str) -> Option<&HashSet<String>> {
     return self.states_connected_to
       .get(connection_character);
   }
 
-  fn get_position(&self) -> Coordinate {
+  pub fn get_position(&self) -> Coordinate {
     return self.position;
   }
 
-  fn get_position_as_string(&self) -> String {
+  pub fn get_position_as_string(&self) -> String {
     return self.position.into();
   }
 
-  fn set_all_connections(&mut self, connections: HashMap<String, HashSet<String>>) {
+  pub fn set_all_connections(&mut self, connections: HashMap<String, HashSet<String>>) {
     self.states_connected_to = connections;
   }
   
   // Make make customer error type in future for this case
-  fn remove_connection_by_character(&mut self, connection_character: &str, state_key_to_remove: impl Into<String>) -> Result<(), ()> {
+  pub fn remove_connection_by_character(&mut self, connection_character: &str, state_key_to_remove: impl Into<String>) -> Result<(), ()> {
     let connected_states_by_character = self.states_connected_to
       .get_mut(connection_character)
       .ok_or(())?;
@@ -182,10 +164,11 @@ impl SmartState for State {
     Ok(())
 
   }
+
   // This function is useful for the purpose of DFA minimization, as it's guarenteed that all valid DFA's can only possess a single
   // unique connected by a character for every state, however this should NEVER be used with NFA's as for set sizes greater than 1
   // It will return keys pseudo randomly and thus lead to undefinable behaviour 
-  fn get_first_connected_state_key_by_character(&self, connection_character: &str) -> Option<String> {
+  pub fn get_first_connected_state_key_by_character(&self, connection_character: &str) -> Option<String> {
 
     if let Some(state_keys_connected_by_character) = self.get_connections_by_character(connection_character) {
       
@@ -196,10 +179,9 @@ impl SmartState for State {
 
     return None;
 
-
   }
 
-  fn remove_all_connections_by_character(&mut self, connection_character: &str) {
+  pub fn remove_all_connections_by_character(&mut self, connection_character: &str) {
     self.states_connected_to.remove(connection_character);
   }
 
@@ -321,4 +303,174 @@ impl TryFrom<&String> for Coordinate {
 pub enum TypeOfAutomata {
   DFA,
   NFA
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct WorkspaceData {
+  
+  start_state_index: Option<usize>,
+  start_state_position: Option<String>,
+  state_positions: HashMap<String, State>,
+  list_of_states: Vec<State>,
+  list_of_connections: Vec<Connection>,
+  type_of_automata: TypeOfAutomata,
+  date_of_last_update: NaiveDateTime,
+  alphabet: Vec<String>,
+  should_strict_check: bool,
+  should_show_string_traversal: bool,
+  default_connection_character: String
+
+}
+
+impl WorkspaceData {
+
+  pub fn new(workspace: SavedWorkspace) -> Self {
+
+    let mut conn = establish_connection();
+
+    let list_of_states = Self::get_list_of_states_from_saved_workspace(&workspace, &mut conn);
+    let (start_state_index, start_state_position) = Self::get_start_state_information(&list_of_states);
+    let list_of_connections = Self::get_list_of_connections_from_saved_workspace(&workspace, &mut conn);
+    let state_positions = Self::get_state_positions_from_list_of_states(&list_of_states);
+    let alphabet = Self::parse_alphabet(&workspace);
+
+    let automata_type = workspace.type_of_automata;
+    let date_of_last_update = workspace.date_of_last_update;
+    let should_strict_check = workspace.should_strict_check;
+    let should_show_string_traversal = workspace.should_show_string_traversal;
+    let default_connection_character = workspace.default_connection_character;
+    
+    return WorkspaceData {
+      start_state_index,
+      start_state_position,
+      state_positions,
+      list_of_states,
+      list_of_connections,
+      type_of_automata: automata_type,
+      date_of_last_update,
+      alphabet,
+      should_strict_check,
+      should_show_string_traversal,
+      default_connection_character
+    }
+
+  }
+
+  fn get_state_positions_from_list_of_states(list_of_states: &Vec<State>) -> HashMap<String, State> {
+
+    let mut state_positions = HashMap::new();
+
+
+    for state in list_of_states {
+
+      let state_coords_as_string: String = state.position
+        .into();
+
+      state_positions.insert(state_coords_as_string.to_owned(), state.to_owned());
+
+    }
+
+    return state_positions;
+
+  }
+
+
+  fn get_list_of_states_from_saved_workspace(saved_workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> Vec<State> {
+    // First get the states and connections from the database
+
+    let mut list_of_states = Vec::new();
+
+    let retrieved_states: Vec<SavedState> = saved_states::table
+      .filter(saved_states::workspace_id.eq(&saved_workspace.id))
+      .get_results::<SavedState>(conn)
+      .expect("There was an issue getting the workspace's states");
+
+    for retrieved_state in retrieved_states {
+      let parsed_state = Self::parse_saved_state_to_regular_state(retrieved_state, saved_workspace, conn);
+      list_of_states.push(parsed_state);
+    }
+
+    return list_of_states;
+
+  }
+
+  fn parse_saved_state_to_regular_state(state: SavedState, workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> State {
+    
+    let states_connected_to_given_state: Vec<SavedConnection> = saved_connections::table
+      .filter(saved_connections::workspace_id.eq(&workspace.id))
+      .filter(saved_connections::start_point.eq(&state.position))
+      .get_results::<SavedConnection>(conn)
+      .expect("There was an issue getting the workspace's states");
+
+    let parsed_state_position = state.position.try_into()
+      .expect("The string should be castable into Coordinate form");
+  
+    let mut parsed_state = State::new(parsed_state_position, state.is_start, state.is_final);
+  
+    for connected_state in states_connected_to_given_state {
+      parsed_state.add_connection(&connected_state.connection_character, connected_state.end_point);
+    }
+    parsed_state
+  }
+
+  fn get_list_of_connections_from_saved_workspace(workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> Vec<Connection> {
+
+    let mut list_of_connections = Vec::new();
+
+    let retrieved_connections: Vec<SavedConnection> = saved_connections::table
+      .filter(saved_connections::workspace_id.eq(&workspace.id))
+      .get_results::<SavedConnection>(conn)
+      .expect("There was an issue getting the workspace's states");
+
+    for retrieved_connection in retrieved_connections {
+      let parsed_connection = Self::parse_saved_connection_to_regular_connection(retrieved_connection);
+      list_of_connections.push(parsed_connection);
+    }
+
+    list_of_connections
+
+  }
+
+  fn parse_saved_connection_to_regular_connection(connection: SavedConnection) -> Connection {
+
+    let parsed_curve = BezierCurve {
+      start_point: connection.start_point.try_into().expect("Could not parse string to coordinates"),
+      control_point_one: connection.control_point_one.try_into().expect("Could not parse string to coordinates"),
+      control_point_two: connection.control_point_two.try_into().expect("Could not parse string to coordinates"),
+      end_point: connection.end_point.try_into().expect("Could not parse string to coordinates")
+    };
+
+    let parsed_connection = Connection {
+      curve: parsed_curve,
+      connection_character: connection.connection_character,
+      element: String::from("Connection")
+    };
+
+    parsed_connection
+
+  }
+  
+  // Return type corresponds to start state index and start state key respectively
+  // Optional as saved workspace may not have start state
+  fn get_start_state_information(list_of_states: &Vec<State>) -> (Option<usize>, Option<String>) {
+    for (index, state_reference) in list_of_states.iter().enumerate() {
+      if state_reference.is_start() {
+        return (Some(index), Some(state_reference.get_position_as_string()));
+      }
+  
+    }
+    return (None, None);
+  
+  }
+
+  fn parse_alphabet(saved_workspace: &SavedWorkspace) -> Vec<String> {
+
+    return saved_workspace.alphabet
+      .split(',')
+      .map(|s| s.to_string())
+      .collect();
+
+  }
+
+
 }

@@ -1,27 +1,19 @@
 import { invoke } from "@tauri-apps/api";
 import { dialogue_to_user, input_alphabet, list_of_connections, 
-state_positions, type_of_automata, email, workspace_name, 
-should_strict_check,
-should_show_string_traversal,
-default_connection_char} from "./automataStores";
+state_positions, email, workspace_name, should_strict_check, should_show_string_traversal,
+default_connection_character } from "./automataStores";
 import { get } from "svelte/store";
-import { Automata } from "../types/enums";
 import { convertFormDataEntriesToStringArray } from "./miscUtils";
 
 export const saveWorkspace = async () => {
 
-  if (get(workspace_name) === "Untitled Project") {
-    dialogue_to_user.set("You must set the name of the project to save.");
-    return;
-  }
   dialogue_to_user.set("");
 
   await invoke("save_workspace", {
-    workspaceName: workspace_name,
+    workspaceName: get(workspace_name),
     email: get(email),
     states: get(state_positions),
     connections: get(list_of_connections),
-    typeOfAutomata: Automata[get(type_of_automata)],
     alphabet: get(input_alphabet)
   });
 };
@@ -59,5 +51,5 @@ export async function saveOptions(form: HTMLFormElement | undefined) {
   await invoke("update_default_connection_character", 
     {email: get(email), workspaceName: get(workspace_name), defaultConnectionCharacter: new_default_connection_character});
   
-  default_connection_char.set(new_default_connection_character);
+  default_connection_character.set(new_default_connection_character);
 }

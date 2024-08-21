@@ -9,7 +9,7 @@
   // Current workaround to save workspace 500ms after typing has stopped
   // as svelte doesn't provide on:inputend event natively
   async function renameWorkspace(new_workspace_name: string) {
-    await invoke("rename_workspace", {originalWorkspaceName: $workspace_name, email: $email, newWorkspaceName: new_workspace_name});
+    await invoke("update_workspace_name", {originalWorkspaceName: $workspace_name, email: $email, newWorkspaceName: new_workspace_name});
     workspace_name.set(new_workspace_name);
   }
 
@@ -85,16 +85,18 @@
     </div>
     <div class="flex gap-2 font-bold self-center ml-auto mr-auto">
       <button class={$type_of_automata == Automata.DFA ? "" : "text-gray-950"}
-        on:click={() => {
+        on:click={async () => {
           type_of_automata.set(Automata.DFA);
+          await invoke("update_automata_type", {email: $email, workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.DFA]});
         }}>
         DFA
       </button>
       <span>|</span>
       <button
         class={$type_of_automata === Automata.NFA ? "" : "text-gray-950"}
-        on:click={() => {
+        on:click={async () => {
           type_of_automata.set(Automata.NFA);
+          await invoke("update_automata_type", {email: $email, workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.NFA]});
         }}>
         NFA
       </button>

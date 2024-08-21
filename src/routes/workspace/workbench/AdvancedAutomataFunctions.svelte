@@ -2,7 +2,7 @@
 
   import { Automata } from "$lib/types/enums";
   import { input_alphabet, list_of_connections, list_of_states, 
-  start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/automataStores";
+  start_state_index, start_state_position, state_positions, type_of_automata, email, workspace_name } from "$lib/utils/automataStores";
   import { convertCoordinateToString, getCookie } from "$lib/utils/miscUtils";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
   import { invoke } from "@tauri-apps/api";
@@ -34,7 +34,7 @@
     type_of_automata
       .set(Automata.DFA);
 
-    await invoke("manually_update_type_of_automata", {email: getCookie("email"), workspaceName: getCookie("workspace_name"), typeOfAutomata: Automata[Automata.DFA]})
+    await invoke("update_automata_type", {email: $email, workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.DFA]})
     
     await tick();
     

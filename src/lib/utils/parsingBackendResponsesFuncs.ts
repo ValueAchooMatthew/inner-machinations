@@ -1,8 +1,7 @@
 import { get } from "svelte/store";
-import { input_alphabet, list_of_connections, list_of_states, start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/automataStores";
-import type { State } from "$lib/types/interfaces";
+import { default_connection_character, input_alphabet, list_of_connections, list_of_states, should_show_string_traversal, should_strict_check, start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/automataStores";
+import type { State, WorkspaceData } from "$lib/types/interfaces";
 import { convertCoordinateToString } from "$lib/utils/miscUtils";
-import type { TauriGeneratedAutomataInformation } from "$lib/types/types";
 import { Automata } from "../types/enums";
 
 export const parseListOfStates = (
@@ -38,52 +37,48 @@ export const parseStatePositions = (
   return state_positions;
 }
 
-export const setTauriResponses = (tauri_response: TauriGeneratedAutomataInformation): void => {
+export const setTauriResponses = (tauri_response: WorkspaceData): void => {
 
   start_state_index.set(
-    tauri_response[0]
+    tauri_response.start_state_index
+  );
+
+  start_state_position.set(
+    tauri_response.start_state_position
   );
 
   list_of_states.set(
-    parseListOfStates(tauri_response[1])
+    parseListOfStates(tauri_response.list_of_states)
   );
 
   list_of_connections.set(
-    tauri_response[2]
+    tauri_response.list_of_connections
   );
 
   state_positions.set(
-    parseStatePositions(tauri_response[3])
+    parseStatePositions(tauri_response.state_positions)
   );
 
-  // Ugly code but the best way to handle this since outside of .svelte files i cannot use the $ syntactic sugar
-  const ss_index = get(start_state_index);
-  start_state_position.set(
-    ss_index !== null? convertCoordinateToString(get(list_of_states)[ss_index].position): 
-    null
+  const enum_representation_of_response = tauri_response.type_of_automata == "DFA"? Automata.DFA:Automata.NFA
+  type_of_automata.set(
+    enum_representation_of_response
   );
-
-  // We're doing this as some functions don't NEED specify this parameter so in the case
-  // we're not passed this value we can just leave the type of automata unchanged
-  if(tauri_response[4] === undefined){
-    return;
-  }
-  // For some reason, if i set the type of automata as an integer rather than the enum type directly,
-  // the value of get[type_of_automata] becomes an integer instead of the enum type, which
-  // messes up the way all my other functions work
-  // thus it's done awkwardly this way
-  if(tauri_response[4] === "DFA") {
-    type_of_automata.set(
-      Automata.DFA
-    );
-  } else {
-    type_of_automata.set(
-      Automata.NFA
-    );
-  }
 
   input_alphabet.set(
-    tauri_response[6]
-  )
+    tauri_response.alphabet
+  );
+
+  should_strict_check.set(
+    tauri_response.should_strict_check
+  );
+
+  should_show_string_traversal.set(
+    tauri_response.should_show_string_traversal
+  );
+
+  default_connection_character.set(
+    tauri_response.default_connection_character
+  );
+
 
 }

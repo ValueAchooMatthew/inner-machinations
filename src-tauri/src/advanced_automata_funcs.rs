@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::{HashMap, HashSet}};
 use app::{create_connections_from_state_positions, create_unique_state_coordinates, remove_all_epsilon_transitions};
 
-use app::models::{Connection, Coordinate, SmartState, State};
+use app::models::{Connection, Coordinate, State};
 
 fn mark_unequivalent_states_in_dfa(
   state_connections: &HashMap<String, State>, 
@@ -239,7 +239,6 @@ pub fn minimize_dfa(
 
 }
 
-// Todo: Fix for a+b* and similar such cases
 #[tauri::command]
 pub fn convert_nfa_to_dfa (
   mut state_positions: HashMap<String, State>,
@@ -386,7 +385,6 @@ pub fn convert_nfa_to_dfa (
     }
   
   };
-  // println!("{:?}", reconstructed_state_positions_as_owned.values());
 
   return (start_state_index, reconstructed_states, connections, reconstructed_state_positions_as_owned);
 

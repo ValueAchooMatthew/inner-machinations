@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use app::models::TypeOfAutomata;
 
-use app::models::{State, SmartState};
+use app::models::State;
 use crate::advanced_automata_funcs::convert_nfa_to_dfa;
 
 // Need to refactor to use less cloning in future

@@ -1,4 +1,4 @@
-use crate::models::{SmartState, State};
+use crate::models::State;
 use std::collections::HashMap;
 
 #[tauri::command]

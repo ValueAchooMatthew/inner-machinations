@@ -4,13 +4,13 @@
   import Whiteboard from "./Whiteboard.svelte";
   import Banner from "./Banner.svelte";
   import { checkInputtedString } from "$lib/utils/stringVerificationFuncs";
-  import Notifications from "./Notifications.svelte";
+  import Notifications from "$lib/components/Notifications.svelte";
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api";
   import { dialogue_to_user, start_state_index, state_positions, input_alphabet, 
   start_state_position, type_of_automata, email, workspace_name } from "$lib/utils/automataStores";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
-  import type { TauriGeneratedAutomataInformation } from "$lib/types/types";
+  import type { WorkspaceData } from "$lib/types/interfaces";
   import TestFeedback from "./TestFeedback.svelte";
   import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
   import Sidebar from "./Sidebar.svelte";
@@ -23,19 +23,18 @@
   // let state_connections: Map<string, State> = new Map<string, State>();
   let highlighted_state: State | null = null;
   let should_show_string_traversal: boolean;
-  let default_connection_char: string;
-  let is_option_menu_open: boolean;
+  let default_connection_character: string;
+  let is_option_menu_open: boolean = false;
   let should_strict_check: boolean;
 
   onMount(async () => {
-    const tauri_response: TauriGeneratedAutomataInformation = 
-    await invoke("retrieve_workspace_data", {
+    const workspace_data: WorkspaceData = await invoke("retrieve_workspace_data", {
       email: $email,
       workspaceName: $workspace_name,
     });
 
     setTauriResponses(
-      tauri_response
+      workspace_data
     );
 
   });
@@ -81,8 +80,7 @@
 
   const handleIncrementalStringChecking = async () => {
     let i = 0;
-    const traverseAutomata = 
-    setInterval(()=>{
+    const traverseAutomata = setInterval(() => {
       // Every other tick, we're going to unhighlight the previously highlighted state so transitions
       // are more apparent to see
       if(i % 2 == 1) {
@@ -133,7 +131,6 @@
     class:left-0={is_option_menu_open}
     class:-left-full={!is_option_menu_open}>
     <OptionsMenu
-
       bind:is_option_menu_open/>
   </aside>
   <div class="w-full min-w-0">
@@ -144,7 +141,7 @@
         <div class="flex flex-col">
           <Whiteboard
             {highlighted_state}
-            {default_connection_char}/>
+            {default_connection_character}/>
         </div>
         <div class="flex flex-col justify-center gap-3 py-3">
           <TestFeedback {is_string_accepted} />

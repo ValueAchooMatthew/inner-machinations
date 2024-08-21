@@ -1,5 +1,6 @@
 // Reworked so every state has a reference to it's position, to allow for a single state interface for use
 
+import type { Automata } from "./enums";
 import type { Token } from "./types";
 
 // In both drawing states to the canvas and connecting data in the rust
@@ -63,4 +64,19 @@ export interface ConcatenatedExpression {
 
 export interface Literal {
   Literal: string
+}
+
+export interface WorkspaceData {
+  start_state_index: number | null,
+  start_state_position: string | null,
+  state_positions: { [key: string]: State; },
+  list_of_states: Array<State>,
+  list_of_connections: Array<Connection>,
+  type_of_automata: string,
+  date_of_last_update: string,
+  alphabet: Array<string>,
+  should_strict_check: boolean,
+  should_show_string_traversal: boolean,
+  default_connection_character: string
+
 }

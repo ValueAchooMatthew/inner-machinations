@@ -87,7 +87,7 @@
     font-semibold hover:-translate-y-2 transition-all duration-[400ms] shadow-2xl">
       Sign Up/Log-in
     </button>
-  <a class="text-center mt-2 font-Montserrat text-xl" href="/">
+  <a class="text-center mt-2 font-Montserrat text-xl" href="../">
     Return to Home
   </a>
 </form>

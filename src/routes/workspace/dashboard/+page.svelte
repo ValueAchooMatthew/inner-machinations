@@ -5,6 +5,7 @@
   import SignOut from "./SignOut.svelte";
   import ConfirmDelete from "./ConfirmDelete.svelte";
   import { email } from "$lib/utils/automataStores";
+  import Notifications from "$lib/components/Notifications.svelte";
 
   let saved_workspace_names: Array<string> = new Array();
   let workspace_to_delete: string | null = null;
@@ -34,4 +35,7 @@
   </div>
   <ConfirmDelete bind:workspace_to_delete={workspace_to_delete}/>
   <a href="./regexes">Go To regexes</a>
+  <div class="flex justify-center mt-24">
+    <Notifications />
+  </div>
 </div>

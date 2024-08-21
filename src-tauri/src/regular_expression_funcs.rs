@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use app::create_unique_state_coordinates;
 use regex_models::{BinaryOperator, ConcatenatedExpression, KleeneOperator, Operator, OrOperator, ParsingError, Token, UnaryOperator};
 
-use app::models::{SmartState, State, Coordinate};
+use app::models::{State, Coordinate};
 
 use crate::{advanced_automata_funcs::convert_nfa_to_dfa, testing_automata_funcs::test_string_nfa};
 mod tests;
