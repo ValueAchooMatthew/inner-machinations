@@ -1,10 +1,12 @@
 use std::{cell::RefCell, collections::{HashMap, HashSet}};
-use app::{create_connections_from_state_positions, create_unique_state_coordinates, remove_all_epsilon_transitions};
+use app::{create_connections_from_state_positions, create_unique_state_coordinates, models::WorkspaceData, remove_all_epsilon_transitions};
 
 use app::models::{Connection, Coordinate, State};
 
+use crate::saving_automata_funcs::{retrieve_workspace_data, save_workspace};
+
 fn mark_unequivalent_states_in_dfa(
-  state_connections: &HashMap<String, State>, 
+  state_positions: &HashMap<String, State>, 
   input_alphabet: &Vec<String>,
 ) -> HashSet<(String, String)> {
 
@@ -16,8 +18,8 @@ fn mark_unequivalent_states_in_dfa(
 
   while !finished {
     finished = true;
-    for (first_state_key, first_state) in state_connections {
-      for (second_state_key, second_state) in state_connections {
+    for (first_state_key, first_state) in state_positions {
+      for (second_state_key, second_state) in state_positions {
 
         let current_states_key_pair = (first_state_key.to_owned(), second_state_key.to_owned());
         // We do not need to check if the current pair of strings is marked if they are already marked
@@ -80,21 +82,21 @@ fn mark_unequivalent_states_in_dfa(
 
 }
 
-#[tauri::command]
-pub fn is_dfa_minimal(
-  state_connections: HashMap<String, State>, 
-  input_alphabet: Vec<String>) -> bool {
+// #[tauri::command]
+// pub fn is_dfa_minimal(
+//   state_positions: HashMap<String, State>, 
+//   input_alphabet: Vec<String>) -> bool {
 
-  let marked_states = mark_unequivalent_states_in_dfa(&state_connections, &input_alphabet);
+//   let marked_states = mark_unequivalent_states_in_dfa(&state_positions, &input_alphabet,);
 
-  // If this is true, we know that the provided DFA is already minimized and thus, there is no need to alter state_connections
-  if marked_states.len() == (state_connections.len().pow(2) - state_connections.len()) {
-    return true;
-  }
+//   // If this is true, we know that the provided DFA is already minimized and thus, there is no need to alter state_positions
+//   if marked_states.len() == (state_positions.len().pow(2) - state_positions.len()) {
+//     return true;
+//   }
 
-  return false;
+//   return false;
 
-}
+// }
 
 fn remove_redundant_state_connections(
   mut state: State, 
@@ -170,20 +172,37 @@ fn remove_redundant_connections(
 
 #[tauri::command]
 pub fn minimize_dfa(
-  state_connections: HashMap<String, State>,
+  mut state_positions: HashMap<String, State>,
   connections: Vec<Connection>,
-  input_alphabet: Vec<String>
-  ) -> (Option<usize>, Vec<State>, Vec<Connection>, HashMap<String, State>){
+  input_alphabet: Vec<String>,
+  email: String,
+  workspace_name: String
+) -> WorkspaceData {
 
-  let marked_states = mark_unequivalent_states_in_dfa(&state_connections, &input_alphabet);
+  // DFA's are typically required to have a connection for each state for each character in the input alphabet.
+  // This however, is very unuser friendly as it is very easy to infer that an unspecified connection results in automatic unacceptance.
+  // To prevent mandatory and explicit unaccepted transitions, what we will do is create a special "vortex" state, that under the hood
+  // All unspecified connections are sent to and cannot escape. Doing this allows us to continue using the same algorithm
+  // For DFA minimization while maintaining good user experience. The following code reflects that.
+  let vortex_state_coords = create_unique_state_coordinates(&state_positions.keys().cloned().collect());
+  let mut vortex_state = State::new(vortex_state_coords, false, false);
+  
+  for input_character in &input_alphabet {
+    vortex_state.add_connection(&input_character, vortex_state_coords);
+  }
 
-  let mut start_state_index: Option<usize> = None;
+  state_positions.insert(vortex_state_coords.into(), vortex_state);
+
+  specify_implicit_state_connections(&input_alphabet, &mut state_positions, vortex_state_coords);
+
+  let marked_states = mark_unequivalent_states_in_dfa(&state_positions, &input_alphabet);
+
   let mut minimized_states = vec![];
-  let mut minimized_state_connections: HashMap<String, State> = HashMap::new();
+  let mut minimized_state_positions: HashMap<String, State> = HashMap::new();
   let mut state_keys_to_be_ignored: HashSet<&String> = HashSet::new();
   let mut equivalent_state_keys: HashMap<&String, &String> = HashMap::new();
 
-  for (first_state_key, first_state) in &state_connections {
+  for (first_state_key, first_state) in &state_positions {
 
     // The state we are currently on is equivalent to one which we've already included in our
     // minimized state connections, thus we do not to to verify if it is equivalent to any other states.
@@ -195,7 +214,7 @@ pub fn minimize_dfa(
     let mut first_state = first_state
       .to_owned();
 
-    for (second_state_key, second_state) in &state_connections {
+    for (second_state_key, second_state) in &state_positions {
 
       let current_states_key_pair = (first_state_key.to_owned(), second_state_key.to_owned());
 
@@ -224,20 +243,49 @@ pub fn minimize_dfa(
   // If a state does not need to be ignored, we will still need to change all references made to an ignored state to its equivalent
   // Which we chose not to ignore
   // This must be done after the final list of all states to be ignored has been made
-  for (index, state) in minimized_states.iter_mut().enumerate() {
-
-    if state.is_start() {
-      start_state_index = Some(index);
-    }
+  for state in minimized_states.iter_mut() {
     *state = remove_redundant_state_connections(state.to_owned(), &equivalent_state_keys, &state_keys_to_be_ignored);
-    minimized_state_connections.insert(state.get_position_as_string(), state.to_owned());
+    minimized_state_positions.insert(state.get_position_as_string(), state.to_owned());
   }
 
   let connections = remove_redundant_connections(connections, &equivalent_state_keys , &state_keys_to_be_ignored);
 
-  return (start_state_index, minimized_states, connections, minimized_state_connections);
+  // Removing temporary implicit vortex state
+  minimized_state_positions.remove::<String>(&vortex_state_coords.into());
+
+  save_workspace(workspace_name.to_owned(), minimized_state_positions, email.to_owned(), connections);
+  let workspace_data = retrieve_workspace_data(workspace_name, email);
+
+  return workspace_data;
 
 }
+
+fn specify_implicit_state_connections(input_alphabet: &Vec<String>, state_positions: &mut HashMap<String, State>, vortex_state_coords: Coordinate) {
+
+  for state_key in state_positions.clone().keys() {
+    let current_state = state_positions
+      .get_mut(state_key)
+      .expect("There was an error retrieving the given state");
+
+    for input_character in input_alphabet {
+
+      let all_connected_state_keys = current_state
+        .get_all_connections_mut();
+
+      all_connected_state_keys
+        .entry(input_character.to_owned())
+        .and_modify(|state_keys_connected_by_character| {
+          if state_keys_connected_by_character.len() < 1 {
+            state_keys_connected_by_character.insert(vortex_state_coords.into());
+          }
+
+        })
+        .or_insert(HashSet::from([vortex_state_coords.into()]));
+    }
+  }
+
+}
+
 
 #[tauri::command]
 pub fn convert_nfa_to_dfa (

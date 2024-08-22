@@ -314,7 +314,7 @@ pub struct WorkspaceData {
   list_of_states: Vec<State>,
   list_of_connections: Vec<Connection>,
   type_of_automata: TypeOfAutomata,
-  date_of_last_update: NaiveDateTime,
+  date_of_last_update: String,
   alphabet: Vec<String>,
   should_strict_check: bool,
   should_show_string_traversal: bool,
@@ -335,7 +335,7 @@ impl WorkspaceData {
     let alphabet = Self::parse_alphabet(&workspace);
 
     let automata_type = workspace.type_of_automata;
-    let date_of_last_update = workspace.date_of_last_update;
+    let date_of_last_update = workspace.date_of_last_update.format("%Y-%m-%d %H:%M:%S").to_string();
     let should_strict_check = workspace.should_strict_check;
     let should_show_string_traversal = workspace.should_show_string_traversal;
     let default_connection_character = workspace.default_connection_character;

@@ -2,9 +2,9 @@ use crate::models::State;
 use std::collections::HashMap;
 
 #[tauri::command]
-pub fn verify_valid_dfa(state_connections: HashMap<String, State>, input_alphabet: Vec<String>) -> bool {
+pub fn verify_valid_dfa(state_positions: HashMap<String, State>, input_alphabet: Vec<String>) -> bool {
 
-  for state in state_connections.values() {
+  for state in state_positions.values() {
 
     let all_connections_from_state = state.get_all_connections();
 

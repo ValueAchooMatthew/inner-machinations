@@ -1,21 +1,24 @@
 <script src="" lang="ts">
 
   import { Automata } from "$lib/types/enums";
+  import type { WorkspaceData } from "$lib/types/interfaces";
   import { input_alphabet, list_of_connections, list_of_states, 
   start_state_index, start_state_position, state_positions, type_of_automata, email, workspace_name } from "$lib/utils/automataStores";
   import { convertCoordinateToString, getCookie } from "$lib/utils/miscUtils";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
   import { invoke } from "@tauri-apps/api";
-  import type { TauriGeneratedAutomataInformation } from "$lib/types/types";
   import { tick } from "svelte";
 
   const handleStateMinimization = async (): Promise<void> => {
     
-    const tauri_response: TauriGeneratedAutomataInformation =
+    const tauri_response: WorkspaceData =
     await invoke("minimize_dfa", {
       statePositions: $state_positions, 
       connections: $list_of_connections, 
-      inputAlphabet: $input_alphabet});
+      inputAlphabet: $input_alphabet,
+      workspaceName: $workspace_name,
+      email: $email
+    });
 
     setTauriResponses(
       tauri_response
@@ -30,6 +33,7 @@
     
   }
 
+  // Todo: Fix to work with workspace data
   const convertNFAToDFA = async () => {
     type_of_automata
       .set(Automata.DFA);
@@ -38,7 +42,7 @@
     
     await tick();
     
-    const tauri_response: TauriGeneratedAutomataInformation =
+    const tauri_response: WorkspaceData =
     await invoke("convert_nfa_to_dfa", {
       startStatePosition: $start_state_position,
       statePositions: $state_positions

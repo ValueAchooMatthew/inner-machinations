@@ -36,10 +36,10 @@ export async function saveOptions(form: HTMLFormElement | undefined) {
   });
   input_alphabet.set(sanitized_alphabet);
 
-  await invoke("update_showing_string_traversal", 
+  await invoke("update_strict_checking", 
     {email: get(email), workspaceName: get(workspace_name), shouldStrictCheck: get(should_strict_check)});
 
-  await invoke("update_strict_checking", 
+  await invoke("update_showing_string_traversal", 
     {email: get(email), workspaceName: get(workspace_name), shouldShowTraversal: get(should_show_string_traversal)});
 
   const new_default_connection_character = data.get("default_character")?.toString();

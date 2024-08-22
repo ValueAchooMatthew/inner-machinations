@@ -20,7 +20,6 @@
   let is_string_accepted: boolean | null = null;
   let states_traversed: Array<State> = [];
 
-  // let state_connections: Map<string, State> = new Map<string, State>();
   let highlighted_state: State | null = null;
   let should_show_string_traversal: boolean;
   let default_connection_character: string;
@@ -124,7 +123,6 @@
 
 </script>
 
-<!-- <svelte:window on:keydown={handleKeyDownEvent}/> -->
 <div class="relative flex font-semibold w-full h-full bg-gray-200 min-h-screen">
   <aside class=" bg-orange-500 flex flex-col top-0
     absolute transition-all duration-300 overflow-hidden z-50 w-full h-full"

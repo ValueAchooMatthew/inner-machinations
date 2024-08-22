@@ -4,6 +4,7 @@ use app::{encrypt_user_data, sanitize_input_alphabet, establish_connection, mode
 use app::models::{Connection, SavedWorkspace, TypeOfAutomata, User, WorkspaceData};
 use app::schema::{saved_connections, users, saved_states, saved_workspaces};
 
+use chrono::NaiveDateTime;
 use diesel::{ExpressionMethods, SqliteConnection};
 use magic_crypt::new_magic_crypt;
 use crate::diesel::QueryDsl;
@@ -318,7 +319,7 @@ fn set_current_time(workspace_id: &i32, conn: &mut SqliteConnection) -> Result<(
   // Sets time of last update to current time
   diesel::update(saved_workspaces::table
     .filter(saved_workspaces::id.eq(workspace_id)))
-    .set(saved_workspaces::date_of_last_update.eq(diesel::dsl::now))
+    .set(saved_workspaces::date_of_last_update.eq::<NaiveDateTime>(chrono::offset::Local::now().naive_local()))
     .execute(conn)?;
 
   Ok(())
