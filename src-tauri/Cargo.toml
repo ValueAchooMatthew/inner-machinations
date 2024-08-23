@@ -18,7 +18,7 @@ tauri-build = { version = "1.5.1", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.5.4", features = [] }
-diesel = { version = "2.2.0", features = ["sqlite", "chrono"] }
+diesel = { version = "2.2.3", features = ["sqlite", "chrono"] }
 dotenv = "0.15.0"
 rusqlite = { version = "0.30.0", features = ["bundled"] }
 magic-crypt = "3.1.9"
