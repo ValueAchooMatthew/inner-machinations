@@ -4,7 +4,6 @@ extern crate dotenv;
 pub mod schema;
 pub mod models;
 
-use std::cell::RefCell;
 use std::collections::HashSet;
 use std::{collections::HashMap, fs};
 use std::io::Write;
@@ -112,14 +111,12 @@ pub fn create_unique_state_coordinates(state_positions: &HashSet<String>) -> Coo
   };
 }
 
-pub fn create_connections_from_state_positions(state_positions: &HashMap<String, RefCell<State>>) -> Vec<Connection> {
+pub fn create_connections_from_state_positions(state_positions: &HashMap<String, State>) -> Vec<Connection> {
 
   let mut connections = vec![];
 
   // quite slow but okay as most graphs used will be quite sparse
   for (current_state_key, current_state) in state_positions {
-
-    let current_state = current_state.borrow();
 
     for (connection_character, connected_state_keys) in current_state.get_all_connections() {
       for connected_state_key in connected_state_keys {

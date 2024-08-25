@@ -1,24 +1,25 @@
 <script lang="ts">
   import { Automata } from "$lib/types/enums";
-  import { start_state_position, state_positions, type_of_automata } from "$lib/utils/automataStores";
+  import { email, start_state_position, state_positions, type_of_automata, workspace_name } from "$lib/utils/automataStores";
   import { invoke } from "@tauri-apps/api";
 
   let language_of_automata: string;
 
   $: {
     if($start_state_position !== null) {
-      invoke("determine_language_of_automata", {statePositions: $state_positions, 
+      invoke("determine_language_of_automata", {
+        statePositions: $state_positions, 
         startStateKey: $start_state_position, 
-        typeOfAutomata: Automata[$type_of_automata]})
-
-        .then((data)=>{
-          if(typeof(data) === "string") {
-            language_of_automata = data
-          }
-        })
-        .catch((e)=>{
-          console.log(e)
-        });
+        typeOfAutomata: Automata[$type_of_automata],
+      })
+      .then((data)=>{
+        if(typeof(data) === "string") {
+          language_of_automata = data
+        }
+      })
+      .catch((e)=>{
+        console.log(e)
+      });
 
     }
   }

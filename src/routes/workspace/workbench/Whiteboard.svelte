@@ -7,7 +7,8 @@
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
   import { convertCoordinateToString, removeFirstElementFromArray } from "$lib/utils/miscUtils";
   import { list_of_states, list_of_connections, selected_connection_index, 
-  state_positions, current_action, email, workspace_name} from "$lib/utils/automataStores";
+  state_positions, current_action, email, workspace_name,
+  input_alphabet} from "$lib/utils/automataStores";
   import { undo } from "$lib/utils/deletionFuncs";
   import { handleUserClickingCanvas } from "$lib/utils/userEvents";
 
@@ -105,16 +106,9 @@
 
   // Used when an arrow is selected and the character of its transition is being changed by the user
   const handleCharChange = (event: KeyboardEvent): void => {
-    if (
-      $selected_connection_index === null
-      || event.ctrlKey
-      || event.altKey
-      || event.shiftKey
-      || event.key == "Tab"
-    ) {
+    if ($selected_connection_index === null || event.key.length !== 1) {
       return;
     }
-
 
     const selected_connection = $list_of_connections[$selected_connection_index];
     const old_character = selected_connection.connection_character;
@@ -171,7 +165,14 @@
     });
 
     selected_connection_index.set(null);
-    current_action.set(Action.CLICKING)
+    current_action.set(Action.CLICKING);
+    if(!$input_alphabet.includes(new_character) && new_character.length === 1) {
+      input_alphabet.update((previous_input_alphabet) => {
+        previous_input_alphabet.push(new_character);
+        return previous_input_alphabet;
+      })
+    }
+
   };
 
   const handleDragStart = (event: MouseEvent): void => {

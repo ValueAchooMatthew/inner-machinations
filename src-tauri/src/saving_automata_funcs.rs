@@ -56,10 +56,12 @@ pub fn update_workspace_alphabet(workspace_name: String, email: String, alphabet
 }
 
 #[tauri::command]
-pub fn save_workspace(workspace_name: String, 
+pub fn save_workspace(
+  workspace_name: String, 
   states: HashMap<String, State>, 
   email: String, 
-  connections: Vec<Connection>) {
+  connections: Vec<Connection>
+) {
 
   let mut conn = establish_connection();
   let user_id = get_user_id(&email, &mut conn);

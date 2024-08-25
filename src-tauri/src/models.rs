@@ -305,7 +305,7 @@ pub enum TypeOfAutomata {
   NFA
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, )]
 pub struct WorkspaceData {
   
   start_state_index: Option<usize>,
@@ -354,6 +354,14 @@ impl WorkspaceData {
       default_connection_character
     }
 
+  }
+
+  pub fn get_start_state_position(&self) -> &Option<String> {
+    &self.start_state_position
+  }
+
+  pub fn get_state_positions(&self) -> &HashMap<String, State> {
+    &self.state_positions
   }
 
   fn get_state_positions_from_list_of_states(list_of_states: &Vec<State>) -> HashMap<String, State> {

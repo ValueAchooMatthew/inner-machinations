@@ -1,12 +1,12 @@
 mod regex_models;
 use std::collections::HashMap;
 
-use app::create_unique_state_coordinates;
+use app::{create_unique_state_coordinates, remove_all_epsilon_transitions};
 use regex_models::{BinaryOperator, ConcatenatedExpression, KleeneOperator, Operator, OrOperator, ParsingError, Token, UnaryOperator};
 
 use app::models::{State, Coordinate};
 
-use crate::{advanced_automata_funcs::convert_nfa_to_dfa, testing_automata_funcs::test_string_nfa};
+use crate::{advanced_automata_funcs::reconstruct_nfa_state_positions, testing_automata_funcs::test_string_nfa};
 mod tests;
 
 #[tauri::command]
@@ -31,7 +31,9 @@ pub fn test_string_regex(regex: &str, string_to_check: String) -> Result<bool, P
     end_state_coords
   );
 
-  let (_, _, _, state_positions) = convert_nfa_to_dfa(state_positions, start_state_coords.into());
+  remove_all_epsilon_transitions(&mut state_positions);
+
+  let state_positions = reconstruct_nfa_state_positions(&state_positions, start_state_coords.into());
 
   return Ok(test_string_nfa(state_positions, start_state_coords.into(), string_to_check).0);
 

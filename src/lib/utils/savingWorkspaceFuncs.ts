@@ -7,7 +7,7 @@ import { convertFormDataEntriesToStringArray } from "./miscUtils";
 
 export const saveWorkspace = async () => {
 
-  dialogue_to_user.set("");
+  dialogue_to_user.set(null);
 
   await invoke("save_workspace", {
     workspaceName: get(workspace_name),

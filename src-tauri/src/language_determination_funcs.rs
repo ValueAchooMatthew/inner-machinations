@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use app::models::TypeOfAutomata;
 
 use app::models::State;
-use crate::advanced_automata_funcs::convert_nfa_to_dfa;
+use crate::advanced_automata_funcs::reconstruct_nfa_state_positions;
 
 // Need to refactor to use less cloning in future
 fn find_all_paths_to_final_state(start_state: &State, 
@@ -38,7 +38,7 @@ fn find_all_paths_to_final_state(start_state: &State,
 
       let next_state = state_positions
         .get(state_key)
-        .expect("There was a problem getting the state");
+        .expect("{There was a problem getting the state}");
 
       let mut visited_states: HashSet<&State> = visited_states.clone();
 
@@ -62,38 +62,52 @@ fn find_all_paths_to_final_state(start_state: &State,
 }
 
 fn find_unique_loops_to_given_state(
+  previous_state: Option<&State>,
   current_state: &State, 
   end_state: &State, 
   strings_to_final_state: &mut HashMap<State, HashSet<String>>, 
   consumed_string: &str,
   state_positions: &HashMap<String, State>,
-  visited_states: &mut HashMap<State, HashSet<(String, State)>>) {
+  visited_states: &mut HashMap<State, HashSet<(String, State)>>
+) {
   
   if current_state == end_state && consumed_string != "" {
-    match strings_to_final_state.get_mut(end_state) {
-      Some(previous_ways) => {
-        previous_ways
-          .insert(consumed_string.to_owned());
-      },
-      None => {
-        strings_to_final_state
-          .insert(end_state.to_owned(), HashSet::from([consumed_string.to_owned()]));
-      }
-    };
+    strings_to_final_state
+      .entry(end_state.to_owned())
+      .and_modify(|previous_ways_to_final_state| {
+        previous_ways_to_final_state.insert(consumed_string.to_owned());
+      }).or_insert(
+        HashSet::from([consumed_string.to_owned()]
+      ));
     return;
   }
-
+  
   for (character_connection, state_keys) in current_state.get_all_connections() {
-
+    
     for state_key in state_keys {
-
+      
       let string_consumed = consumed_string.to_owned() + character_connection;
-
+      
       let next_state = state_positions
         .get(state_key)
         .expect("There was a problem getting the state")
         .to_owned();
+    
+      // This is used to prevent redundant additional transitions. If we take connection "a" to a given state,
+      // and the state we have transitioned to has a self loop of "a" to itself, without this there is a chance 
+      // (since connections are visited in pseudo random order) that we take that self loop and then proceed to 
+      // find all loops to the final state. Since the second "a" transition leads to us being in the same state, 
+      // It does not qualify as unique and thus we want to continue if this is the case
+      if previous_state.is_some() {
+        let previous_state = previous_state.unwrap();
 
+        if let Some(set) = visited_states.get(previous_state) {
+          if set.contains(&(character_connection.to_owned(), current_state.clone())) && *current_state == next_state {
+            continue;
+          }
+        }
+      }
+      
       if let Some(set) = visited_states.get_mut(current_state) {
         if set.contains(&(character_connection.to_owned(), next_state.clone())) {
           continue;
@@ -102,13 +116,17 @@ fn find_unique_loops_to_given_state(
       } else {
         visited_states.insert(current_state.clone(), HashSet::from([(character_connection.to_owned(), next_state.clone())]));
       }
-
-      find_unique_loops_to_given_state(&next_state, 
+      
+      println!("cs: {current_state:?} c: {character_connection}, ns: {next_state:?} ");
+      find_unique_loops_to_given_state(
+        Some(&current_state),
+        &next_state, 
         end_state, 
         strings_to_final_state,
         string_consumed.as_str(),
         &state_positions,
-        visited_states);
+        visited_states
+      );
 
     }
   }
@@ -152,32 +170,44 @@ fn convert_acceptance_paths_to_string(acceptance_paths: &HashMap<String, HashSet
 
 }
 
+// Todo: Fix
 #[tauri::command]
-pub fn determine_language_of_automata(state_positions: HashMap<String, State>, start_state_key: String, type_of_automata: TypeOfAutomata) -> String {
+pub fn determine_language_of_automata(
+  state_positions: HashMap<String, State>, 
+  start_state_key: String, 
+  type_of_automata: TypeOfAutomata,
+) -> String {
 
   match type_of_automata {
     TypeOfAutomata::DFA => {
-      return determine_language_of_dfa(state_positions, start_state_key);
+      determine_language_of_dfa(&state_positions, &start_state_key)
     },
     TypeOfAutomata::NFA => {
-      let (start_state_index, list_of_states, _, state_positions) = 
-        convert_nfa_to_dfa(state_positions, start_state_key);
+      // We convert to a DFA first
+      let state_positions = reconstruct_nfa_state_positions(
+        &state_positions, 
+        start_state_key, 
+      );
 
-      let start_state_key = list_of_states
-        .get(start_state_index.expect("The start state should be defined"))
-        .expect("The state should exist in the list of states")
-        .get_position_as_string();
-
-      return determine_language_of_dfa(state_positions, start_state_key);
+      // Janky, maybe fix in future
+      let mut start_state_key = String::new();
+      for state in state_positions.values() {
+        if state.is_start() {
+          start_state_key = state.get_position_as_string();
+        }
+      }
+      if start_state_key != "" {
+        determine_language_of_dfa(&state_positions, &start_state_key)
+      } else {
+        panic!("The start state position must exist!");
+      }
 
     }
   }
 
 }
 
-fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_state_key: String) -> String {
-
-
+fn determine_language_of_dfa(state_positions: &HashMap<String, State>, start_state_key: &String) -> String {
   // Here's what I'm thinking
   // To determine the language of this dfa, i'm going to find every single unique path that leads to a final state.
   // Then, for every single final state, I'm going to determine if there exists any loops which bring us back to the SAME final state
@@ -190,7 +220,7 @@ fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_stat
     .collect();
 
   let start_state = state_positions
-    .get(&start_state_key)
+    .get(start_state_key)
     .expect("There was a problem getting the start state");
 
   let mut all_paths_to_reach_final_states = HashMap::new();
@@ -209,11 +239,26 @@ fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_stat
   let mut visited_looping_states = HashMap::new();
 
   for final_state in positions_of_final_states.values() {
-    find_all_paths_to_final_state(start_state, *final_state, "", &mut all_paths_to_reach_final_states, &state_positions, visited_states.clone());
+    find_all_paths_to_final_state(
+      start_state, 
+      *final_state,
+      "",
+      &mut all_paths_to_reach_final_states,
+      &state_positions,
+      visited_states.clone()
+    );
   }
 
   for final_state in positions_of_final_states.values() {
-    find_unique_loops_to_given_state(*final_state, *final_state, &mut looping_paths_to_final_states, "", &state_positions, &mut visited_looping_states);
+    find_unique_loops_to_given_state(
+      None,
+      *final_state, 
+      *final_state, 
+      &mut looping_paths_to_final_states, 
+      "", 
+      &state_positions, 
+      &mut visited_looping_states
+    );
     visited_looping_states.clear();
   }
 
@@ -241,7 +286,6 @@ fn determine_language_of_dfa(state_positions: HashMap<String, State>, start_stat
         let unionized: HashSet<String> = looping_paths
           .union(looping_paths_from_state)
           // The union produces a hashset of type &String when collected so we need to clone
-          .into_iter()
           .cloned()
           .collect();
 

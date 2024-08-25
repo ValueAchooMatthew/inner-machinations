@@ -8,9 +8,7 @@
     "workspace_name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     const does_workspace_exist = await invoke("does_workspace_name_exist", {workspaceName: "Untitled Project", email: $email})
     if(does_workspace_exist) {
-      dialogue_to_user.set(
-        "Untitled Project already exists"
-      )
+      dialogue_to_user.set("Untitled Project already exists")
       return;
     } 
     
@@ -18,7 +16,7 @@
     workspace_name.set(
       "Untitled Project"
     )
-    dialogue_to_user.set("");
+    dialogue_to_user.set(null);
     await invoke("create_workspace", {email: $email, workspaceName: "Untitled Project"});
     goto("/workspace/workbench");
   }

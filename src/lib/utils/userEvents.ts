@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { current_action, dialogue_to_user, list_of_all_elements, list_of_connections, list_of_states, selected_connection_index, start_state_index, start_state_position, state_positions } from "./automataStores";
+import { current_action, dialogue_to_user, input_alphabet, list_of_all_elements, list_of_connections, list_of_states, selected_connection_index, start_state_index, start_state_position, state_positions } from "./automataStores";
 import type { BezierCurve, Connection, Coordinate, State } from "../types/interfaces";
 import { convertCoordinateToString } from "./miscUtils";
 import { Action } from "../types/enums";
@@ -40,6 +40,13 @@ export const handleUserClickingCanvas = (cursor_x_pos: number, cursor_y_pos: num
       return;
     }
     addConnection(cursor_coords, default_connection_character);
+    if(!get(input_alphabet).includes(default_connection_character)) {
+      input_alphabet.update((previous_input_alphabet) => {
+        previous_input_alphabet.push(default_connection_character);
+        return previous_input_alphabet;
+      })
+    }
+
   } else if(current_user_action === Action.PLACING_START_OF_EPSILON_LINE) {
     if(selected_state === undefined) {
       dialogue_to_user.set("You must place an arrow on top of a Node.");

@@ -42,12 +42,12 @@
     
     await tick();
     
-    const tauri_response: WorkspaceData =
-    await invoke("convert_nfa_to_dfa", {
+    const tauri_response: WorkspaceData = await invoke("convert_nfa_to_dfa", {
       startStatePosition: $start_state_position,
-      statePositions: $state_positions
+      statePositions: $state_positions,
+      email: $email,
+      workspaceName: $workspace_name
     });
-
 
     setTauriResponses(
       tauri_response
