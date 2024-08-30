@@ -49,11 +49,11 @@
     <form class="self-center flex flex-col gap-6" action="">
       <div>
         <label for="regex">Build Regular Expression: </label>
-        <input class="text-3xl px-1 py-0.5 border-black border-2 rounded-md self-center" on:input={handleUpdatingRegex} id="regex" name="regex" type="text">
+        <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2" on:input={handleUpdatingRegex} id="regex" name="regex" type="text">
       </div>
       <div>
         <label for="string_test">Check String: </label>
-        <input class="text-3xl px-1 py-0.5 border-black border-2 rounded-md" on:input={handleStringChecking} id="string_test" name="string_test" type="text">
+        <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2" on:input={handleStringChecking} id="string_test" name="string_test" type="text">
       </div>
     </form>
     <TestFeedback is_string_accepted={was_string_accepted} />

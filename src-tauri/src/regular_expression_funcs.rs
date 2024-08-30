@@ -33,7 +33,9 @@ pub fn test_string_regex(regex: &str, string_to_check: String) -> Result<bool, P
 
   remove_all_epsilon_transitions(&mut state_positions);
 
-  let state_positions = reconstruct_nfa_state_positions(&state_positions, start_state_coords.into());
+  let start_state_key: String = start_state_coords.into();
+
+  let state_positions = reconstruct_nfa_state_positions(&state_positions, &start_state_key);
 
   return Ok(test_string_nfa(state_positions, start_state_coords.into(), string_to_check).0);
 
@@ -561,18 +563,7 @@ fn tokenize_regular_expression(regex: &str) -> (Vec<Token>, Option<usize>) {
       return (tokens, Some(index));
     } else if !c.is_whitespace() {
       // We've encountered a character which we will add to our list of tokens
-      // Since a 'character' in the regex sense could hypothetically be more than one character long
-      // Hence the into method on the regex slice starting at the current index
-      let tokenized_literal = regex[index..].into();
-      match &tokenized_literal {
-        Token::Literal(literal) => {
-          current_working_index += literal.len() - 1;
-        }
-        _ => {
-          panic!("A literal should be returned");
-        }
-      }
-
+      let tokenized_literal = Token::Literal(c.to_string());
       tokens.push(
         tokenized_literal
       );

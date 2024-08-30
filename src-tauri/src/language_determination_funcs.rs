@@ -174,7 +174,7 @@ fn convert_acceptance_paths_to_string(acceptance_paths: &HashMap<String, HashSet
 #[tauri::command]
 pub fn determine_language_of_automata(
   state_positions: HashMap<String, State>, 
-  start_state_key: String, 
+  start_state_key: &str, 
   type_of_automata: TypeOfAutomata,
 ) -> String {
 
@@ -207,7 +207,7 @@ pub fn determine_language_of_automata(
 
 }
 
-fn determine_language_of_dfa(state_positions: &HashMap<String, State>, start_state_key: &String) -> String {
+fn determine_language_of_dfa(state_positions: &HashMap<String, State>, start_state_key: &str) -> String {
   // Here's what I'm thinking
   // To determine the language of this dfa, i'm going to find every single unique path that leads to a final state.
   // Then, for every single final state, I'm going to determine if there exists any loops which bring us back to the SAME final state

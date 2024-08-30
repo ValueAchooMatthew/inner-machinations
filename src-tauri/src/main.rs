@@ -47,6 +47,7 @@ fn main() {
   run_migrations(&mut connection);
 
   tauri::Builder::default()
+  .plugin(tauri_plugin_store::Builder::default().build())
   .invoke_handler(tauri::generate_handler![
     register_user, is_user_registered, is_correct_log_in,
     send_verification_email, verify_user, is_user_verified, test_string_dfa,

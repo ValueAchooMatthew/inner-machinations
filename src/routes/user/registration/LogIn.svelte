@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { invoke } from "@tauri-apps/api/tauri";
   import { email } from "$lib/utils/automataStores"
+  import { Store } from "tauri-plugin-store-api";
 
   let response = "";
 
@@ -25,36 +26,38 @@
       user_email
     )
     
-    const isRegistered: boolean = await invoke("is_user_registered", {
+    const is_registered: boolean = await invoke("is_user_registered", {
       email: user_email,
-      password: password,
     });
 
-    if (!isRegistered) {
+    if (!is_registered) {
       invoke("register_user", { email: user_email, password: password });
       goto("verification");
       return;
     }
 
-    const isCorrectLogin: boolean = await invoke("is_correct_log_in", {
+    const is_correct_login: boolean = await invoke("is_correct_log_in", {
       email: user_email,
       password: password,
     });
 
-    const isVerified: boolean = await invoke("is_user_verified", {
+    const is_verified: boolean = await invoke("is_user_verified", {
       email: user_email,
-      password: password,
     });
 
-    if (!isCorrectLogin) {
+    if (!is_correct_login) {
       response = "Sorry, you've entered an incorrect password";
       return;
     }
 
-    if (!isVerified) {
+    if (!is_verified) {
       goto("verification");
       return;
     }
+
+    const store = new Store(".settings.dat");
+    // Store always expects object as argument to be stored
+    await store.set("email", {value: $email});
 
     goto("../workspace/dashboard");
     return;

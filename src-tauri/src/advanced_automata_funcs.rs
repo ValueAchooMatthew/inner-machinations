@@ -175,8 +175,8 @@ pub fn minimize_dfa(
   mut state_positions: HashMap<String, State>,
   connections: Vec<Connection>,
   input_alphabet: Vec<String>,
-  email: String,
-  workspace_name: String
+  email: &str,
+  workspace_name: &str
 ) -> WorkspaceData {
 
   // DFA's are typically required to have a connection for each state for each character in the input alphabet.
@@ -253,7 +253,7 @@ pub fn minimize_dfa(
   // Removing temporary implicit vortex state
   minimized_state_positions.remove::<String>(&vortex_state_coords.into());
 
-  save_workspace(workspace_name.to_owned(), minimized_state_positions, email.to_owned(), connections);
+  save_workspace(workspace_name, minimized_state_positions, email, connections);
   let workspace_data = retrieve_workspace_data(workspace_name, email);
 
   return workspace_data;
@@ -290,9 +290,9 @@ fn specify_implicit_state_connections(input_alphabet: &Vec<String>, state_positi
 #[tauri::command]
 pub fn convert_nfa_to_dfa (
   mut state_positions: HashMap<String, State>,
-  start_state_position: String,
-  email: String,
-  workspace_name: String
+  start_state_position: &str,
+  email: &str,
+  workspace_name: &str
 ) -> WorkspaceData {
   
   remove_all_epsilon_transitions(&mut state_positions);
@@ -308,7 +308,7 @@ pub fn convert_nfa_to_dfa (
 
   let connections = create_connections_from_state_positions(&reconstructed_state_positions);
 
-  save_workspace(workspace_name.to_owned(), reconstructed_state_positions, email.to_owned(), connections);
+  save_workspace(workspace_name, reconstructed_state_positions, email, connections);
   let workspace_data = retrieve_workspace_data(workspace_name, email);
 
   return workspace_data;
@@ -317,20 +317,19 @@ pub fn convert_nfa_to_dfa (
 
 pub fn reconstruct_nfa_state_positions(
   state_positions: &HashMap<String, State>,
-  start_state_position: String
+  start_state_position: &str
 ) -> HashMap<String, State> {
 
   let mut reconstructed_state_positions: HashMap<String, RefCell<State>> = HashMap::new();
   let mut hashed_state_keys: HashMap<Vec<String>, String> = HashMap::new();
 
   let start_state = state_positions
-  .get(&start_state_position)
+  .get(start_state_position)
   .expect("There was an error retrieving the start state")
   .to_owned();
 
   reconstructed_state_positions
     .insert(start_state_position.to_owned(), RefCell::from(start_state.to_owned()));
-
 
   let mut finished = false;
 

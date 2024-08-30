@@ -224,21 +224,16 @@ pub fn remove_all_epsilon_transitions(state_positions: &mut HashMap<String, Stat
             state.make_final();
           }
           break;
-
         }
-
       }
-
     }
-
   }
-
 }
 
 // An input alphabet must consist of entirely unique characters and should be at most a single character long
 // We want to preserve the order of the alphabet for ease of use thus hashsets are not an option, thus we will iterate
 // Over everything and ensure it fits our requirements
-pub fn sanitize_input_alphabet(alphabet: Vec<String>) -> Vec<String> {
+pub fn sanitize_input_alphabet(alphabet: Vec<&str>) -> Vec<String> {
 
   let mut previously_seen_input_characters = HashSet::new();
   let sanitized_alphabet = alphabet.into_iter().filter(|input_character| {
@@ -247,6 +242,9 @@ pub fn sanitize_input_alphabet(alphabet: Vec<String>) -> Vec<String> {
       return true;
     }
     return false;
+  })
+  .map(|input_characters| {
+    return input_characters.to_owned();
   })
   .collect();
 

@@ -11,7 +11,7 @@ use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 
 #[tauri::command]
-pub fn create_workspace(email: String, workspace_name: String) {
+pub fn create_workspace(email: &str, workspace_name: &str) {
 
   let mut conn = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
@@ -38,7 +38,7 @@ pub fn create_workspace(email: String, workspace_name: String) {
 }
 
 #[tauri::command]
-pub fn update_workspace_alphabet(workspace_name: String, email: String, alphabet: Vec<String>) -> Vec<String> {
+pub fn update_workspace_alphabet(workspace_name: &str, email: &str, alphabet: Vec<&str>) -> Vec<String> {
   let mut conn: SqliteConnection = establish_connection();
   let user_id =  get_user_id(&email, &mut conn);
   let workspace = get_workspace(&workspace_name, &user_id, &mut conn)
@@ -57,9 +57,9 @@ pub fn update_workspace_alphabet(workspace_name: String, email: String, alphabet
 
 #[tauri::command]
 pub fn save_workspace(
-  workspace_name: String, 
+  workspace_name: &str, 
   states: HashMap<String, State>, 
-  email: String, 
+  email: &str, 
   connections: Vec<Connection>
 ) {
 
@@ -82,7 +82,7 @@ pub fn save_workspace(
 }
 
 #[tauri::command]
-pub fn delete_workspace(workspace_name: String, email: String) {
+pub fn delete_workspace(workspace_name: &str, email: &str) {
 
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
@@ -109,14 +109,14 @@ pub fn delete_workspace(workspace_name: String, email: String) {
 }
 
 #[tauri::command]
-pub fn does_workspace_name_exist(workspace_name: String, email: String) -> bool {
+pub fn does_workspace_name_exist(workspace_name: &str, email: &str) -> bool {
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
   return get_workspace(&workspace_name, &user_id, &mut conn).is_ok()
 }
 
 #[tauri::command]
-pub fn update_workspace_name(original_workspace_name: String, email: String, new_workspace_name: String) {
+pub fn update_workspace_name(original_workspace_name: &str, email: &str, new_workspace_name: &str) {
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
 
@@ -130,7 +130,7 @@ pub fn update_workspace_name(original_workspace_name: String, email: String, new
 }
 
 #[tauri::command]
-pub fn update_automata_type(workspace_name: String, email: String, type_of_automata: TypeOfAutomata) {
+pub fn update_automata_type(workspace_name: &str, email: &str, type_of_automata: TypeOfAutomata) {
 
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
@@ -146,7 +146,7 @@ pub fn update_automata_type(workspace_name: String, email: String, type_of_autom
 }
 
 #[tauri::command]
-pub fn update_strict_checking(workspace_name: String, email: String, should_strict_check: bool) {
+pub fn update_strict_checking(workspace_name: &str, email: &str, should_strict_check: bool) {
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
 
@@ -160,7 +160,7 @@ pub fn update_strict_checking(workspace_name: String, email: String, should_stri
 }
 
 #[tauri::command]
-pub fn update_showing_string_traversal(workspace_name: String, email: String, should_show_traversal: bool) {
+pub fn update_showing_string_traversal(workspace_name: &str, email: &str, should_show_traversal: bool) {
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
 
@@ -175,7 +175,7 @@ pub fn update_showing_string_traversal(workspace_name: String, email: String, sh
 }
 
 #[tauri::command]
-pub fn update_default_connection_character(workspace_name: String, email: String, default_connection_character: String) {
+pub fn update_default_connection_character(workspace_name: &str, email: &str, default_connection_character: String) {
   // Should sanitize that string passed in is single character
   // Also should consider switching to using char datatype. using string for consistency with ts frontend
 
@@ -193,7 +193,7 @@ pub fn update_default_connection_character(workspace_name: String, email: String
 }
 
 #[tauri::command]
-pub fn retrieve_workspace_data(workspace_name: String, email: String) -> WorkspaceData {
+pub fn retrieve_workspace_data(workspace_name: &str, email: &str) -> WorkspaceData {
     
   let mut conn: SqliteConnection = establish_connection();
   let user_id = get_user_id(&email, &mut conn);
@@ -207,10 +207,10 @@ pub fn retrieve_workspace_data(workspace_name: String, email: String) -> Workspa
 }
 
 #[tauri::command]
-pub fn get_users_saved_workspaces(email: String) -> Vec<String> {
+pub fn get_users_saved_workspaces(email: &str) -> Vec<String> {
 
   let mut conn = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
+  let user_id = get_user_id(email, &mut conn);
 
   let retrieved_workspaces: Vec<SavedWorkspace> = saved_workspaces::table
     .filter(saved_workspaces::user_id.eq(&user_id))
@@ -226,7 +226,7 @@ pub fn get_users_saved_workspaces(email: String) -> Vec<String> {
 
 }
 
-fn get_workspace(workspace_name: &String, user_id: &i32, conn: &mut SqliteConnection) -> Result<SavedWorkspace, diesel::result::Error> {
+fn get_workspace(workspace_name: &str, user_id: &i32, conn: &mut SqliteConnection) -> Result<SavedWorkspace, diesel::result::Error> {
   
   saved_workspaces::table
     .filter(saved_workspaces::user_id.eq(user_id))
@@ -266,7 +266,7 @@ fn save_states_to_db(workspace_id: &i32, states: &HashMap<String, State>, conn: 
 
 }
 
-fn get_user_id(email: &String, conn: &mut SqliteConnection) -> i32 {
+fn get_user_id(email: &str, conn: &mut SqliteConnection) -> i32 {
 
   let key = std::env::var("ENCRYPTION_KEY")
     .expect("Encryption Key must be set as a .env variable");
@@ -313,8 +313,6 @@ fn save_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, con
   return Ok(());
 
 }
-
-
 
 fn set_current_time(workspace_id: &i32, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
 

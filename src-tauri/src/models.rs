@@ -194,12 +194,6 @@ impl PartialEq for State {
   }
 }
 
-impl Into<String> for State {
-  fn into(self) -> String {
-    self.position.into()
-  }
-} 
-
 // We're able to do this as we never have two states assigned to the same position,
 // thus there is a unique position for every state that exists
 impl Hash for State {

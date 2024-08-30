@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
@@ -27,7 +26,6 @@ pub enum ParsingError {
 pub struct OrOperator {
   operator_character: String,
   operator_name: String,
-  // For now their arguments will exclusively be a single literal
   left_argument: Option<Token>,
   right_argument: Option<Token>
 }
@@ -306,23 +304,4 @@ impl Operator for KleeneOperator {
   }
 
 
-}
-
-impl Into<Token> for &str {
-
-  fn into(self) -> Token {
-    let mut value = String::new();
-
-    let forbidden_operator_characters = HashSet::from(['(', ')', '[', ']', '*', '+']);
-
-    for c in self.chars() {
-      if !c.is_whitespace() && !forbidden_operator_characters.contains(&c) {
-        value.push(c);
-      } else {
-        return Token::Literal(value);
-      }
-
-    }
-    return Token::Literal(value)
-  }
 }

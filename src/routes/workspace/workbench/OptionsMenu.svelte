@@ -136,10 +136,9 @@
       <label for="alphabet"> Input Alphabet: </label>
       <div class="flex gap-3">
         <div bind:this={container} class="flex flex-col gap-3 max-h-64 overflow-y-scroll px-8 scroll-smooth">
-          <!-- Svelte way of iterating through an object with a length property, which I am using to place input elements in DOM -->
           {#each $input_alphabet as value, i}
             <div class="flex gap-1">
-              <input class="border-black border-2 rounded-md py-1 px-2 overflow-hidden whitespace-nowrap"
+              <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2"
                 maxlength="1"
                 {value}
                 type="text"
