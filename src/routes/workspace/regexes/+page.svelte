@@ -1,6 +1,5 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api";
-  import TitleHeader from "$lib/components/TitleHeader.svelte";
   import TestFeedback from "../workbench/TestFeedback.svelte"
   import Banner from "./Banner.svelte";
   import { drawParseTree } from "$lib/utils/drawingFuncs";
@@ -11,7 +10,7 @@
   let string_to_test: string = "";
   let canvas: HTMLCanvasElement | undefined;
   const width = 1000;
-  const height = 1000;
+  const height = 600;
 
   async function processRegex(regex: string, string_to_test: string) {
     const context = canvas?.getContext("2d");
@@ -41,7 +40,8 @@
 
 </script>
 <Banner />
-<div class="flex flex-col justify-center h-fit p-12 font-semibold">
+
+<div class="flex flex-col justify-start h-full p-12 font-semibold bg-gray-200 min-h-screen">
   <div class="flex justify-between gap-3 font-semibold text-2xl">
     <div class="w-48 h-24">
 
@@ -58,10 +58,11 @@
     </form>
     <TestFeedback is_string_accepted={was_string_accepted} />
   </div>
-  <canvas class="self-center"
-    style={`width: ${width}px; height: ${height}px;`}
-    {width}
-    {height}
-    bind:this={canvas}>
-  </canvas>
+    <canvas class="self-center border-black border-2 rounded-md mx-2 my-2 bg-white mr-0 flex-shrink-0"
+      style={`width: ${width}px; height: ${height}px;`}
+      {width}
+      {height}
+      bind:this={canvas}>
+    </canvas>
+    
 </div>

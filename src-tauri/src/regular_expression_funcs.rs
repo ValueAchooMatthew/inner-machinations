@@ -43,7 +43,7 @@ pub fn test_string_regex(regex: &str, string_to_check: String) -> Result<bool, P
 
 #[tauri::command]
 pub fn build_parse_tree(regex: &str) -> Result<Token, ParsingError> {
-  let (tokenized_expression, _) = tokenize_regular_expression(regex);
+  let (tokenized_expression, _) = tokenize_regular_expression(regex)?;
   let parse_tree = parse_tokens(tokenized_expression)?;
   verify_syntactic_correctness_of_parse_tree(&parse_tree)?;
   return Ok(parse_tree);
@@ -297,10 +297,8 @@ fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), 
       if operator.has_empty_arg() {
         return Err(ParsingError::NoInnerArg);
       } else {
-
         let inner_argument = operator.get_inner_argument().unwrap();
         return verify_syntactic_correctness_of_parse_tree(inner_argument);
-
       }
     },
     Token::OrOperator(operator) => {
@@ -323,17 +321,11 @@ fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), 
         } else {
           return result_of_checking_right_arg;
         }
-
       }
-
     },
-
     _ => return Ok(())
-
   }
-
 }
-
 
 // Checks for grouped expression in list of tokens and returns index and owned copy of first grouped expression if found
 fn does_contain_grouped_expression(tokens: &Vec<Token>) -> Option<(Token, usize)> {
@@ -528,8 +520,7 @@ fn concatenate_tokens(tokens: Vec<Token>) -> Token {
 
 }
 
-
-fn tokenize_regular_expression(regex: &str) -> (Vec<Token>, Option<usize>) {
+fn tokenize_regular_expression(regex: &str) -> Result<(Vec<Token>, Option<usize>), ParsingError> {
 
   let mut tokens: Vec<Token> = vec![];
   let mut current_working_index: usize = 0;
@@ -553,14 +544,15 @@ fn tokenize_regular_expression(regex: &str) -> (Vec<Token>, Option<usize>) {
       
       // Needs a LOT of work in future
       // Currently, keeps reiterating over previously accounted for tokens
-      let tokens_in_brackets = tokenize_regular_expression(&regex[index+1..]);
+      let (tokens_in_brackets, number_of_characters_in_brackets) = tokenize_regular_expression(&regex[index+1..])?;
 
-      tokens.push(Token::GroupedExpression(Box::new(tokens_in_brackets.0)));
-      current_working_index += tokens_in_brackets.1
-        .expect("The regex should have a closing bracket") + 1;
+      tokens.push(Token::GroupedExpression(Box::new(tokens_in_brackets)));
+      current_working_index += number_of_characters_in_brackets.ok_or_else(|| {
+        ParsingError::UnableToConcatenate
+      })? + 1;
 
     } else if c == ')' {
-      return (tokens, Some(index));
+      return Ok((tokens, Some(index)));
     } else if !c.is_whitespace() {
       // We've encountered a character which we will add to our list of tokens
       let tokenized_literal = Token::Literal(c.to_string());
@@ -571,6 +563,6 @@ fn tokenize_regular_expression(regex: &str) -> (Vec<Token>, Option<usize>) {
   current_working_index += 1;
   }
 
-  return (tokens, None);
+  return Ok((tokens, None));
 
 }

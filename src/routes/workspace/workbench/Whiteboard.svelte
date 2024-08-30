@@ -236,10 +236,9 @@
   on:mousemove={handleDrag}/>
   <!-- Setting tabindex is necessary so element is focusable and can thus listen to keydown events -->
   <!-- svelte-ignore a11y-positive-tabindex -->
-  <canvas
+  <canvas class="border-black border-2 rounded-md mx-2 my-2 bg-white mr-0 flex-shrink-0"
     tabindex="1"
     draggable="false"
-    class="border-black border-2 rounded-md mx-2 my-2 bg-white mr-0 flex-shrink-0"
     style={`width: ${width}px; height: ${height}px;`}
     {width}
     {height}

@@ -17,7 +17,8 @@ pub enum ParsingError {
   EmptyLeftArg,
   EmptyRightArg,
   NoInnerArg,
-  UnableToConcatenate
+  UnableToConcatenate,
+  MissingClosingBracket
 }
 
 // Consider ditching specific operators in future and instead store the
