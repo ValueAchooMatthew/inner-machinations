@@ -376,7 +376,6 @@ impl WorkspaceData {
 
   }
 
-
   fn get_list_of_states_from_saved_workspace(saved_workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> Vec<State> {
     // First get the states and connections from the database
 
@@ -473,6 +472,5 @@ impl WorkspaceData {
       .collect();
 
   }
-
 
 }

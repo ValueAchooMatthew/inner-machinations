@@ -117,7 +117,6 @@ fn find_unique_loops_to_given_state(
         visited_states.insert(current_state.clone(), HashSet::from([(character_connection.to_owned(), next_state.clone())]));
       }
       
-      println!("cs: {current_state:?} c: {character_connection}, ns: {next_state:?} ");
       find_unique_loops_to_given_state(
         Some(&current_state),
         &next_state, 

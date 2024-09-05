@@ -39,8 +39,8 @@
   }
 
 </script>
-<Banner />
 
+<Banner />
 <div class="flex flex-col justify-start h-full p-12 font-semibold bg-gray-200 min-h-screen">
   <div class="flex justify-between gap-3 font-semibold text-2xl">
     <div class="w-48 h-24">

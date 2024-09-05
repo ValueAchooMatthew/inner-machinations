@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
@@ -9,6 +11,40 @@ pub enum Token {
   OrOperator(Box<OrOperator>),
   KleeneOperator(Box<KleeneOperator>)
 }
+
+pub type TokenArray = Vec<Token>;
+
+pub trait TokenArrayMethods {
+  fn does_contain_grouped_expression(&self) -> Option<(Token, usize)>;
+  fn does_contain_kleene_token(&self) -> Option<(Token, usize)>;
+}
+
+impl TokenArrayMethods for TokenArray {
+  fn does_contain_grouped_expression(&self) -> Option<(Token, usize)> {
+    for (index, token) in self.into_iter().enumerate() {
+      match token {
+        Token::GroupedExpression(_) => return Some((token.to_owned(), index)),
+        _ => continue
+      }
+    }
+    return None;
+  }
+  fn does_contain_kleene_token(&self) -> Option<(Token, usize)> {
+    for (index, token) in self.into_iter().enumerate() {
+      match token {
+        Token::KleeneOperator(kleene_operator) => {
+          // If a kleene operator is already filled we continue
+          if kleene_operator.has_empty_arg() {
+            return Some((token.to_owned(), index))
+          }
+        },
+        _ => continue
+      }
+    }
+    return None;
+  }
+}
+
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum ParsingError {
@@ -61,7 +97,6 @@ pub trait BinaryOperator {
   fn right_insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError>;
   fn get_left_argument(&self) -> Option<&Token>;
   fn get_right_argument(&self) -> Option<&Token>; 
-
 }
 
 pub trait UnaryOperator {
@@ -79,9 +114,7 @@ impl Operator for ConcatenatedExpression {
     } else {
       self.right_insert_token(token_to_insert)?;
     }
-
     Ok(())
-    
   }
   fn has_empty_arg(&self) -> bool {
     return self.left_argument.is_none() || self.right_argument.is_none();
@@ -155,9 +188,7 @@ impl BinaryOperator for OrOperator {
     } else {
       self.left_argument = Some(token_to_insert);
     }
-      
     Ok(())
-    
   }
   
   fn right_insert_token(&mut self, token_to_insert: Option<Token>) -> Result<(), ParsingError> {
@@ -184,7 +215,6 @@ impl BinaryOperator for OrOperator {
     } else {
       self.right_argument = Some(token_to_insert);
     }
-  
     Ok(())
   }
 
@@ -245,9 +275,7 @@ impl Operator for OrOperator {
       }
 
     }
-
     return Err(ParsingError::NoEmptySpaceInParseTree)
-
   }
 
   fn has_empty_arg(&self) -> bool {
@@ -303,6 +331,37 @@ impl Operator for KleeneOperator {
   fn has_empty_arg(&self) -> bool {
     return self.inner_argument.is_none();
   }
+}
 
+// Potentially change in future for cleaner documentation
+impl Token {
+  // This method is intended to work exclusively for strings in which not whitespace or demarkated tokens
+  // Are placed beside each other to generate either a single token literal or a tree of concatenated token
+  // Literals for further use in the parsing step
+  pub fn parse_string_to_literals(stream: &str) -> (Self, usize) {
+    let forbidden_characters = HashSet::from([' ', '(', ')',  '+', '*']);
 
+    let mut parsed_token = Token::Literal(stream
+      .chars()
+      .nth(0).expect("String should contain at least one character")
+      .to_string());
+    
+    let mut characters_to_skip = 0;
+
+    for c in stream[1..].chars() {
+      if !forbidden_characters.contains(&c) {
+        parsed_token = Token::ConcatenatedExpression(Box::new(
+          ConcatenatedExpression::new(
+          Some(parsed_token), 
+          Some(Token::Literal(c.to_string()))
+          )
+        ));
+        characters_to_skip += 1;
+      } else {
+        break;
+      }
+    };
+
+    return (parsed_token, characters_to_skip);
+  }
 }

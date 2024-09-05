@@ -182,6 +182,15 @@ pub mod tests {
     assert!(!test_string_regex(regex_to_test, "aaaaabb".to_owned()).unwrap());
     assert!(!test_string_regex(regex_to_test, "cab".to_owned()).unwrap());
 
+    let regex_to_test = "ab + c";
+
+    assert!(test_string_regex(regex_to_test, "ab".to_owned()).unwrap());
+    assert!(test_string_regex(regex_to_test, "c".to_owned()).unwrap());
+    assert!(!test_string_regex(regex_to_test, "".to_owned()).unwrap());
+    assert!(!test_string_regex(regex_to_test, "abc".to_owned()).unwrap());
+    assert!(!test_string_regex(regex_to_test, "a".to_owned()).unwrap());
+    assert!(!test_string_regex(regex_to_test, "b".to_owned()).unwrap());
+    assert!(!test_string_regex(regex_to_test, "ac".to_owned()).unwrap());    
 
   }
 

@@ -2,13 +2,15 @@ mod regex_models;
 use std::collections::HashMap;
 
 use app::{create_unique_state_coordinates, remove_all_epsilon_transitions};
-use regex_models::{BinaryOperator, ConcatenatedExpression, KleeneOperator, Operator, OrOperator, ParsingError, Token, UnaryOperator};
+use regex_models::{BinaryOperator, ConcatenatedExpression, KleeneOperator, 
+Operator, OrOperator, ParsingError, Token, UnaryOperator, TokenArray, TokenArrayMethods};
 
 use app::models::{State, Coordinate};
 
 use crate::{advanced_automata_funcs::reconstruct_nfa_state_positions, testing_automata_funcs::test_string_nfa};
 mod tests;
 
+// Fix case ac + b
 #[tauri::command]
 pub fn test_string_regex(regex: &str, string_to_check: String) -> Result<bool, ParsingError> {
 
@@ -44,6 +46,7 @@ pub fn test_string_regex(regex: &str, string_to_check: String) -> Result<bool, P
 #[tauri::command]
 pub fn build_parse_tree(regex: &str) -> Result<Token, ParsingError> {
   let (tokenized_expression, _) = tokenize_regular_expression(regex)?;
+  println!("{tokenized_expression:?}");
   let parse_tree = parse_tokens(tokenized_expression)?;
   verify_syntactic_correctness_of_parse_tree(&parse_tree)?;
   return Ok(parse_tree);
@@ -327,43 +330,7 @@ fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), 
   }
 }
 
-// Checks for grouped expression in list of tokens and returns index and owned copy of first grouped expression if found
-fn does_contain_grouped_expression(tokens: &Vec<Token>) -> Option<(Token, usize)> {
-
-  for (index, token) in tokens.into_iter().enumerate() {
-    match token {
-      Token::GroupedExpression(_) => return Some((token.to_owned(), index)),
-      _ => continue
-    }
-
-  }
-
-  return None;
-
-}
-
-// Checks for kleene token in list of tokens and returns index and owned copy of first grouped expression if found
-fn does_contain_kleene_operator(tokens: &Vec<Token>) -> Option<(Token, usize)> {
-
-  for (index, token) in tokens.into_iter().enumerate() {
-    match token {
-      Token::KleeneOperator(kleene_operator) => {
-        // If a kleene operator is already filled we continue
-        if kleene_operator.has_empty_arg() {
-          return Some((token.to_owned(), index))
-        }
-      },
-        
-      _ => continue
-    }
-
-  }
-
-  return None;
-
-}
-
-fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
+fn parse_tokens(mut tokens: TokenArray) -> Result<Token, ParsingError> {
   // Must give priority to grouped expressions
   // Parse grouped expressions first?
   if tokens.len() == 0 {
@@ -381,7 +348,7 @@ fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
   }
 
   // parsing all regular expressions into their proper form FIRST prior to any operations
-  let mut has_grouped_expression = does_contain_grouped_expression(&tokens);
+  let mut has_grouped_expression = tokens.does_contain_grouped_expression();
   while has_grouped_expression.is_some() {
     let (grouped_expression, index) = has_grouped_expression.unwrap();
     tokens
@@ -393,32 +360,29 @@ fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
       },
       _ => panic!("The supplied token should be a grouped expression!")
     }
-    has_grouped_expression = does_contain_grouped_expression(&tokens);
+    has_grouped_expression = tokens.does_contain_grouped_expression();
   };
 
-  let mut has_kleene_token = does_contain_kleene_operator(&tokens);
+  let mut has_kleene_token = tokens.does_contain_kleene_token();
   while has_kleene_token.is_some() {
     let (kleene_token, index) = has_kleene_token.unwrap();
-    
     match kleene_token {
       Token::KleeneOperator(mut kleene_operator) => {
         let left_token = tokens
-        .get(index.checked_sub(1).ok_or_else( || {ParsingError::NoneTokenProvided})?)
-        .cloned();
+          .get(index.checked_sub(1).ok_or_else( || {ParsingError::NoneTokenProvided})?)
+          .cloned();
 
-      kleene_operator
-        .insert_token(left_token)?;
+        kleene_operator
+          .insert_token(left_token)?;
 
-      tokens.drain(index-1..=index);
-
-      tokens.insert(index-1, Token::KleeneOperator(kleene_operator));
-      },
-      _ => panic!("The supplied token should be a grouped expression!")
+        tokens.drain(index-1..=index);
+        tokens.insert(index-1, Token::KleeneOperator(kleene_operator));
+        },
+        _ => panic!("The supplied token should be a kleene token!")
     }
-    has_kleene_token = does_contain_kleene_operator(&tokens);
+    has_kleene_token = tokens.does_contain_kleene_token();
   };
 
-  // Very gross code will definitely be rewriten in future
   let mut finished = false;
   
   while !finished {
@@ -463,7 +427,7 @@ fn parse_tokens(mut tokens: Vec<Token>) -> Result<Token, ParsingError> {
 
 }
 
-fn can_continue_parsing(tokens: &Vec<Token>) -> bool {
+fn can_continue_parsing(tokens: &TokenArray) -> bool {
   for token in tokens {
     match token {
       Token::OrOperator(or_operator) => {
@@ -487,7 +451,7 @@ fn can_continue_parsing(tokens: &Vec<Token>) -> bool {
 
 }
 
-fn concatenate_tokens(tokens: Vec<Token>) -> Token {
+fn concatenate_tokens(tokens: TokenArray) -> Token {
  if tokens.len() == 1 {
     return tokens
       .get(0)
@@ -520,9 +484,9 @@ fn concatenate_tokens(tokens: Vec<Token>) -> Token {
 
 }
 
-fn tokenize_regular_expression(regex: &str) -> Result<(Vec<Token>, Option<usize>), ParsingError> {
+fn tokenize_regular_expression(regex: &str) -> Result<(TokenArray, Option<usize>), ParsingError> {
 
-  let mut tokens: Vec<Token> = vec![];
+  let mut tokens: TokenArray = vec![];
   let mut current_working_index: usize = 0;
 
   for (index, c) in regex.chars().enumerate() {
@@ -542,7 +506,6 @@ fn tokenize_regular_expression(regex: &str) -> Result<(Vec<Token>, Option<usize>
       );
     } else if c == '(' {
       
-      // Needs a LOT of work in future
       // Currently, keeps reiterating over previously accounted for tokens
       let (tokens_in_brackets, number_of_characters_in_brackets) = tokenize_regular_expression(&regex[index+1..])?;
 
@@ -555,10 +518,13 @@ fn tokenize_regular_expression(regex: &str) -> Result<(Vec<Token>, Option<usize>
       return Ok((tokens, Some(index)));
     } else if !c.is_whitespace() {
       // We've encountered a character which we will add to our list of tokens
-      let tokenized_literal = Token::Literal(c.to_string());
+      // If that character is placed beside any other characters without whitespace, we automatically concatenate
+      // and build a concatenation tree
+      let (tokenized_literal, characters_to_skip) = Token::parse_string_to_literals(&regex[index..]);
       tokens.push(
         tokenized_literal
       );
+      current_working_index += characters_to_skip
     }
   current_working_index += 1;
   }
