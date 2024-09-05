@@ -25,7 +25,6 @@
     return accepted;
   }
 
-
   $: {
     processRegex(regex, string_to_test);
   }

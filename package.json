@@ -31,6 +31,7 @@
   "dependencies": {
     "@auth/sveltekit": "^0.12.3",
     "@tauri-apps/api": "^1.6.0",
+    "inner-machinations": "file:",
     "tauri-plugin-store-api": "github:tauri-apps/tauri-plugin-store#v1"
   }
 }
