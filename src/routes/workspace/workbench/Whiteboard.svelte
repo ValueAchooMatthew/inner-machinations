@@ -7,8 +7,7 @@
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
   import { convertCoordinateToString, removeFirstElementFromArray } from "$lib/utils/miscUtils";
   import { list_of_states, list_of_connections, selected_connection_index, 
-  state_positions, current_action, email, workspace_name,
-  input_alphabet} from "$lib/utils/automataStores";
+  state_positions, current_action, input_alphabet} from "$lib/utils/automataStores";
   import { undo } from "$lib/utils/deletionFuncs";
   import { handleUserClickingCanvas } from "$lib/utils/userEvents";
 

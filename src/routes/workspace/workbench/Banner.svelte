@@ -41,8 +41,8 @@
     }
     const does_new_workspace_name_already_exist: boolean = await invoke("does_workspace_name_exist", {workspaceName: new_workspace_name, email: $email});
     if(does_new_workspace_name_already_exist) {
-      dialogue_to_user.set("The entered workspace name already exists");
-      return;
+      dialogue_to_user.set(`The entered workspace name already exists `);
+  return;
     }
     await renameWorkspace(new_workspace_name)
 

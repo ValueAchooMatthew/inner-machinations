@@ -147,24 +147,29 @@
           <AdvancedAutomataFunctions />
         </div>
       </div>
-      <div class="flex justify-center mt-3 gap-4">
+      <div class="flex flex-col gap-4 pt-4">
+        <div class="self-center">
+          <Notifications/>
+        </div>
+        <div class="flex justify-center mt-3 gap-4">
           <form class="flex self-center gap-2 align-middle select-none"
-          id="stringCheckingForm"
-          on:submit|preventDefault={handleStringInput}
-          on:change={()=>{is_string_accepted = null}}>
-          <label class="w-40 text-2xl self-center" for="string">
-            String To Test:
-          </label>
-          <input class="border-black border-2 text-3xl rounded-md px-2 py-1"
-            type="text"
-            name="string"
-            id="string"/>
-          <button class="w-40 bg-orange-500 rounded-md text-xl font-semibold border-black 
-            border-2 hover:-translate-y-4 duration-300 transition-all will-change-transform" form="stringCheckingForm">
-            Check String
-          </button>
-        </form>      
-        <Notifications/>
+            id="stringCheckingForm"
+            on:submit|preventDefault={handleStringInput}
+            on:change={()=>{is_string_accepted = null}}>
+            <label class="w-40 text-2xl self-center" for="string">
+              String To Test:
+            </label>
+            <input class="border-black border-2 text-3xl rounded-md px-2 py-1"
+              type="text"
+              name="string"
+              id="string"/>
+            <button class="w-40 bg-orange-500 rounded-md text-xl font-semibold border-black 
+              border-2 hover:-translate-y-4 duration-300 transition-all will-change-transform" form="stringCheckingForm">
+              Check String
+            </button>
+          </form>      
+        </div>
+
       </div>
       <LanguageOfAutomata />
     </main>

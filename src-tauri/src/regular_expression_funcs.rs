@@ -2,8 +2,8 @@ mod regex_models;
 use std::collections::HashMap;
 
 use app::{create_unique_state_coordinates, remove_all_epsilon_transitions};
-use regex_models::{BinaryOperator, ConcatenatedExpression, KleeneOperator, 
-Operator, OrOperator, ParsingError, Token, UnaryOperator, TokenArray, TokenArrayMethods};
+use regex_models::{BinaryOperator, KleeneOperator, Operator, OrOperator, ParsingError,
+Token, UnaryOperator, TokenArray, TokenArrayMethods};
 
 use app::models::{State, Coordinate};
 
@@ -12,9 +12,12 @@ mod tests;
 
 // Fix case ac + b
 #[tauri::command]
-pub fn test_string_regex(regex: &str, string_to_check: String) -> Result<bool, ParsingError> {
+pub fn test_string_regex(regex: &str, string_to_check: String) -> bool {
 
-  let parse_tree = build_parse_tree(regex)?;
+  let parse_tree = match build_parse_tree(regex) {
+    Ok(parse_tree) => parse_tree,
+    Err(_) => {return false;}
+  };
 
   let mut state_positions = HashMap::new();
 
@@ -39,14 +42,13 @@ pub fn test_string_regex(regex: &str, string_to_check: String) -> Result<bool, P
 
   let state_positions = reconstruct_nfa_state_positions(&state_positions, &start_state_key);
 
-  return Ok(test_string_nfa(state_positions, start_state_coords.into(), string_to_check).0);
+  return test_string_nfa(state_positions, start_state_coords.into(), string_to_check).0;
 
 }
 
 #[tauri::command]
 pub fn build_parse_tree(regex: &str) -> Result<Token, ParsingError> {
   let (tokenized_expression, _) = tokenize_regular_expression(regex)?;
-  println!("{tokenized_expression:?}");
   let parse_tree = parse_tokens(tokenized_expression)?;
   verify_syntactic_correctness_of_parse_tree(&parse_tree)?;
   return Ok(parse_tree);
@@ -285,7 +287,6 @@ fn handle_kleene_token_to_nfa_conversion(
 
       }
   }
- 
 
 }
 
@@ -340,11 +341,11 @@ fn parse_tokens(mut tokens: TokenArray) -> Result<Token, ParsingError> {
       // If it's a grouped expression, do nothing and continue breaking it apart
       Token::GroupedExpression(_) => (),
       _ => {
-        return Ok(concatenate_tokens(tokens))
+        return Ok(tokens.concatenate_tokens())
       }
     }
   } else if !can_continue_parsing(&tokens) {
-    return Ok(concatenate_tokens(tokens));
+    return Ok(tokens.concatenate_tokens());
   }
 
   // parsing all regular expressions into their proper form FIRST prior to any operations
@@ -451,38 +452,7 @@ fn can_continue_parsing(tokens: &TokenArray) -> bool {
 
 }
 
-fn concatenate_tokens(tokens: TokenArray) -> Token {
- if tokens.len() == 1 {
-    return tokens
-      .get(0)
-      .expect("The array should have at least a single element")
-      .to_owned();
 
-  } else if tokens.len() == 2 {
-
-    let first_token = tokens
-      .get(0)
-      .expect("The array should have at least 2 elements");
-
-    let second_token = tokens
-      .get(1)
-      .expect("The array should have at least 2 elements");
-    return Token::ConcatenatedExpression(Box::new(ConcatenatedExpression::new(
-      Some(first_token.to_owned()), 
-      Some(second_token.to_owned())
-    )));
-  }
-
-  let midpoint = tokens.len().div_ceil(2);
-  let first_half_of_tokens = &tokens[..midpoint];
-  let second_half_of_tokens = &tokens[midpoint..];
-
-  return Token::ConcatenatedExpression(Box::new(ConcatenatedExpression::new(
-    Some(concatenate_tokens(first_half_of_tokens.to_owned())), 
-    Some(concatenate_tokens(second_half_of_tokens.to_owned()))
-  )));
-
-}
 
 fn tokenize_regular_expression(regex: &str) -> Result<(TokenArray, Option<usize>), ParsingError> {
 
@@ -520,11 +490,11 @@ fn tokenize_regular_expression(regex: &str) -> Result<(TokenArray, Option<usize>
       // We've encountered a character which we will add to our list of tokens
       // If that character is placed beside any other characters without whitespace, we automatically concatenate
       // and build a concatenation tree
-      let (tokenized_literal, characters_to_skip) = Token::parse_string_to_literals(&regex[index..]);
+      let (tokenized_literal, characters_to_skip) = Token::parse_string_to_tokens(&regex[index..]);
       tokens.push(
         tokenized_literal
       );
-      current_working_index += characters_to_skip
+      current_working_index += characters_to_skip - 1;
     }
   current_working_index += 1;
   }

@@ -1,6 +1,4 @@
 // Reworked so every state has a reference to it's position, to allow for a single state interface for use
-
-import type { Automata } from "./enums";
 import type { Token } from "./types";
 
 // In both drawing states to the canvas and connecting data in the rust

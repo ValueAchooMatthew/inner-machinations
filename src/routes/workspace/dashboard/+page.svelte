@@ -47,8 +47,8 @@
     <span class="font-bold text-4xl self-center">
       NFA's/DFA's
     </span>
-    <button class="flex flex-col justify-center" on:click={handleClick}>
-      <svg class="ml-2 hover:cursor-pointer hover:-rotate-90 w-10 h-10 transition-all duration-200 self-center"
+    <button class="flex flex-col justify-center group" on:click={handleClick}>
+      <svg class="ml-2 group-hover:cursor-pointer group-hover:-rotate-90 transition-all duration-200 w-10 h-10 self-center"
         data-slot="icon"
         fill="none"
         stroke-width="2.2"
@@ -62,7 +62,7 @@
           d="M12 4.5v15m7.5-7.5h-15">
         </path>
       </svg>
-      <span class=" text-xs">
+      <span class="text-xs">
         Create New
       </span>
     </button>
@@ -78,8 +78,8 @@
     <span class="font-bold text-4xl self-center">
       Regexes
     </span>
-    <a class="flex flex-col justify-center" href="./regexes">
-      <svg class="ml-2 hover:cursor-pointer hover:-rotate-90 w-10 h-10 transition-all duration-200 self-center"
+    <a class="flex flex-col justify-center group" href="./regexes">
+      <svg class="ml-2 group-hover:cursor-pointer group-hover:-rotate-90 transition-all duration-200 w-10 h-10 self-center"
         data-slot="icon"
         fill="none"
         stroke-width="2.2"
@@ -103,7 +103,6 @@
     <SignOut/>
   </div>
   <ConfirmDelete bind:workspace_to_delete={workspace_to_delete}/>
-  <!-- <a href="./regexes">Go To regexes</a> -->
   <div class="flex justify-center mt-24">
     <Notifications />
   </div>

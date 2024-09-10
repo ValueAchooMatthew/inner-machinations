@@ -54,14 +54,18 @@
 
 <div class="flex transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl shadow-lg ">
   <button class="w-64 h-80 p-3 bg-orange-500
-    transition-all duration-300 rounded-md flex flex-col justify-between overflow-hidden"
+    transition-all duration-300 rounded-md flex flex-col justify-between overflow-hidden shadow-md"
     on:click={handleClick}>
     <canvas
-    bind:this={canvas} class="bg-white self-center border-black border-[1px] w-fit" />
+    bind:this={canvas} class="bg-white self-center shadow-sm w-fit" />
     <span class="font-bold text-white text-2xl my-2 self-center">
       {workspace_title}
       <br>
       {#if workspace_data}
+        <span class="text-base">
+          {workspace_data.type_of_automata}
+        </span>
+        <br>
         <span class="text-sm">
           Last updated: {workspace_data.date_of_last_update}
         </span>

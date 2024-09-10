@@ -17,6 +17,7 @@ pub type TokenArray = Vec<Token>;
 pub trait TokenArrayMethods {
   fn does_contain_grouped_expression(&self) -> Option<(Token, usize)>;
   fn does_contain_kleene_token(&self) -> Option<(Token, usize)>;
+  fn concatenate_tokens(&self) -> Token;
 }
 
 impl TokenArrayMethods for TokenArray {
@@ -43,6 +44,39 @@ impl TokenArrayMethods for TokenArray {
     }
     return None;
   }
+
+  fn concatenate_tokens(&self) -> Token {
+    if self.len() == 1 {
+       return self
+         .get(0)
+         .expect("The array should have at least a single element")
+         .to_owned();
+   
+     } else if self.len() == 2 {
+   
+       let first_token = self
+         .get(0)
+         .expect("The array should have at least 2 elements");
+   
+       let second_token = self
+         .get(1)
+         .expect("The array should have at least 2 elements");
+       return Token::ConcatenatedExpression(Box::new(ConcatenatedExpression::new(
+         Some(first_token.to_owned()), 
+         Some(second_token.to_owned())
+       )));
+     }
+   
+     let midpoint = self.len().div_ceil(2);
+     let first_half_of_self = &self[..midpoint].to_vec();
+     let second_half_of_self = &self[midpoint..].to_vec();
+   
+     return Token::ConcatenatedExpression(Box::new(ConcatenatedExpression::new(
+       Some(Self::concatenate_tokens(first_half_of_self)), 
+       Some(Self::concatenate_tokens(second_half_of_self))
+     )));
+   
+   }
 }
 
 
@@ -338,30 +372,24 @@ impl Token {
   // This method is intended to work exclusively for strings in which not whitespace or demarkated tokens
   // Are placed beside each other to generate either a single token literal or a tree of concatenated token
   // Literals for further use in the parsing step
-  pub fn parse_string_to_literals(stream: &str) -> (Self, usize) {
+  pub fn parse_string_to_tokens(stream: &str) -> (Self, usize) {
     let forbidden_characters = HashSet::from([' ', '(', ')',  '+', '*']);
-
-    let mut parsed_token = Token::Literal(stream
-      .chars()
-      .nth(0).expect("String should contain at least one character")
-      .to_string());
-    
     let mut characters_to_skip = 0;
 
-    for c in stream[1..].chars() {
+    let mut literals_encountered: TokenArray = Vec::new();
+
+    for c in stream.chars() {
       if !forbidden_characters.contains(&c) {
-        parsed_token = Token::ConcatenatedExpression(Box::new(
-          ConcatenatedExpression::new(
-          Some(parsed_token), 
-          Some(Token::Literal(c.to_string()))
-          )
-        ));
+        literals_encountered.push(Token::Literal(c.to_string()));
         characters_to_skip += 1;
       } else {
         break;
       }
     };
 
+    let parsed_token = literals_encountered.concatenate_tokens();
+
     return (parsed_token, characters_to_skip);
   }
+
 }
