@@ -2,9 +2,9 @@
   import { invoke } from "@tauri-apps/api";
   import TestFeedback from "../workbench/TestFeedback.svelte"
   import Banner from "./Banner.svelte";
-  import { drawParseTree } from "$lib/utils/drawingFuncs";
+  import { drawParseTree, get_dimensions_of_parse_tree } from "$lib/utils/drawingFuncs";
   import type { Token } from "$lib/types/types";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
 
   let was_string_accepted: boolean | null = null;
   let regex: string = "";
@@ -13,13 +13,19 @@
   let canvas_wrapper: HTMLDivElement | undefined;
   let width = 1000;
   let height = 600;
+  let is_control_button_pressed = false;
+  let scale = 1;
+
+  const x_distance_of_children = 256;
+  const y_distance_of_children = 175;
+  const shrink_factor = 2;
 
   onMount(() => {
     if(!canvas_wrapper) {
       return;
     }
-    width = canvas_wrapper.clientWidth;
-    height = canvas_wrapper.clientHeight + 10000;
+    width = canvas_wrapper.clientWidth + 5000;
+    height = canvas_wrapper.clientHeight + 5000;
   });
 
   async function processRegex(regex: string, string_to_test: string) {
@@ -28,10 +34,28 @@
     return accepted;
   };
 
-  async function updateCanvas(context: CanvasRenderingContext2D, regex: string) {
-    context.clearRect(0, 0, width, height);
+  async function updateCanvas(context: CanvasRenderingContext2D, regex: string, scale: number) {
+
+    if(!canvas_wrapper) {
+      return;
+    }
+    
     const parse_tree: Token =  await invoke("build_parse_tree", {regex: regex});
-    drawParseTree(parse_tree, context, { x: width / 2, y: 50 });
+
+    context.scale(scale, scale);
+
+    await tick();
+    context.clearRect(0, 0, width/scale, height/scale);
+    drawParseTree(
+      parse_tree, 
+      context, 
+      { x: Math.floor(width/2), y: 200 }, 
+      x_distance_of_children, 
+      y_distance_of_children, 
+      shrink_factor
+    );
+    
+    canvas_wrapper.scrollTo(Math.floor(width/2) - Math.floor(canvas_wrapper.clientWidth/2), Math.floor(100));
   }
   
   $: {
@@ -41,7 +65,7 @@
   $: {
     const context = canvas?.getContext("2d");
     if (context) {
-      updateCanvas(context, regex).catch((e) => {
+      updateCanvas(context, regex, scale).catch((e) => {
         console.log(e);
       });
     }
@@ -54,14 +78,40 @@
   function handleStringChecking(event: Event & {currentTarget: EventTarget & HTMLInputElement}): void {
     string_to_test = event.currentTarget.value;
   }
+
+  function handleZoom(event: WheelEvent) {
+    if(is_control_button_pressed) {
+      if(event.deltaY < 1) {
+        scale += event.deltaY * -0.01;
+        scale = Math.min(Math.max(0.125, scale), 4);
+      }
+    }
+  }
+  
+  async function handleControlPressDown(event: KeyboardEvent) {
+    await tick();
+    if(event.key == "Control") {
+      is_control_button_pressed = true;
+    }
+  }
+
+  async function handleControlPressUp(event: KeyboardEvent) {
+    await tick();
+    if(event.key == "Control") {
+      is_control_button_pressed = false;
+    }
+  }
   
 </script>
 
+
+<svelte:window on:keydown={handleControlPressDown} on:keyup={handleControlPressUp} />
 <div class="h-screen bg-gray-200">
   <Banner />
   <div class="flex py-12 px-10 justify-around gap-10">
-    <div class="w-full h-[40rem] overflow-y-scroll rounded-md border-black border-2 "
-    bind:this={canvas_wrapper}>
+    <div class="w-full h-[40rem] overflow-scroll rounded-md border-black border-2 z-50"
+      on:wheel={handleZoom}
+      bind:this={canvas_wrapper}>
       <canvas class="self-center rounded-md bg-white flex-shrink-0"
         style={`width: ${width}px; height: ${height}px;`}
         {width}

@@ -242,11 +242,9 @@ pub fn sanitize_input_alphabet(alphabet: Vec<&str>) -> Vec<String> {
       return true;
     }
     return false;
-  })
-  .map(|input_characters| {
+  }).map(|input_characters| {
     return input_characters.to_owned();
-  })
-  .collect();
+  }).collect();
 
   return sanitized_alphabet;
 }

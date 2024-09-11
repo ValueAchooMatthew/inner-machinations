@@ -175,31 +175,54 @@ const drawNode = (
   }
 };
 
-export function drawParseTree(parse_tree: Token, context: CanvasRenderingContext2D, start_position: Coordinate) {
+export function drawParseTree(
+  parse_tree: Token, 
+  context: CanvasRenderingContext2D, 
+  start_position: Coordinate,
+  x_distance_of_children: number,
+  y_distance_of_children: number,
+  shrink_factor: number
+) {
   context.lineWidth = 7;
   context.font = "40px Arial";
   context.textBaseline = "middle";
   context.textAlign = "center";
-  console.log(get_parse_tree_size(parse_tree));
+  const nodes_in_parse_tree = getNumberOfNodesInParseTree(parse_tree)
+  const levels_in_parse_tree = Math.floor(Math.log2(nodes_in_parse_tree));
 
-  drawToken(context, parse_tree, start_position, 250, 175, 1.5);
-
+  drawToken(context, parse_tree, start_position, x_distance_of_children*levels_in_parse_tree, y_distance_of_children, shrink_factor);
 }
 
-// Returns number of nodes in parse tree
-function get_parse_tree_size(parse_tree: Token): number {
+// returns width, height
+export function get_dimensions_of_parse_tree(
+  parse_tree: Token, 
+  x_distance_of_children: number, 
+  y_distance_of_children: number, 
+  shrink_factor: number
+): [number, number] {
+
+  const nodes_in_parse_tree = getNumberOfNodesInParseTree(parse_tree)
+  const levels_in_parse_tree = Math.ceil(Math.log2(nodes_in_parse_tree));
+  const nodes_in_last_level_of_parse_tree = 2**(levels_in_parse_tree - 1);
+  
+  const width = nodes_in_last_level_of_parse_tree * (x_distance_of_children/shrink_factor);
+  const height = y_distance_of_children * levels_in_parse_tree;
+  return [width, height];
+}
+
+function getNumberOfNodesInParseTree(parse_tree: Token): number {
 
   if("KleeneOperator" in parse_tree) {
     let kleene_operator = parse_tree.KleeneOperator as KleeneOperator;
-    return 1 + get_parse_tree_size(kleene_operator.inner_argument)
+    return 1 + getNumberOfNodesInParseTree(kleene_operator.inner_argument)
 
   } else if("OrOperator" in parse_tree) {
     let or_operator = parse_tree.OrOperator as OrOperator;
-    return 1 + get_parse_tree_size(or_operator.left_argument) + get_parse_tree_size(or_operator.right_argument);
+    return 1 + getNumberOfNodesInParseTree(or_operator.left_argument) + getNumberOfNodesInParseTree(or_operator.right_argument);
 
   } else if("ConcatenatedExpression" in parse_tree) {
     let concatenated_expression = parse_tree.ConcatenatedExpression as ConcatenatedExpression;
-    return 1 + get_parse_tree_size(concatenated_expression.left_argument) + get_parse_tree_size(concatenated_expression.right_argument);
+    return 1 + getNumberOfNodesInParseTree(concatenated_expression.left_argument) + getNumberOfNodesInParseTree(concatenated_expression.right_argument);
 
   }
 
@@ -210,12 +233,13 @@ function drawToken(
   context: CanvasRenderingContext2D, 
   token: Token, 
   position: Coordinate, 
-  x_distance_of_child: number, 
-  y_distance_of_child: number, 
+  x_distance_of_children: number, 
+  y_distance_of_children: number,
   shrink_factor: number
 ) {
+
   const circle_radius = 35;
-  const arrow_y_end = y_distance_of_child - circle_radius - 6;
+  const arrow_y_end = y_distance_of_children - circle_radius - 6;
 
   if ("KleeneOperator" in token) {
     // We know the current token in the parse tree is a literal
@@ -233,10 +257,10 @@ function drawToken(
     )
     drawToken(context, 
       kleene_operator.inner_argument, 
-      {x: position.x, y: position.y + y_distance_of_child}, 
-      Math.floor(x_distance_of_child - 100), 
-      y_distance_of_child,
-      shrink_factor*1.25
+      {x: position.x, y: position.y + y_distance_of_children}, 
+      Math.floor(x_distance_of_children/shrink_factor), 
+      y_distance_of_children,
+      shrink_factor
     );
     drawConnection(context, {
       curve: {
@@ -263,24 +287,24 @@ function drawToken(
     )
     drawToken(context, 
       or_operator.left_argument, 
-      {x: position.x - x_distance_of_child, y: position.y + y_distance_of_child}, 
-      Math.floor(x_distance_of_child  - 100), 
-      y_distance_of_child,
-      shrink_factor*1.25
+      {x: position.x - x_distance_of_children, y: position.y + y_distance_of_children}, 
+      Math.floor(x_distance_of_children/shrink_factor), 
+      y_distance_of_children,
+      shrink_factor
     );
     drawToken(context, 
       or_operator.right_argument, 
-      {x: position.x + x_distance_of_child, y: position.y + y_distance_of_child}, 
-      Math.floor(x_distance_of_child  - 100), 
-      y_distance_of_child,
-      shrink_factor*1.25
+      {x: position.x + x_distance_of_children, y: position.y + y_distance_of_children}, 
+      Math.floor(x_distance_of_children/shrink_factor), 
+      y_distance_of_children,
+      shrink_factor
     );
     drawConnection(context, {
       curve: {
         start_point: {x: position.x, y: position.y + circle_radius},
         control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x - x_distance_of_child, y: position.y + arrow_y_end},
-        end_point: {x: position.x - x_distance_of_child, y: position.y + arrow_y_end}
+        control_point_two: {x: position.x - x_distance_of_children, y: position.y + arrow_y_end},
+        end_point: {x: position.x - x_distance_of_children, y: position.y + arrow_y_end}
       },
       connection_character: "",
       element: "Connection"
@@ -289,8 +313,8 @@ function drawToken(
       curve: {
         start_point: {x: position.x, y: position.y + circle_radius},
         control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x + x_distance_of_child, y: position.y + arrow_y_end},
-        end_point: {x: position.x + x_distance_of_child, y: position.y + arrow_y_end}
+        control_point_two: {x: position.x + x_distance_of_children, y: position.y + arrow_y_end},
+        end_point: {x: position.x + x_distance_of_children, y: position.y + arrow_y_end}
       },
       connection_character: "",
       element: "Connection"
@@ -310,24 +334,24 @@ function drawToken(
     )
     drawToken(context, 
       concatenated_expression.left_argument, 
-      {x: position.x - x_distance_of_child, y: position.y + y_distance_of_child}, 
-      Math.floor(x_distance_of_child - 100), 
-      y_distance_of_child,
-      shrink_factor*1.25
+      {x: position.x - x_distance_of_children, y: position.y + y_distance_of_children}, 
+      Math.floor(x_distance_of_children/shrink_factor), 
+      y_distance_of_children,
+      shrink_factor
     );
     drawToken(context, 
       concatenated_expression.right_argument, 
-      {x: position.x + x_distance_of_child, y: position.y + y_distance_of_child}, 
-      Math.floor(x_distance_of_child - 100), 
-      y_distance_of_child,
-      shrink_factor*1.25
+      {x: position.x + x_distance_of_children, y: position.y + y_distance_of_children}, 
+      Math.floor(x_distance_of_children/shrink_factor), 
+      y_distance_of_children,
+      shrink_factor
     );
     drawConnection(context, {
       curve: {
         start_point: {x: position.x, y: position.y + circle_radius},
         control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x - x_distance_of_child, y: position.y + arrow_y_end},
-        end_point: {x: position.x - x_distance_of_child, y: position.y + arrow_y_end}
+        control_point_two: {x: position.x - x_distance_of_children, y: position.y + arrow_y_end},
+        end_point: {x: position.x - x_distance_of_children, y: position.y + arrow_y_end}
       },
       connection_character: "",
       element: "Connection"
@@ -336,8 +360,8 @@ function drawToken(
       curve: {
         start_point: {x: position.x, y: position.y + circle_radius},
         control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x + x_distance_of_child, y: position.y + arrow_y_end},
-        end_point: {x: position.x + x_distance_of_child, y: position.y + arrow_y_end}
+        control_point_two: {x: position.x + x_distance_of_children, y: position.y + arrow_y_end},
+        end_point: {x: position.x + x_distance_of_children, y: position.y + arrow_y_end}
       },
       connection_character: "",
       element: "Connection"

@@ -17,7 +17,7 @@ pub type TokenArray = Vec<Token>;
 pub trait TokenArrayMethods {
   fn does_contain_grouped_expression(&self) -> Option<(Token, usize)>;
   fn does_contain_unfilled_kleene_token(&self) -> Option<(Token, usize)>;
-  fn does_contain_unfilled_or_token(&self) -> Option<(Token, usize)>;
+  fn get_middlemost_or_token(&self) -> Option<(Token, usize)>;
   fn concatenate_tokens(&self) -> Token;
   fn can_continue_parsing(&self) -> bool;
   fn parse_tokens(self) -> Result<Token, ParsingError>;
@@ -49,19 +49,39 @@ impl TokenArrayMethods for TokenArray {
     return None;
   }
   
-  fn does_contain_unfilled_or_token(&self) -> Option<(Token, usize)> {
+  // Gets the or token closest to the middle of array so more optimally packed tree can be created
+
+  fn get_middlemost_or_token(&self) -> Option<(Token, usize)> {
+
+    let middle_of_token_array = self.len() / 2;
+    let mut middlemost_or_token = None;
+    let mut distance_of_closest_or_operator = usize::MAX;
+
     for (index, token) in self.into_iter().enumerate() {
       match token {
         Token::OrOperator(or_operator) => {
-          // If a kleene operator is already filled we continue
-          if or_operator.has_empty_arg() {
-            return Some((token.to_owned(), index))
+          
+          if !or_operator.has_empty_arg() {
+            continue;
           }
+
+          let current_distance_from_middle = middle_of_token_array.abs_diff(index);
+          if let Some(_) = middlemost_or_token {
+            if current_distance_from_middle < distance_of_closest_or_operator {
+              middlemost_or_token = Some((token.to_owned(), index));
+              distance_of_closest_or_operator = current_distance_from_middle;
+            }
+
+          } else {
+            middlemost_or_token = Some((token.to_owned(), index));
+            distance_of_closest_or_operator = current_distance_from_middle;
+          }
+            
         },
         _ => continue
       }
     }
-    return None;
+    return middlemost_or_token;
   }
 
 
@@ -175,8 +195,7 @@ impl TokenArrayMethods for TokenArray {
     };
 
     // We use this as a catch all that will recursively parse the arguments to the or_operator when encountered
-    let has_or_token = self.does_contain_unfilled_or_token();
-    if let Some((mut or_token, index)) = has_or_token {
+    if let Some((mut or_token, index)) = self.get_middlemost_or_token() {
       match &mut or_token {
         Token::OrOperator(or_operator) => {
 

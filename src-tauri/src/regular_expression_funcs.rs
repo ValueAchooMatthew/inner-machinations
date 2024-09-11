@@ -151,17 +151,20 @@ fn convert_parse_tree_to_nfa(
 
       state_positions
         .insert(right_token_start_state_coords.into(), 
-        State::new(right_token_start_state_coords, false, false));
+        State::new(right_token_start_state_coords, false, false)
+      );
 
       convert_parse_tree_to_nfa(state_positions, 
         current_state_coords, 
         left_token.unwrap(), 
-        right_token_start_state_coords);
+        right_token_start_state_coords
+      );
 
       convert_parse_tree_to_nfa(state_positions, 
         right_token_start_state_coords, 
         right_token.unwrap(),
-        end_state_coords);
+        end_state_coords
+      );
     }
   }
 }
