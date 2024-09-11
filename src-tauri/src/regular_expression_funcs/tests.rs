@@ -18,14 +18,25 @@ pub mod tests {
   #[test]
   fn test_parsing_invalid_or() {
     let regex_to_test: &str = "a+";
-    let expected_result = ParsingError::NoneTokenProvided;
+    let expected_result = ParsingError::EmptyRightArg;
 
     assert_eq!(Err(expected_result), build_parse_tree(regex_to_test));
 
     let regex_to_test: &str = "+b";
-    let expected_result = ParsingError::NoneTokenProvided;
+    let expected_result = ParsingError::EmptyLeftArg;
 
     assert_eq!(Err(expected_result), build_parse_tree(regex_to_test));
+
+    let regex_to_test: &str = "a*+";
+    let expected_result = ParsingError::EmptyRightArg;
+
+    assert_eq!(Err(expected_result), build_parse_tree(regex_to_test));
+
+    let regex_to_test: &str = "+b*";
+    let expected_result = ParsingError::EmptyLeftArg;
+
+    assert_eq!(Err(expected_result), build_parse_tree(regex_to_test));
+
   }
 
   #[test]
@@ -190,7 +201,29 @@ pub mod tests {
     assert!(!test_string_regex(regex_to_test, "abc".to_owned()));
     assert!(!test_string_regex(regex_to_test, "a".to_owned()));
     assert!(!test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ac".to_owned()));    
+    assert!(!test_string_regex(regex_to_test, "ac".to_owned()));
+
+    let regex_to_test = "a + bc*";
+
+    assert!(test_string_regex(regex_to_test, "".to_owned()));
+    assert!(test_string_regex(regex_to_test, "a".to_owned()));
+    assert!(test_string_regex(regex_to_test, "bc".to_owned()));
+    assert!(test_string_regex(regex_to_test, "bcbcbcbcbcbcbcbc".to_owned()));
+    assert!(!test_string_regex(regex_to_test, "abc".to_owned()));
+    assert!(!test_string_regex(regex_to_test, "b".to_owned()));
+    assert!(!test_string_regex(regex_to_test, "ac".to_owned()));
+    assert!(!test_string_regex(regex_to_test, "cb".to_owned()));
+
+    let regex_to_test = "a + b(c*)";
+
+    assert!(test_string_regex(regex_to_test, "a".to_owned()));
+    assert!(test_string_regex(regex_to_test, "b".to_owned()));
+    assert!(test_string_regex(regex_to_test, "bc".to_owned()));
+    assert!(test_string_regex(regex_to_test, "bccccccccccccccccccccccccccccc".to_owned()));
+    assert!(!test_string_regex(regex_to_test, "".to_owned()));
+    assert!(!test_string_regex(regex_to_test, "abc".to_owned()));
+    assert!(!test_string_regex(regex_to_test, "ac".to_owned()));
+    assert!(!test_string_regex(regex_to_test, "cb".to_owned()));
 
   }
 

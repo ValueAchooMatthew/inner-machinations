@@ -2,8 +2,7 @@ mod regex_models;
 use std::collections::HashMap;
 
 use app::{create_unique_state_coordinates, remove_all_epsilon_transitions};
-use regex_models::{BinaryOperator, KleeneOperator, Operator, OrOperator, ParsingError,
-Token, UnaryOperator, TokenArray, TokenArrayMethods};
+use regex_models::{BinaryOperator, KleeneOperator, OrOperator, ParsingError, Token, UnaryOperator, TokenArray, TokenArrayMethods};
 
 use app::models::{State, Coordinate};
 
@@ -49,8 +48,8 @@ pub fn test_string_regex(regex: &str, string_to_check: String) -> bool {
 #[tauri::command]
 pub fn build_parse_tree(regex: &str) -> Result<Token, ParsingError> {
   let (tokenized_expression, _) = tokenize_regular_expression(regex)?;
-  let parse_tree = parse_tokens(tokenized_expression)?;
-  verify_syntactic_correctness_of_parse_tree(&parse_tree)?;
+  let parse_tree = tokenized_expression.parse_tokens()?;
+  parse_tree.verify_syntactic_correctness()?;
   return Ok(parse_tree);
 }
 
@@ -127,25 +126,20 @@ fn convert_parse_tree_to_nfa(
         .expect("The inner argument should not have a None value
         make sure to verify validity of parse tree before running this function");
 
-        // Here's my thinking. A kleene operator allows an indefinite number of repeats of characters
-        // Thus I am thinking we treat any instances of a kleene operator as almost a separate nfa which, at its end,
-        // loops back to the current state that we're on and is connected by the current state via an epsilon transition
-
-        let new_state_coords = create_unique_state_coordinates(&state_positions.keys().cloned().collect());
-
-        let current_state = state_positions
-          .get_mut::<String>(&current_state_coords.into())
-          .expect("Failed to retrieve the requested state");
-        
-        current_state.add_connection("ϵ", new_state_coords);
-
-        let mut new_state = State::new(new_state_coords, false, false);
-        new_state.add_connection("ϵ", end_state_coords);
-        state_positions.insert(new_state_coords.into(), new_state);
-
-        handle_kleene_token_to_nfa_conversion(current_state_coords, state_positions, 
-          inner_argument.to_owned(), new_state_coords);
-
+      // Here's my thinking. A kleene operator allows an indefinite number of repeats of characters
+      // Thus I am thinking we treat any instances of a kleene operator as almost a separate nfa which, at its end,
+      // loops back to the current state that we're on and is connected by the current state via an epsilon transition
+      let new_state_coords = create_unique_state_coordinates(&state_positions.keys().cloned().collect());
+      let current_state = state_positions
+        .get_mut::<String>(&current_state_coords.into())
+        .expect("Failed to retrieve the requested state");
+      
+      current_state.add_connection("ϵ", new_state_coords);
+      let mut new_state = State::new(new_state_coords, false, false);
+      new_state.add_connection("ϵ", end_state_coords);
+      state_positions.insert(new_state_coords.into(), new_state);
+      handle_kleene_token_to_nfa_conversion(current_state_coords, state_positions, 
+        inner_argument.to_owned(), new_state_coords);
     },
     Token::ConcatenatedExpression(concatenated_expression) => {
       // We are once again assuming the parse tree has been accurately constructed such that
@@ -168,11 +162,8 @@ fn convert_parse_tree_to_nfa(
         right_token_start_state_coords, 
         right_token.unwrap(),
         end_state_coords);
-
     }
-
   }
-
 }
 
 fn handle_kleene_token_to_nfa_conversion(
@@ -289,170 +280,6 @@ fn handle_kleene_token_to_nfa_conversion(
   }
 
 }
-
-fn verify_syntactic_correctness_of_parse_tree(parse_tree: &Token) -> Result<(), ParsingError> {
-  // If we come across an operator which has an None argument, a value was not
-  // properly supplied to the operator and thus the tree is syntactically incorrect
-  // We check for this using DFS
-
-  // Messy, refactor in future
-  match parse_tree {
-    Token::KleeneOperator(operator) => { 
-      if operator.has_empty_arg() {
-        return Err(ParsingError::NoInnerArg);
-      } else {
-        let inner_argument = operator.get_inner_argument().unwrap();
-        return verify_syntactic_correctness_of_parse_tree(inner_argument);
-      }
-    },
-    Token::OrOperator(operator) => {
-      if operator.has_empty_arg() {
-        if operator.get_left_argument().is_none() {
-          return Err(ParsingError::EmptyLeftArg);
-        } else {
-          return Err(ParsingError::EmptyRightArg);
-        }
-      } else {
-        // Definitely refactor in future, ugly code
-        let left_argument = operator.get_left_argument().unwrap();
-        let right_argument = operator.get_right_argument().unwrap();
-        let result_of_checking_left_arg = verify_syntactic_correctness_of_parse_tree(left_argument);
-        let result_of_checking_right_arg = verify_syntactic_correctness_of_parse_tree(right_argument);
-        if result_of_checking_left_arg.is_ok() && result_of_checking_right_arg.is_ok() {
-          return Ok(());
-        } else if result_of_checking_left_arg.is_err() {
-          return result_of_checking_left_arg;
-        } else {
-          return result_of_checking_right_arg;
-        }
-      }
-    },
-    _ => return Ok(())
-  }
-}
-
-fn parse_tokens(mut tokens: TokenArray) -> Result<Token, ParsingError> {
-  // Must give priority to grouped expressions
-  // Parse grouped expressions first?
-  if tokens.len() == 0 {
-    return Err(ParsingError::NoInnerArg)
-  } else if tokens.len() == 1 {
-    match tokens.get(0).expect("The array should have at least a single element") {
-      // If it's a grouped expression, do nothing and continue breaking it apart
-      Token::GroupedExpression(_) => (),
-      _ => {
-        return Ok(tokens.concatenate_tokens())
-      }
-    }
-  } else if !can_continue_parsing(&tokens) {
-    return Ok(tokens.concatenate_tokens());
-  }
-
-  // parsing all regular expressions into their proper form FIRST prior to any operations
-  let mut has_grouped_expression = tokens.does_contain_grouped_expression();
-  while has_grouped_expression.is_some() {
-    let (grouped_expression, index) = has_grouped_expression.unwrap();
-    tokens
-      .remove(index);
-    match grouped_expression {
-      Token::GroupedExpression(grouped_expression) => {
-        let parsed_grouped_expression = parse_tokens(*grouped_expression)?;
-        tokens.insert(index, parsed_grouped_expression);
-      },
-      _ => panic!("The supplied token should be a grouped expression!")
-    }
-    has_grouped_expression = tokens.does_contain_grouped_expression();
-  };
-
-  let mut has_kleene_token = tokens.does_contain_kleene_token();
-  while has_kleene_token.is_some() {
-    let (kleene_token, index) = has_kleene_token.unwrap();
-    match kleene_token {
-      Token::KleeneOperator(mut kleene_operator) => {
-        let left_token = tokens
-          .get(index.checked_sub(1).ok_or_else( || {ParsingError::NoneTokenProvided})?)
-          .cloned();
-
-        kleene_operator
-          .insert_token(left_token)?;
-
-        tokens.drain(index-1..=index);
-        tokens.insert(index-1, Token::KleeneOperator(kleene_operator));
-        },
-        _ => panic!("The supplied token should be a kleene token!")
-    }
-    has_kleene_token = tokens.does_contain_kleene_token();
-  };
-
-  let mut finished = false;
-  
-  while !finished {
-    let duplicate_tokens = tokens.clone();
-    finished = true;
-    for (index, token) in duplicate_tokens.into_iter().enumerate() {
-      match token {
-        Token::OrOperator(mut current_or_op) => {
-          if !current_or_op.has_empty_arg() {
-            continue;
-          }
-          finished = false;
-  
-          let left_token = tokens
-            .get(index.checked_sub(1).ok_or_else( || {ParsingError::NoneTokenProvided})?)
-            .cloned();
-    
-          let right_token = tokens
-            .get(index + 1)
-            .cloned();
-  
-          current_or_op
-            .left_insert_token(left_token)?;
-          current_or_op
-            .right_insert_token(right_token)?;
-  
-          tokens.drain(index - 1..=index + 1);
-          tokens.insert(index - 1, Token::OrOperator(current_or_op));
-          break;
-  
-        },
-
-        Token::GroupedExpression(_) => panic!("All grouped expressions should be parsed prior to this step"),
-        _ => continue
-      }
-    
-    };
-
-  }  
-  
-  return parse_tokens(tokens);
-
-}
-
-fn can_continue_parsing(tokens: &TokenArray) -> bool {
-  for token in tokens {
-    match token {
-      Token::OrOperator(or_operator) => {
-        if or_operator.has_empty_arg() {
-          return true;
-        }
-      },
-      Token::KleeneOperator(kleene_operator) => {
-        if kleene_operator.has_empty_arg() {
-          return true;
-        }
-      },
-      // Done so grouped expressions are continued to be broked up in the parsing step
-      Token::GroupedExpression(_) => {
-        return true;
-      },
-      _=> continue
-    }
-  }
-  return false;
-
-}
-
-
 
 fn tokenize_regular_expression(regex: &str) -> Result<(TokenArray, Option<usize>), ParsingError> {
 

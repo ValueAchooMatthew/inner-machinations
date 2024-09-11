@@ -63,15 +63,15 @@ fn create_new_env_file() {
   ::create_new(".env")
   .unwrap();
 
-let random_string: String = rand::thread_rng()
-  .sample_iter(&Alphanumeric)
-  .take(12)
-  .map(char::from)
-  .collect();
-
-let env_variable = String::from("ENCRYPTION_KEY=") + format!("{random_string}").as_str();
-new_env_file.write(env_variable.as_bytes())
-  .expect("There was an error writing to the env file");
+  let random_string: String = rand::thread_rng()
+    .sample_iter(&Alphanumeric)
+    .take(12)
+    .map(char::from)
+    .collect();
+  
+  let env_variable = String::from("ENCRYPTION_KEY=") + format!("{random_string}").as_str();
+  new_env_file.write(env_variable.as_bytes())
+    .expect("There was an error writing to the env file");
 }
 
 pub fn set_working_directory() {

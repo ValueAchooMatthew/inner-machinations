@@ -16,8 +16,11 @@ pub type TokenArray = Vec<Token>;
 
 pub trait TokenArrayMethods {
   fn does_contain_grouped_expression(&self) -> Option<(Token, usize)>;
-  fn does_contain_kleene_token(&self) -> Option<(Token, usize)>;
+  fn does_contain_unfilled_kleene_token(&self) -> Option<(Token, usize)>;
+  fn does_contain_unfilled_or_token(&self) -> Option<(Token, usize)>;
   fn concatenate_tokens(&self) -> Token;
+  fn can_continue_parsing(&self) -> bool;
+  fn parse_tokens(self) -> Result<Token, ParsingError>;
 }
 
 impl TokenArrayMethods for TokenArray {
@@ -30,7 +33,8 @@ impl TokenArrayMethods for TokenArray {
     }
     return None;
   }
-  fn does_contain_kleene_token(&self) -> Option<(Token, usize)> {
+
+  fn does_contain_unfilled_kleene_token(&self) -> Option<(Token, usize)> {
     for (index, token) in self.into_iter().enumerate() {
       match token {
         Token::KleeneOperator(kleene_operator) => {
@@ -44,13 +48,29 @@ impl TokenArrayMethods for TokenArray {
     }
     return None;
   }
+  
+  fn does_contain_unfilled_or_token(&self) -> Option<(Token, usize)> {
+    for (index, token) in self.into_iter().enumerate() {
+      match token {
+        Token::OrOperator(or_operator) => {
+          // If a kleene operator is already filled we continue
+          if or_operator.has_empty_arg() {
+            return Some((token.to_owned(), index))
+          }
+        },
+        _ => continue
+      }
+    }
+    return None;
+  }
+
 
   fn concatenate_tokens(&self) -> Token {
     if self.len() == 1 {
-       return self
-         .get(0)
-         .expect("The array should have at least a single element")
-         .to_owned();
+      return self
+        .get(0)
+        .expect("The array should have at least a single element")
+        .to_owned();
    
      } else if self.len() == 2 {
    
@@ -67,7 +87,7 @@ impl TokenArrayMethods for TokenArray {
        )));
      }
    
-     let midpoint = self.len().div_ceil(2);
+     let midpoint = self.len()/2;
      let first_half_of_self = &self[..midpoint].to_vec();
      let second_half_of_self = &self[midpoint..].to_vec();
    
@@ -77,8 +97,127 @@ impl TokenArrayMethods for TokenArray {
      )));
    
    }
-}
 
+   fn can_continue_parsing(&self) -> bool {
+    for token in self {
+      match token {
+        Token::OrOperator(or_operator) => {
+          if or_operator.has_empty_arg() {
+            return true;
+          }
+        },
+        Token::KleeneOperator(kleene_operator) => {
+          if kleene_operator.has_empty_arg() {
+            return true;
+          }
+        },
+        // Done so grouped expressions are continued to be broked up in the parsing step
+        Token::GroupedExpression(_) => {
+          return true;
+        },
+        _=> continue
+      }
+    }
+    return false;
+  }
+  
+  fn parse_tokens(mut self) -> Result<Token, ParsingError> {
+    // Must give priority to grouped expressions
+    // Parse grouped expressions first?
+    if self.len() == 0 {
+      return Err(ParsingError::NoInnerArg)
+    } else if self.len() == 1 {
+      match self.get(0).expect("The array should have at least a single element") {
+        // If it's a grouped expression, do nothing and continue breaking it apart
+        Token::GroupedExpression(_) => (),
+        _ => {
+          return Ok(self.concatenate_tokens())
+        }
+      }
+    } else if !self.can_continue_parsing() {
+      return Ok(self.concatenate_tokens());
+    }
+
+    // parsing all regular expressions into their proper form FIRST prior to any operations
+    let mut has_grouped_expression = self.does_contain_grouped_expression();
+    while has_grouped_expression.is_some() {
+      let (grouped_expression, index) = has_grouped_expression.unwrap();
+      self
+        .remove(index);
+      match grouped_expression {
+        Token::GroupedExpression(grouped_expression) => {
+          let parsed_grouped_expression = Self::parse_tokens(*grouped_expression)?;
+          self.insert(index, parsed_grouped_expression);
+        },
+        _ => panic!("The supplied token should be a grouped expression!")
+      }
+      has_grouped_expression = self.does_contain_grouped_expression();
+    };
+
+    let mut has_kleene_token = self.does_contain_unfilled_kleene_token();
+    while has_kleene_token.is_some() {
+      let (kleene_token, index) = has_kleene_token.unwrap();
+      match kleene_token {
+        Token::KleeneOperator(mut kleene_operator) => {
+          let left_token = self
+            .get(index.checked_sub(1).ok_or_else( || {ParsingError::NoneTokenProvided})?)
+            .cloned();
+
+          kleene_operator
+            .insert_token(left_token)?;
+
+          self.drain(index-1..=index);
+          self.insert(index-1, Token::KleeneOperator(kleene_operator));
+          },
+          _ => panic!("The supplied token should be a kleene token!")
+      }
+      has_kleene_token = self.does_contain_unfilled_kleene_token();
+    };
+
+    // We use this as a catch all that will recursively parse the arguments to the or_operator when encountered
+    let has_or_token = self.does_contain_unfilled_or_token();
+    if let Some((mut or_token, index)) = has_or_token {
+      match &mut or_token {
+        Token::OrOperator(or_operator) => {
+
+          let tokens_to_left = self.get(..index).ok_or_else(|| {
+            ParsingError::EmptyLeftArg
+          })?.to_owned();
+          
+          // Ugly fix but it's possible for tokens to left or right to return Some even when the vec size is 0,
+          // which i do not want, hence the manual checking. Todo: Look for cleaner fix in future
+          if tokens_to_left.len() == 0 {
+            return Err(ParsingError::EmptyLeftArg);
+          }
+
+          let tokens_to_right = self.get(index + 1..).ok_or_else(|| {
+            ParsingError::EmptyRightArg
+          })?.to_owned();
+
+          if tokens_to_right.len() == 0 {
+            return Err(ParsingError::EmptyRightArg);
+          }
+
+          let parsed_left_tokens = Self::parse_tokens(tokens_to_left)?;
+          let parsed_right_tokens = Self::parse_tokens(tokens_to_right)?;
+
+          or_operator.left_insert_token(Some(parsed_left_tokens))?;
+          or_operator.right_insert_token(Some(parsed_right_tokens))?;
+
+          return Ok(or_token);
+
+        },
+        _ => panic!("The supplied token should be an or token!")
+
+      }
+
+    }
+
+    return Self::parse_tokens(self);
+
+  }
+
+}
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum ParsingError {
@@ -374,14 +513,12 @@ impl Token {
   // Literals for further use in the parsing step
   pub fn parse_string_to_tokens(stream: &str) -> (Self, usize) {
     let forbidden_characters = HashSet::from([' ', '(', ')',  '+', '*']);
-    let mut characters_to_skip = 0;
 
     let mut literals_encountered: TokenArray = Vec::new();
 
     for c in stream.chars() {
       if !forbidden_characters.contains(&c) {
         literals_encountered.push(Token::Literal(c.to_string()));
-        characters_to_skip += 1;
       } else {
         break;
       }
@@ -389,7 +526,42 @@ impl Token {
 
     let parsed_token = literals_encountered.concatenate_tokens();
 
-    return (parsed_token, characters_to_skip);
+    return (parsed_token, literals_encountered.len());
+  }
+
+  pub fn verify_syntactic_correctness(&self) -> Result<(), ParsingError> {
+    // If we come across an operator which has an None argument, a value was not
+    // properly supplied to the operator and thus the tree is syntactically incorrect
+    // We check for this using DFS
+  
+    match self {
+      Token::KleeneOperator(operator) => { 
+        if operator.has_empty_arg() {
+          Err(ParsingError::NoInnerArg)
+        } else {
+          let inner_argument = operator.get_inner_argument().unwrap();
+          Self::verify_syntactic_correctness(inner_argument)
+        }
+      },
+      Token::OrOperator(operator) => {
+        if operator.has_empty_arg() {
+          if operator.get_left_argument().is_none() {
+            Err(ParsingError::EmptyLeftArg)
+          } else {
+            Err(ParsingError::EmptyRightArg)
+          }
+        } else {
+          Self::verify_syntactic_correctness(
+            operator.get_left_argument().unwrap()
+          )?;
+          Self::verify_syntactic_correctness(
+            operator.get_right_argument().unwrap()
+          )?;
+          Ok(())
+        }
+      },
+      _ => Ok(())
+    }
   }
 
 }

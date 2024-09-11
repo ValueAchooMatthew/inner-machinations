@@ -176,19 +176,46 @@ const drawNode = (
 };
 
 export function drawParseTree(parse_tree: Token, context: CanvasRenderingContext2D, start_position: Coordinate) {
-  // Ugliest fucking code of all type because javascript is a piece of shit language and should kill itself
   context.lineWidth = 7;
   context.font = "40px Arial";
   context.textBaseline = "middle";
   context.textAlign = "center";
-  drawToken(context, parse_tree, start_position);
+  console.log(get_parse_tree_size(parse_tree));
+
+  drawToken(context, parse_tree, start_position, 250, 175, 1.5);
 
 }
 
-function drawToken(context: CanvasRenderingContext2D, token: Token, position: Coordinate) {
-  const distance = 175;
+// Returns number of nodes in parse tree
+function get_parse_tree_size(parse_tree: Token): number {
+
+  if("KleeneOperator" in parse_tree) {
+    let kleene_operator = parse_tree.KleeneOperator as KleeneOperator;
+    return 1 + get_parse_tree_size(kleene_operator.inner_argument)
+
+  } else if("OrOperator" in parse_tree) {
+    let or_operator = parse_tree.OrOperator as OrOperator;
+    return 1 + get_parse_tree_size(or_operator.left_argument) + get_parse_tree_size(or_operator.right_argument);
+
+  } else if("ConcatenatedExpression" in parse_tree) {
+    let concatenated_expression = parse_tree.ConcatenatedExpression as ConcatenatedExpression;
+    return 1 + get_parse_tree_size(concatenated_expression.left_argument) + get_parse_tree_size(concatenated_expression.right_argument);
+
+  }
+
+  return 1;
+}
+
+function drawToken(
+  context: CanvasRenderingContext2D, 
+  token: Token, 
+  position: Coordinate, 
+  x_distance_of_child: number, 
+  y_distance_of_child: number, 
+  shrink_factor: number
+) {
   const circle_radius = 35;
-  const arrow_y_end = distance - circle_radius - 6;
+  const arrow_y_end = y_distance_of_child - circle_radius - 6;
 
   if ("KleeneOperator" in token) {
     // We know the current token in the parse tree is a literal
@@ -204,8 +231,13 @@ function drawToken(context: CanvasRenderingContext2D, token: Token, position: Co
       position.x,
       position.y
     )
-    
-    drawToken(context, kleene_operator.inner_argument, {x: position.x, y: position.y + distance});
+    drawToken(context, 
+      kleene_operator.inner_argument, 
+      {x: position.x, y: position.y + y_distance_of_child}, 
+      Math.floor(x_distance_of_child - 100), 
+      y_distance_of_child,
+      shrink_factor*1.25
+    );
     drawConnection(context, {
       curve: {
         start_point: {x: position.x, y: position.y + circle_radius},
@@ -229,14 +261,26 @@ function drawToken(context: CanvasRenderingContext2D, token: Token, position: Co
       position.x,
       position.y
     )
-    drawToken(context, or_operator.left_argument, {x: position.x - distance, y: position.y + distance});
-    drawToken(context, or_operator.right_argument, {x: position.x + distance, y: position.y + distance});
+    drawToken(context, 
+      or_operator.left_argument, 
+      {x: position.x - x_distance_of_child, y: position.y + y_distance_of_child}, 
+      Math.floor(x_distance_of_child  - 100), 
+      y_distance_of_child,
+      shrink_factor*1.25
+    );
+    drawToken(context, 
+      or_operator.right_argument, 
+      {x: position.x + x_distance_of_child, y: position.y + y_distance_of_child}, 
+      Math.floor(x_distance_of_child  - 100), 
+      y_distance_of_child,
+      shrink_factor*1.25
+    );
     drawConnection(context, {
       curve: {
         start_point: {x: position.x, y: position.y + circle_radius},
         control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x - distance, y: position.y + arrow_y_end},
-        end_point: {x: position.x - distance, y: position.y + arrow_y_end}
+        control_point_two: {x: position.x - x_distance_of_child, y: position.y + arrow_y_end},
+        end_point: {x: position.x - x_distance_of_child, y: position.y + arrow_y_end}
       },
       connection_character: "",
       element: "Connection"
@@ -245,8 +289,8 @@ function drawToken(context: CanvasRenderingContext2D, token: Token, position: Co
       curve: {
         start_point: {x: position.x, y: position.y + circle_radius},
         control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x + distance, y: position.y + arrow_y_end},
-        end_point: {x: position.x + distance, y: position.y + arrow_y_end}
+        control_point_two: {x: position.x + x_distance_of_child, y: position.y + arrow_y_end},
+        end_point: {x: position.x + x_distance_of_child, y: position.y + arrow_y_end}
       },
       connection_character: "",
       element: "Connection"
@@ -264,14 +308,26 @@ function drawToken(context: CanvasRenderingContext2D, token: Token, position: Co
       position.x,
       position.y
     )
-    drawToken(context, concatenated_expression.left_argument, {x: position.x - distance, y: position.y + distance});
-    drawToken(context, concatenated_expression.right_argument, {x: position.x + distance, y: position.y + distance});
+    drawToken(context, 
+      concatenated_expression.left_argument, 
+      {x: position.x - x_distance_of_child, y: position.y + y_distance_of_child}, 
+      Math.floor(x_distance_of_child - 100), 
+      y_distance_of_child,
+      shrink_factor*1.25
+    );
+    drawToken(context, 
+      concatenated_expression.right_argument, 
+      {x: position.x + x_distance_of_child, y: position.y + y_distance_of_child}, 
+      Math.floor(x_distance_of_child - 100), 
+      y_distance_of_child,
+      shrink_factor*1.25
+    );
     drawConnection(context, {
       curve: {
         start_point: {x: position.x, y: position.y + circle_radius},
         control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x - distance, y: position.y + arrow_y_end},
-        end_point: {x: position.x - distance, y: position.y + arrow_y_end}
+        control_point_two: {x: position.x - x_distance_of_child, y: position.y + arrow_y_end},
+        end_point: {x: position.x - x_distance_of_child, y: position.y + arrow_y_end}
       },
       connection_character: "",
       element: "Connection"
@@ -280,8 +336,8 @@ function drawToken(context: CanvasRenderingContext2D, token: Token, position: Co
       curve: {
         start_point: {x: position.x, y: position.y + circle_radius},
         control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x + distance, y: position.y + arrow_y_end},
-        end_point: {x: position.x + distance, y: position.y + arrow_y_end}
+        control_point_two: {x: position.x + x_distance_of_child, y: position.y + arrow_y_end},
+        end_point: {x: position.x + x_distance_of_child, y: position.y + arrow_y_end}
       },
       connection_character: "",
       element: "Connection"
