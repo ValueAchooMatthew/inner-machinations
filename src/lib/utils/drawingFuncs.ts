@@ -193,7 +193,6 @@ export function drawParseTree(
   drawToken(context, parse_tree, start_position, x_distance_of_children*levels_in_parse_tree, y_distance_of_children, shrink_factor);
 }
 
-// returns width, height
 export function get_dimensions_of_parse_tree(
   parse_tree: Token, 
   x_distance_of_children: number, 
@@ -201,11 +200,15 @@ export function get_dimensions_of_parse_tree(
   shrink_factor: number
 ): [number, number] {
 
-  const nodes_in_parse_tree = getNumberOfNodesInParseTree(parse_tree)
-  const levels_in_parse_tree = Math.ceil(Math.log2(nodes_in_parse_tree));
-  const nodes_in_last_level_of_parse_tree = 2**(levels_in_parse_tree - 1);
-  
-  const width = nodes_in_last_level_of_parse_tree * (x_distance_of_children/shrink_factor);
+  const nodes_in_parse_tree = getNumberOfNodesInParseTree(parse_tree);
+  const levels_in_parse_tree = Math.ceil(Math.log2(nodes_in_parse_tree)) + 1;
+
+  const starting_distance_between_child_nodes = x_distance_of_children*levels_in_parse_tree;
+  let width = starting_distance_between_child_nodes
+  for(let i = levels_in_parse_tree; i > 0; i--) {
+    width += 2*starting_distance_between_child_nodes/(shrink_factor**(i)) + 2*35/2;
+  }
+
   const height = y_distance_of_children * levels_in_parse_tree;
   return [width, height];
 }

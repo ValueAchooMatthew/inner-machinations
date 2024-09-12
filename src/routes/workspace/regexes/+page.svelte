@@ -41,21 +41,29 @@
     }
     
     const parse_tree: Token =  await invoke("build_parse_tree", {regex: regex});
-
-    context.scale(scale, scale);
-
-    await tick();
-    context.clearRect(0, 0, width/scale, height/scale);
-    drawParseTree(
+    let [necessary_width, necessary_height] = get_dimensions_of_parse_tree(
       parse_tree, 
-      context, 
-      { x: Math.floor(width/2), y: 200 }, 
       x_distance_of_children, 
       y_distance_of_children, 
       shrink_factor
     );
-    
-    canvas_wrapper.scrollTo(Math.floor(width/2) - Math.floor(canvas_wrapper.clientWidth/2), Math.floor(100));
+
+    const scale_factor = necessary_width/canvas_wrapper.clientWidth;
+
+    context.clearRect(0, 0, width, height);
+    context.save();
+    context.scale(1/scale_factor, 1/scale_factor);
+
+    drawParseTree(
+      parse_tree, 
+      context, 
+      { x: Math.floor(width*scale_factor/2), y: 200*scale_factor }, 
+      x_distance_of_children, 
+      y_distance_of_children, 
+      shrink_factor
+    );
+    context.restore();
+    canvas_wrapper.scrollTo(Math.floor(width/2) - Math.floor(canvas_wrapper.clientWidth/2), 100);
   }
   
   $: {
@@ -79,38 +87,12 @@
     string_to_test = event.currentTarget.value;
   }
 
-  function handleZoom(event: WheelEvent) {
-    if(is_control_button_pressed) {
-      if(event.deltaY < 1) {
-        scale += event.deltaY * -0.01;
-        scale = Math.min(Math.max(0.125, scale), 4);
-      }
-    }
-  }
-  
-  async function handleControlPressDown(event: KeyboardEvent) {
-    await tick();
-    if(event.key == "Control") {
-      is_control_button_pressed = true;
-    }
-  }
-
-  async function handleControlPressUp(event: KeyboardEvent) {
-    await tick();
-    if(event.key == "Control") {
-      is_control_button_pressed = false;
-    }
-  }
-  
 </script>
 
-
-<svelte:window on:keydown={handleControlPressDown} on:keyup={handleControlPressUp} />
 <div class="h-screen bg-gray-200">
   <Banner />
   <div class="flex py-12 px-10 justify-around gap-10">
     <div class="w-full h-[40rem] overflow-scroll rounded-md border-black border-2 z-50"
-      on:wheel={handleZoom}
       bind:this={canvas_wrapper}>
       <canvas class="self-center rounded-md bg-white flex-shrink-0"
         style={`width: ${width}px; height: ${height}px;`}
@@ -141,5 +123,4 @@
       </div>
     </div>
   </div>
-
 </div>
