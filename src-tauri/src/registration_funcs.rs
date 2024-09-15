@@ -7,7 +7,7 @@ use crate::diesel::RunQueryDsl;
 use crate::schema::users;
 use crate::diesel::ExpressionMethods;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn register_user(email: &str, password: &str) {
   let key = get_encryption_key();
   let cipher = new_magic_crypt!(&key, 256);
@@ -15,7 +15,7 @@ pub fn register_user(email: &str, password: &str) {
   add_user_to_db(&encrypted_email, &encrypted_password);
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn is_correct_log_in(email: &str, password: &str) -> bool {
 
   let key = get_encryption_key();
@@ -30,7 +30,7 @@ pub fn is_correct_log_in(email: &str, password: &str) -> bool {
   person.ok().is_some()
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn is_user_registered(email: &str) -> bool {
 
   let key = get_encryption_key();
@@ -42,14 +42,13 @@ pub fn is_user_registered(email: &str) -> bool {
 
 fn retrieve_registered_user(email: &str) -> Option<User> {
 
-  let mut connection =  establish_connection();
-  let mut result: Vec<User> = users::dsl::users
+  let mut conn =  establish_connection();
+  users::table
     .filter(users::email.eq(email))
     .limit(1)
-    .load(&mut connection)
-    .expect("whoops, there was an error checking for the user!");
-  
-  result.pop()
+    .get_result(&mut conn)
+    .ok()
+
 }
 
 fn add_user_to_db(email: &str, password: &str) {

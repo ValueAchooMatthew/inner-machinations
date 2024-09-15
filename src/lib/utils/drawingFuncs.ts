@@ -5,7 +5,7 @@ import {
   getPointOnBezierCurveAtDistance,
 } from "./mathFuncs";
 
-export const draw = (
+export const drawRegularAutomaton = (
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
@@ -47,7 +47,7 @@ const drawConnection = (
   context.lineCap = "round";
 
   const start_coord: Coordinate = connection.curve.start_point;
-  // +1 to make self loops easier to draw
+  // +1 to make self loops easier to drawRegularAutomaton
   const end_coord: Coordinate = connection.curve.end_point;
   const curve: BezierCurve = connection.curve;
   const headSize = 30 / scale;
@@ -175,7 +175,7 @@ const drawNode = (
   }
 };
 
-export function drawParseTree(
+export function drawRegexParseTree(
   parse_tree: Token, 
   context: CanvasRenderingContext2D, 
   start_position: Coordinate,

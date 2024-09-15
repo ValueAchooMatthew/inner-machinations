@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { dialogue_to_user } from "$lib/utils/automataStores";
+  import { dialogue_to_user } from "$lib/utils/svelteStores";
 
   let dialogue: string | null = "";
   dialogue_to_user.subscribe((value)=>{

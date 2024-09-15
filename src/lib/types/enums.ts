@@ -11,5 +11,10 @@ export enum Action {
 
 export enum Automata {
   DFA,
-  NFA,
+  NFA
+}
+
+export enum WorkspaceType {
+  RegularAutomata,
+  Regex
 }

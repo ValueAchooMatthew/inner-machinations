@@ -3,7 +3,7 @@
   import { undo } from "$lib/utils/deletionFuncs";
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
   import { current_action, list_of_all_elements, list_of_connections, list_of_states, email, workspace_name,
-  selected_connection_index, start_state_index, start_state_position, state_positions } from "$lib/utils/automataStores";
+  selected_connection_index, start_state_index, start_state_position, state_positions } from "$lib/utils/svelteStores";
 
   const clearCursor = (): void => {
     current_action.set(Action.CLICKING);

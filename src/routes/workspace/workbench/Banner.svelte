@@ -1,25 +1,25 @@
 <script lang="ts">
   import { Automata } from "$lib/types/enums";
-  import { workspace_name, email, type_of_automata, dialogue_to_user } from "$lib/utils/automataStores";
+  import { workspace_name, email, type_of_automata, dialogue_to_user } from "$lib/utils/svelteStores";
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
   import { invoke } from "@tauri-apps/api";
 
   export let is_option_menu_open: boolean;
+  let timer: NodeJS.Timeout | undefined;
 
   // Current workaround to save workspace 500ms after typing has stopped
   // as svelte doesn't provide on:inputend event natively
   async function renameWorkspace(new_workspace_name: string) {
-    await invoke("update_workspace_name", {originalWorkspaceName: $workspace_name, email: $email, newWorkspaceName: new_workspace_name});
+    await invoke("update_regular_automata_workspace_name", {original_workspace_name: $workspace_name, email: $email, new_workspace_name: new_workspace_name});
     workspace_name.set(new_workspace_name);
   }
 
-  let timer: NodeJS.Timeout | undefined;
   async function handleInputEvent(event: Event & {currentTarget: EventTarget & HTMLInputElement}): Promise<void> {
     const new_workspace_name = event.currentTarget.value;
     
     clearTimeout(timer);
     timer = setTimeout(async () => {
-      const does_new_workspace_name_already_exist: boolean = await invoke("does_workspace_name_exist", {workspaceName: new_workspace_name, email: $email});
+      const does_new_workspace_name_already_exist: boolean = await invoke("does_regular_automata_workspace_name_exist", {workspace_name: new_workspace_name, email: $email});
       if(does_new_workspace_name_already_exist) {
         return;
       }
@@ -35,17 +35,16 @@
       return;
     }
     const form_data = new FormData(event.target);
-    const new_workspace_name = form_data.get("workspaceName")?.toString();
+    const new_workspace_name = form_data.get("workspace_name")?.toString();
     if(!new_workspace_name) {
       return;
     }
-    const does_new_workspace_name_already_exist: boolean = await invoke("does_workspace_name_exist", {workspaceName: new_workspace_name, email: $email});
+    const does_new_workspace_name_already_exist: boolean = await invoke("does_regular_automata_workspace_name_exist", {workspace_name: new_workspace_name, email: $email});
     if(does_new_workspace_name_already_exist) {
       dialogue_to_user.set(`The entered workspace name already exists `);
-  return;
+      return;
     }
     await renameWorkspace(new_workspace_name)
-
   }
 
 </script>
@@ -73,11 +72,11 @@
       </button>
       <div>
         <form on:submit={handleSubmitEvent}>
-          <label for="workspaceName"></label>
+          <label for="workspace_name"></label>
           <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2"
             on:input={handleInputEvent}
-            id="workspaceName"
-            name="workspaceName"
+            id="workspace_name"
+            name="workspace_name"
             value={$workspace_name}
             type="text"/>
         </form>
@@ -87,7 +86,7 @@
       <button class={$type_of_automata == Automata.DFA ? "" : "text-gray-950"}
         on:click={async () => {
           type_of_automata.set(Automata.DFA);
-          await invoke("update_automata_type", {email: $email, workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.DFA]});
+          await invoke("update_regular_automata_type", {email: $email, workspace_name: $workspace_name, type_of_automata: Automata[Automata.DFA]});
         }}>
         DFA
       </button>
@@ -96,12 +95,12 @@
         class={$type_of_automata === Automata.NFA ? "" : "text-gray-950"}
         on:click={async () => {
           type_of_automata.set(Automata.NFA);
-          await invoke("update_automata_type", {email: $email, workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.NFA]});
+          await invoke("update_regular_automata_type", {email: $email, workspace_name: $workspace_name, type_of_automata: Automata[Automata.NFA]});
         }}>
         NFA
       </button>
     </div>
-    <button class="w-[42rem] flex gap-3 justify-end" on:click={async () => {saveWorkspace()}}>
+    <button class="w-[42rem] flex gap-3 justify-end" on:click={saveWorkspace}>
       <a class="flex gap-2 font-bold self-center justify-self-end"
         href="/workspace/dashboard">
         <svg class="w-10 h-10"

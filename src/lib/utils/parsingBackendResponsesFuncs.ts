@@ -1,6 +1,6 @@
 import { get } from "svelte/store";
-import { default_connection_character, input_alphabet, list_of_connections, list_of_states, should_show_string_traversal, should_strict_check, start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/automataStores";
-import type { State, WorkspaceData } from "$lib/types/interfaces";
+import { default_connection_character, input_alphabet, list_of_connections, list_of_states, should_show_string_traversal, should_strict_check, start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/svelteStores";
+import type { State, RegularAutomataWorkspaceData } from "$lib/types/interfaces";
 import { convertCoordinateToString } from "$lib/utils/miscUtils";
 import { Automata } from "../types/enums";
 
@@ -37,7 +37,7 @@ export const parseStatePositions = (
   return state_positions;
 }
 
-export const setTauriResponses = (tauri_response: WorkspaceData): void => {
+export const setTauriResponses = (tauri_response: RegularAutomataWorkspaceData): void => {
 
   start_state_index.set(
     tauri_response.start_state_index

@@ -170,8 +170,8 @@ fn convert_acceptance_paths_to_string(acceptance_paths: &HashMap<String, HashSet
 }
 
 // Todo: Fix
-#[tauri::command]
-pub fn determine_language_of_automata(
+#[tauri::command(rename_all = "snake_case")]
+pub fn determine_language_of_regular_automata(
   state_positions: HashMap<String, State>, 
   start_state_key: &str, 
   type_of_automata: TypeOfAutomata,

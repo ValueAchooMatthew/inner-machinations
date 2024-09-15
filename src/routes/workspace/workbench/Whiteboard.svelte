@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { draw } from "$lib/utils/drawingFuncs";
+  import { drawRegularAutomaton } from "$lib/utils/drawingFuncs";
   import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/utils/mathFuncs";
   import type { State, Connection, Coordinate, BezierCurve } from "$lib/types/interfaces";
   import { Action } from "$lib/types/enums";
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
   import { convertCoordinateToString, removeFirstElementFromArray } from "$lib/utils/miscUtils";
   import { list_of_states, list_of_connections, selected_connection_index, 
-  state_positions, current_action, input_alphabet} from "$lib/utils/automataStores";
+  state_positions, current_action, input_alphabet} from "$lib/utils/svelteStores";
   import { undo } from "$lib/utils/deletionFuncs";
   import { handleUserClickingCanvas } from "$lib/utils/userEvents";
 
@@ -15,11 +15,11 @@
   export let highlighted_state: State | null;
 
   // DO NOT CHANGE ANY CODE IN FORM FOO = [...FOO, BAR]
-  // Necessary to trigger sveltekit rerender of dynamic variables and draw to screen
+  // Necessary to trigger sveltekit rerender of dynamic variables and drawRegularAutomaton to screen
 
   $: {
     if (context) {
-      draw(
+      drawRegularAutomaton(
         context,
         width,
         height,
@@ -66,7 +66,7 @@
   };
 
   // Decent start
-  // Try and draw without redrawing whole canvas
+  // Try and drawRegularAutomaton without redrawing whole canvas
   const handleMove = (event: MouseEvent) => {
     
     if($current_action !== Action.PLACING_END_OF_LINE){

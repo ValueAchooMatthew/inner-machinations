@@ -8,9 +8,9 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api";
   import { dialogue_to_user, start_state_index, state_positions, input_alphabet, 
-  start_state_position, type_of_automata, email, workspace_name } from "$lib/utils/automataStores";
+  start_state_position, type_of_automata, email, workspace_name } from "$lib/utils/svelteStores";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
-  import type { WorkspaceData } from "$lib/types/interfaces";
+  import type { RegularAutomataWorkspaceData } from "$lib/types/interfaces";
   import TestFeedback from "./TestFeedback.svelte";
   import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
   import Sidebar from "./Sidebar.svelte";
@@ -27,9 +27,9 @@
   let should_strict_check: boolean;
 
   onMount(async () => {
-    const workspace_data: WorkspaceData = await invoke("retrieve_workspace_data", {
+    const workspace_data: RegularAutomataWorkspaceData = await invoke("retrieve_regular_automata_workspace_data", {
       email: $email,
-      workspaceName: $workspace_name,
+      workspace_name: $workspace_name
     });
 
     setTauriResponses(

@@ -1,9 +1,9 @@
 use std::{cell::RefCell, collections::{HashMap, HashSet}};
-use app::{create_connections_from_state_positions, create_unique_state_coordinates, models::WorkspaceData, remove_all_epsilon_transitions};
+use app::{create_connections_from_state_positions, create_unique_state_coordinates, models::RegularAutomataWorkspaceData, remove_all_epsilon_transitions};
 
 use app::models::{Connection, Coordinate, State};
 
-use crate::saving_automata_funcs::{retrieve_workspace_data, save_workspace};
+use crate::saving_automata_funcs::{retrieve_regular_automata_workspace_data, save_regular_automata_workspace};
 
 fn mark_unequivalent_states_in_dfa(
   state_positions: &HashMap<String, State>, 
@@ -82,7 +82,7 @@ fn mark_unequivalent_states_in_dfa(
 
 }
 
-// #[tauri::command]
+// #[tauri::command(rename_all = "snake_case")]
 // pub fn is_dfa_minimal(
 //   state_positions: HashMap<String, State>, 
 //   input_alphabet: Vec<String>) -> bool {
@@ -170,14 +170,14 @@ fn remove_redundant_connections(
 
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn minimize_dfa(
   mut state_positions: HashMap<String, State>,
   connections: Vec<Connection>,
   input_alphabet: Vec<String>,
   email: &str,
   workspace_name: &str
-) -> WorkspaceData {
+) -> RegularAutomataWorkspaceData {
 
   // DFA's are typically required to have a connection for each state for each character in the input alphabet.
   // This however, is very unuser friendly as it is very easy to infer that an unspecified connection results in automatic unacceptance.
@@ -253,8 +253,8 @@ pub fn minimize_dfa(
   // Removing temporary implicit vortex state
   minimized_state_positions.remove::<String>(&vortex_state_coords.into());
 
-  save_workspace(workspace_name, minimized_state_positions, email, connections);
-  let workspace_data = retrieve_workspace_data(workspace_name, email);
+  save_regular_automata_workspace(workspace_name, minimized_state_positions, email, connections);
+  let workspace_data = retrieve_regular_automata_workspace_data(workspace_name, email);
 
   return workspace_data;
 
@@ -287,13 +287,13 @@ fn specify_implicit_state_connections(input_alphabet: &Vec<String>, state_positi
 }
 
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn convert_nfa_to_dfa (
   mut state_positions: HashMap<String, State>,
   start_state_position: &str,
   email: &str,
   workspace_name: &str
-) -> WorkspaceData {
+) -> RegularAutomataWorkspaceData {
   
   remove_all_epsilon_transitions(&mut state_positions);
     
@@ -308,11 +308,8 @@ pub fn convert_nfa_to_dfa (
 
   let connections = create_connections_from_state_positions(&reconstructed_state_positions);
 
-  save_workspace(workspace_name, reconstructed_state_positions, email, connections);
-  let workspace_data = retrieve_workspace_data(workspace_name, email);
-
-  return workspace_data;
-
+  save_regular_automata_workspace(workspace_name, reconstructed_state_positions, email, connections);
+  retrieve_regular_automata_workspace_data(workspace_name, email)
 }
 
 pub fn reconstruct_nfa_state_positions(

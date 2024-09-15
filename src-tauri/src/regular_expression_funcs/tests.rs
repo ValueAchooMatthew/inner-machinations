@@ -1,20 +1,14 @@
 #[cfg(test)]
 pub mod tests {
-  use crate::regular_expression_funcs::{regex_models::ParsingError, test_string_regex, build_parse_tree};
-
-
-  // Commenting out parsing tests because in order for the string checking tests to function in the 
-  // first place the parsing must be done correctly
+  use crate::regular_expression_funcs::{build_parse_tree, regex_models::ParsingError, test_string_regex};
 
   #[test]
   fn test_parsing_invalid_kleene() {
     let regex_to_test = "*";
-
     let expected_result = ParsingError::NoInnerArg;
-
     assert_eq!(Err(expected_result), build_parse_tree(regex_to_test));
-
   }
+
   #[test]
   fn test_parsing_invalid_or() {
     let regex_to_test: &str = "a+";
@@ -44,29 +38,29 @@ pub mod tests {
 
     let regex_to_test: &str = "(abc)*";
 
-    assert!(test_string_regex(regex_to_test, "".to_owned()));
-    assert!(test_string_regex(regex_to_test, "abc".to_owned()));
-    assert!(test_string_regex(regex_to_test, "abcabc".to_owned()));
-    assert!(test_string_regex(regex_to_test, "abcabcabcabc".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ab".to_owned()));
+    assert!(test_string_regex(regex_to_test, ""));
+    assert!(test_string_regex(regex_to_test, "abc"));
+    assert!(test_string_regex(regex_to_test, "abcabc"));
+    assert!(test_string_regex(regex_to_test, "abcabcabcabc"));
+    assert!(!test_string_regex(regex_to_test, "ab"));
 
     let regex_to_test: &str = "a*";
 
-    assert!(test_string_regex(regex_to_test, "".to_owned()));
-    assert!(test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(test_string_regex(regex_to_test, "aa".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abcabcabca".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "aaaaaaaaaab".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "baaaaaaa".to_owned()));
+    assert!(test_string_regex(regex_to_test, ""));
+    assert!(test_string_regex(regex_to_test, "a"));
+    assert!(test_string_regex(regex_to_test, "aa"));
+    assert!(!test_string_regex(regex_to_test, "abcabcabca"));
+    assert!(!test_string_regex(regex_to_test, "aaaaaaaaaab"));
+    assert!(!test_string_regex(regex_to_test, "baaaaaaa"));
   }
 
   #[test]
   fn test_or_string_checking() {
     let regex_to_test: &str = "a+b";
 
-    assert!(test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ab".to_owned()));
+    assert!(test_string_regex(regex_to_test, "a"));
+    assert!(test_string_regex(regex_to_test, "b"));
+    assert!(!test_string_regex(regex_to_test, "ab"));
   }
 
   #[test]
@@ -74,25 +68,25 @@ pub mod tests {
 
     let regex_to_test: &str = "(a+b)*";
 
-    assert!(test_string_regex(regex_to_test, "".to_owned()));
-    assert!(test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(test_string_regex(regex_to_test, "ab".to_owned()));
-    assert!(test_string_regex(regex_to_test, "bbbbbbbbb".to_owned()));
-    assert!(test_string_regex(regex_to_test, "aaaaaaaaa".to_owned()));
-    assert!(test_string_regex(regex_to_test, "abababababbaba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "c".to_owned()));
+    assert!(test_string_regex(regex_to_test, ""));
+    assert!(test_string_regex(regex_to_test, "a"));
+    assert!(test_string_regex(regex_to_test, "b"));
+    assert!(test_string_regex(regex_to_test, "ab"));
+    assert!(test_string_regex(regex_to_test, "bbbbbbbbb"));
+    assert!(test_string_regex(regex_to_test, "aaaaaaaaa"));
+    assert!(test_string_regex(regex_to_test, "abababababbaba"));
+    assert!(!test_string_regex(regex_to_test, "c"));
 
     let regex_to_test = "a+b*";
 
-    assert!(test_string_regex(regex_to_test, "".to_owned()));
-    assert!(test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(test_string_regex(regex_to_test, "bb".to_owned()));
-    assert!(test_string_regex(regex_to_test, "bbbbbbbbb".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ab".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abbbbbbbb".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "c".to_owned()));
+    assert!(test_string_regex(regex_to_test, ""));
+    assert!(test_string_regex(regex_to_test, "a"));
+    assert!(test_string_regex(regex_to_test, "b"));
+    assert!(test_string_regex(regex_to_test, "bb"));
+    assert!(test_string_regex(regex_to_test, "bbbbbbbbb"));
+    assert!(!test_string_regex(regex_to_test, "ab"));
+    assert!(!test_string_regex(regex_to_test, "abbbbbbbb"));
+    assert!(!test_string_regex(regex_to_test, "c"));
 
   }
 
@@ -101,129 +95,129 @@ pub mod tests {
 
     let regex_to_test = "(a)(b)";
 
-    assert!(test_string_regex(regex_to_test, "ab".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "c".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abab".to_owned()));
+    assert!(test_string_regex(regex_to_test, "ab"));
+    assert!(!test_string_regex(regex_to_test, "a"));
+    assert!(!test_string_regex(regex_to_test, "b"));
+    assert!(!test_string_regex(regex_to_test, "c"));
+    assert!(!test_string_regex(regex_to_test, "abab"));
 
     let regex_to_test = "a(a+b)";
 
-    assert!(test_string_regex(regex_to_test, "aa".to_owned()));
-    assert!(test_string_regex(regex_to_test, "ab".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "bb".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "aba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abab".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "c".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "aaa".to_owned()));
+    assert!(test_string_regex(regex_to_test, "aa"));
+    assert!(test_string_regex(regex_to_test, "ab"));
+    assert!(!test_string_regex(regex_to_test, "bb"));
+    assert!(!test_string_regex(regex_to_test, "ba"));
+    assert!(!test_string_regex(regex_to_test, "a"));
+    assert!(!test_string_regex(regex_to_test, "b"));
+    assert!(!test_string_regex(regex_to_test, "aba"));
+    assert!(!test_string_regex(regex_to_test, "abab"));
+    assert!(!test_string_regex(regex_to_test, "c"));
+    assert!(!test_string_regex(regex_to_test, "aaa"));
 
     let regex_to_test = "(a+b)a";
 
-    assert!(test_string_regex(regex_to_test, "aa".to_owned()));
-    assert!(test_string_regex(regex_to_test, "ba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "bb".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ab".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abab".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "aba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "c".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "aaa".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "bbb".to_owned()));
+    assert!(test_string_regex(regex_to_test, "aa"));
+    assert!(test_string_regex(regex_to_test, "ba"));
+    assert!(!test_string_regex(regex_to_test, "bb"));
+    assert!(!test_string_regex(regex_to_test, "ab"));
+    assert!(!test_string_regex(regex_to_test, "a"));
+    assert!(!test_string_regex(regex_to_test, "b"));
+    assert!(!test_string_regex(regex_to_test, "abab"));
+    assert!(!test_string_regex(regex_to_test, "aba"));
+    assert!(!test_string_regex(regex_to_test, "c"));
+    assert!(!test_string_regex(regex_to_test, "aaa"));
+    assert!(!test_string_regex(regex_to_test, "bbb"));
 
     let regex_to_test = "a(a+b)*";
 
-    assert!(test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(test_string_regex(regex_to_test, "ab".to_owned()));
-    assert!(test_string_regex(regex_to_test, "aa".to_owned()));
-    assert!(test_string_regex(regex_to_test, "aaaa".to_owned()));
-    assert!(test_string_regex(regex_to_test, "abbbbb".to_owned()));
-    assert!(test_string_regex(regex_to_test, "abbba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "babbabb".to_owned()));
+    assert!(test_string_regex(regex_to_test, "a"));
+    assert!(test_string_regex(regex_to_test, "ab"));
+    assert!(test_string_regex(regex_to_test, "aa"));
+    assert!(test_string_regex(regex_to_test, "aaaa"));
+    assert!(test_string_regex(regex_to_test, "abbbbb"));
+    assert!(test_string_regex(regex_to_test, "abbba"));
+    assert!(!test_string_regex(regex_to_test, "b"));
+    assert!(!test_string_regex(regex_to_test, "ba"));
+    assert!(!test_string_regex(regex_to_test, "babbabb"));
 
     let regex_to_test = "(a+b)*a";
     
-    assert!(test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(test_string_regex(regex_to_test, "ba".to_owned()));
-    assert!(test_string_regex(regex_to_test, "aa".to_owned()));
-    assert!(test_string_regex(regex_to_test, "aaaaa".to_owned()));
-    assert!(test_string_regex(regex_to_test, "abbbba".to_owned()));
-    assert!(test_string_regex(regex_to_test, "abbaaba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ab".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "bab".to_owned()));
+    assert!(test_string_regex(regex_to_test, "a"));
+    assert!(test_string_regex(regex_to_test, "ba"));
+    assert!(test_string_regex(regex_to_test, "aa"));
+    assert!(test_string_regex(regex_to_test, "aaaaa"));
+    assert!(test_string_regex(regex_to_test, "abbbba"));
+    assert!(test_string_regex(regex_to_test, "abbaaba"));
+    assert!(!test_string_regex(regex_to_test, "b"));
+    assert!(!test_string_regex(regex_to_test, "ab"));
+    assert!(!test_string_regex(regex_to_test, "bab"));
     
     let regex_to_test = "((a)(b))*a";
 
-    assert!(test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(test_string_regex(regex_to_test, "aba".to_owned()));
-    assert!(test_string_regex(regex_to_test, "ababa".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "aaaaa".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abbbba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abbaaba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ab".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "bab".to_owned()));
+    assert!(test_string_regex(regex_to_test, "a"));
+    assert!(test_string_regex(regex_to_test, "aba"));
+    assert!(test_string_regex(regex_to_test, "ababa"));
+    assert!(!test_string_regex(regex_to_test, "aaaaa"));
+    assert!(!test_string_regex(regex_to_test, "abbbba"));
+    assert!(!test_string_regex(regex_to_test, "abbaaba"));
+    assert!(!test_string_regex(regex_to_test, "b"));
+    assert!(!test_string_regex(regex_to_test, "ab"));
+    assert!(!test_string_regex(regex_to_test, "bab"));
 
     let regex_to_test = "((a+b)c)*";
 
-    assert!(test_string_regex(regex_to_test, "".to_owned()));
-    assert!(test_string_regex(regex_to_test, "ac".to_owned()));
-    assert!(test_string_regex(regex_to_test, "bc".to_owned()));
-    assert!(test_string_regex(regex_to_test, "acbc".to_owned()));
-    assert!(test_string_regex(regex_to_test, "bcac".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "c".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abc".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ca".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "cb".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "cab".to_owned()));
+    assert!(test_string_regex(regex_to_test, ""));
+    assert!(test_string_regex(regex_to_test, "ac"));
+    assert!(test_string_regex(regex_to_test, "bc"));
+    assert!(test_string_regex(regex_to_test, "acbc"));
+    assert!(test_string_regex(regex_to_test, "bcac"));
+    assert!(!test_string_regex(regex_to_test, "c"));
+    assert!(!test_string_regex(regex_to_test, "abc"));
+    assert!(!test_string_regex(regex_to_test, "ca"));
+    assert!(!test_string_regex(regex_to_test, "cb"));
+    assert!(!test_string_regex(regex_to_test, "cab"));
 
     let regex_to_test = "a*b";
 
-    assert!(test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(test_string_regex(regex_to_test, "ab".to_owned()));
-    assert!(test_string_regex(regex_to_test, "aaaaaaaaaaaaaaaaaaaaaaaaaab".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "c".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ba".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "aaaaabb".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "cab".to_owned()));
+    assert!(test_string_regex(regex_to_test, "b"));
+    assert!(test_string_regex(regex_to_test, "ab"));
+    assert!(test_string_regex(regex_to_test, "aaaaaaaaaaaaaaaaaaaaaaaaaab"));
+    assert!(!test_string_regex(regex_to_test, "c"));
+    assert!(!test_string_regex(regex_to_test, "ba"));
+    assert!(!test_string_regex(regex_to_test, "aaaaabb"));
+    assert!(!test_string_regex(regex_to_test, "cab"));
 
     let regex_to_test = "ab + c";
 
-    assert!(test_string_regex(regex_to_test, "ab".to_owned()));
-    assert!(test_string_regex(regex_to_test, "c".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abc".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ac".to_owned()));
+    assert!(test_string_regex(regex_to_test, "ab"));
+    assert!(test_string_regex(regex_to_test, "c"));
+    assert!(!test_string_regex(regex_to_test, ""));
+    assert!(!test_string_regex(regex_to_test, "abc"));
+    assert!(!test_string_regex(regex_to_test, "a"));
+    assert!(!test_string_regex(regex_to_test, "b"));
+    assert!(!test_string_regex(regex_to_test, "ac"));
 
     let regex_to_test = "a + bc*";
 
-    assert!(test_string_regex(regex_to_test, "".to_owned()));
-    assert!(test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(test_string_regex(regex_to_test, "bc".to_owned()));
-    assert!(test_string_regex(regex_to_test, "bcbcbcbcbcbcbcbc".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abc".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ac".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "cb".to_owned()));
+    assert!(test_string_regex(regex_to_test, ""));
+    assert!(test_string_regex(regex_to_test, "a"));
+    assert!(test_string_regex(regex_to_test, "bc"));
+    assert!(test_string_regex(regex_to_test, "bcbcbcbcbcbcbcbc"));
+    assert!(!test_string_regex(regex_to_test, "abc"));
+    assert!(!test_string_regex(regex_to_test, "b"));
+    assert!(!test_string_regex(regex_to_test, "ac"));
+    assert!(!test_string_regex(regex_to_test, "cb"));
 
     let regex_to_test = "a + b(c*)";
 
-    assert!(test_string_regex(regex_to_test, "a".to_owned()));
-    assert!(test_string_regex(regex_to_test, "b".to_owned()));
-    assert!(test_string_regex(regex_to_test, "bc".to_owned()));
-    assert!(test_string_regex(regex_to_test, "bccccccccccccccccccccccccccccc".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "abc".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "ac".to_owned()));
-    assert!(!test_string_regex(regex_to_test, "cb".to_owned()));
+    assert!(test_string_regex(regex_to_test, "a"));
+    assert!(test_string_regex(regex_to_test, "b"));
+    assert!(test_string_regex(regex_to_test, "bc"));
+    assert!(test_string_regex(regex_to_test, "bccccccccccccccccccccccccccccc"));
+    assert!(!test_string_regex(regex_to_test, ""));
+    assert!(!test_string_regex(regex_to_test, "abc"));
+    assert!(!test_string_regex(regex_to_test, "ac"));
+    assert!(!test_string_regex(regex_to_test, "cb"));
 
   }
 

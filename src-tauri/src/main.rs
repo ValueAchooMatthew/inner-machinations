@@ -19,15 +19,19 @@ pub mod language_determination_funcs;
 pub mod verification_funcs;
 pub mod regular_expression_funcs;
 
-use regular_expression_funcs::{build_parse_tree, test_string_regex};
+use regular_expression_funcs::{build_parse_tree, test_string_regex, saving_regex_funcs::{
+  create_regex_workspace, save_regex_workspace, does_regex_workspace_name_exist, get_users_regex_workspace_names, retrieve_regex_workspace_data,
+  update_regex_workspace_name, delete_regex_workspace
+}};
 use registration_funcs::{is_correct_log_in, register_user, is_user_registered};
 use advanced_automata_funcs::{minimize_dfa, convert_nfa_to_dfa};
 use testing_automata_funcs::{test_string_dfa, test_string_nfa};
-use saving_automata_funcs::{save_workspace, delete_workspace, retrieve_workspace_data, get_users_saved_workspaces, 
-update_workspace_name, does_workspace_name_exist, create_workspace, update_workspace_alphabet, 
-update_showing_string_traversal, update_default_connection_character, update_strict_checking, update_automata_type};
+use saving_automata_funcs::{save_regular_automata_workspace, delete_regular_automata_workspace, retrieve_regular_automata_workspace_data, 
+update_regular_automata_workspace_name,does_regular_automata_workspace_name_exist, create_regular_automata_workspace, 
+update_regular_automata_workspace_alphabet, update_showing_string_traversal, update_default_connection_character, update_strict_checking, 
+update_regular_automata_type, get_users_regular_automata_workspace_names};
 use validation_automata_funcs::verify_valid_dfa;
-use language_determination_funcs::determine_language_of_automata;
+use language_determination_funcs::determine_language_of_regular_automata;
 use verification_funcs::{send_verification_email, is_user_verified, verify_user};
 use app::establish_connection;
 
@@ -49,12 +53,13 @@ fn main() {
   tauri::Builder::default()
   .plugin(tauri_plugin_store::Builder::default().build())
   .invoke_handler(tauri::generate_handler![
-    register_user, is_user_registered, is_correct_log_in,
-    send_verification_email, verify_user, is_user_verified, test_string_dfa,
-    test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, 
-    get_users_saved_workspaces, minimize_dfa, convert_nfa_to_dfa, determine_language_of_automata, build_parse_tree, 
-    test_string_regex, update_workspace_name, does_workspace_name_exist, create_workspace, update_workspace_alphabet, 
-    update_default_connection_character, update_showing_string_traversal, update_strict_checking, update_automata_type]
+    register_user, is_user_registered, is_correct_log_in,send_verification_email, verify_user, is_user_verified, test_string_dfa,
+    test_string_nfa, verify_valid_dfa, save_regular_automata_workspace, delete_regular_automata_workspace, retrieve_regular_automata_workspace_data, 
+    create_regular_automata_workspace, minimize_dfa, convert_nfa_to_dfa, determine_language_of_regular_automata, build_parse_tree, test_string_regex, 
+    update_regular_automata_workspace_name, does_regular_automata_workspace_name_exist, update_regular_automata_workspace_alphabet, 
+    update_default_connection_character, update_showing_string_traversal, update_strict_checking, update_regular_automata_type, create_regex_workspace, 
+    get_users_regular_automata_workspace_names, save_regex_workspace, does_regex_workspace_name_exist, get_users_regex_workspace_names, 
+    retrieve_regex_workspace_data, update_regex_workspace_name, delete_regex_workspace]
   )
   .run(tauri::generate_context!())
   .expect("error while running tauri application");

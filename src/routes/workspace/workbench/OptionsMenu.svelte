@@ -1,7 +1,7 @@
 <script lang="ts">
   // Todo: make scrolling alphabet input boxes for large alphabets and common cases providable (alphabet, alphanumeric, etc.)
   import { input_alphabet, should_show_string_traversal, should_strict_check, 
-  default_connection_character, workspace_name, email } from "$lib/utils/automataStores";
+  default_connection_character, workspace_name, email } from "$lib/utils/svelteStores";
   import { convertFormDataEntriesToStringArray} from "$lib/utils/miscUtils";
   import { saveOptions } from "$lib/utils/savingWorkspaceFuncs";
   import { invoke } from "@tauri-apps/api";
@@ -38,21 +38,21 @@
 
       const alphabet = data.getAll("alphabet");
       const stringified_array = convertFormDataEntriesToStringArray(alphabet);
-      const sanitized_alphabet: Array<string> = await invoke("update_workspace_alphabet", {
-        workspaceName: $workspace_name, email: $email, alphabet: stringified_array
+      const sanitized_alphabet: Array<string> = await invoke("update_regular_automata_workspace_alphabet", {
+        workspace_name: $workspace_name, email: $email, alphabet: stringified_array
       });
       input_alphabet.set(sanitized_alphabet);
 
       await invoke("update_showing_string_traversal", {
-        workspaceName: $workspace_name, 
+        workspace_name: $workspace_name, 
         email: $email, 
-        shouldShowTraversal: $should_show_string_traversal
+        should_show_traversal: $should_show_string_traversal
       });
 
       await invoke("update_strict_checking", {
-        workspaceName: $workspace_name, 
+        workspace_name: $workspace_name, 
         email: $email, 
-        shouldStrictCheck: $should_strict_check
+        should_strict_check: $should_strict_check
       });
       
       const default_connection_char = data.get("default_character")?.toString();
@@ -61,9 +61,9 @@
       }
       default_connection_character.set(default_connection_char);
       await invoke("update_default_connection_character", {
-        workspaceName: $workspace_name, 
+        workspace_name: $workspace_name, 
         email: $email, 
-        defaultConnectionCharacter: default_connection_char
+        default_connection_character: default_connection_char
       });
 
     }

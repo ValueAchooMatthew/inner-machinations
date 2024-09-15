@@ -9,8 +9,11 @@ use std::{collections::HashMap, fs};
 use std::io::Write;
 use std::env;
 
-use diesel::Connection as DieselConnection;
+use diesel::query_dsl::methods::FilterDsl;
+use diesel::{Connection as DieselConnection, ExpressionMethods};
 use diesel::sqlite::SqliteConnection;
+use crate::diesel::query_dsl::methods::LimitDsl;
+use crate::diesel::RunQueryDsl;
 
 pub fn establish_connection() -> SqliteConnection {
   SqliteConnection::establish(&"mydb.sqlite3")
@@ -19,7 +22,7 @@ pub fn establish_connection() -> SqliteConnection {
 
 use models::{BezierCurve, Connection, Coordinate, State, User};
 
-use magic_crypt::{MagicCrypt256, MagicCryptTrait};
+use magic_crypt::{new_magic_crypt, MagicCrypt256, MagicCryptTrait};
 pub fn encrypt_user_data(cipher: &MagicCrypt256, email: &str, password: &str) -> [String; 2] {
   let encrypted_email = cipher.encrypt_str_to_base64(email);
   let encrypted_password = cipher.encrypt_str_to_base64(password);
@@ -32,7 +35,8 @@ pub fn decrypt_user_data(cipher: &MagicCrypt256, user: User) -> [String; 2]{
   [decrypted_email, decrypted_password]
 }
 
-use rand::{distributions::Alphanumeric, Rng}; // 0.8
+use rand::{distributions::Alphanumeric, Rng};
+use schema::users; // 0.8
 pub fn generate_code() -> String {
   let code: String = rand::thread_rng()
     .sample_iter(&Alphanumeric)
@@ -247,4 +251,31 @@ pub fn sanitize_input_alphabet(alphabet: Vec<&str>) -> Vec<String> {
   }).collect();
 
   return sanitized_alphabet;
+}
+
+pub fn get_user_id(email: &str, conn: &mut SqliteConnection) -> i32 {
+
+  let key = std::env::var("ENCRYPTION_KEY")
+    .expect("Encryption Key must be set as a .env variable");
+
+  let cipher = new_magic_crypt!(&key, 256);
+  let [encrypted_user_email, _ ] = encrypt_user_data(&cipher, &email, "");
+
+  let user: User = users::table
+    .filter(users::email.eq(&encrypted_user_email))
+    .limit(1)
+    .get_result::<User>(conn)
+    .expect("There was an error retrieving the user's id");
+
+  user.id
+}
+
+pub fn get_user(user_id: i32, conn: &mut SqliteConnection) -> User {
+
+  users::table
+    .filter(users::id.eq(user_id))
+    .limit(1)
+    .get_result::<User>(conn)
+    .expect("There was an error retrieving the user")
+
 }

@@ -64,7 +64,7 @@ export interface Literal {
   Literal: string
 }
 
-export interface WorkspaceData {
+export interface RegularAutomataWorkspaceData {
   start_state_index: number | null,
   start_state_position: string | null,
   state_positions: { [key: string]: State; },
@@ -76,5 +76,10 @@ export interface WorkspaceData {
   should_strict_check: boolean,
   should_show_string_traversal: boolean,
   default_connection_character: string
+}
 
+export interface RegexWorkspaceData {
+  regex_name: string,
+  regex: string,
+  date_of_last_update: string
 }

@@ -1,7 +1,16 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use diesel::query_builder::QueryId;
+use serde::Deserialize;
+use serde::Serialize;
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::hash::Hash;
 
+use crate::establish_connection;
+use crate::schema::saved_states;
+use crate::schema::saved_regular_automata_connections;
+use crate::schema::users;
 // Any instances of a character being typed as a string is done due to the fact the deserialized datatype coming from the
 // type scripty back-end, despite being a single character is always of type string since typescript does not have a character data type
 
@@ -14,14 +23,16 @@ pub struct User {
   pub email: String,
   pub password: String,
   pub verified: bool,
+  pub number_of_untitled_regular_automata_workspaces: i32,
+  pub number_of_untitled_regex_workspaces: i32,
   pub code: Option<String>
 }
 
 #[derive(Queryable, Insertable, QueryableByName, QueryId, Selectable, Identifiable, Serialize, Deserialize)]
-#[diesel(table_name = crate::schema::saved_workspaces)]
+#[diesel(table_name = crate::schema::saved_regular_automata_workspaces)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
-pub struct SavedWorkspace {
+pub struct SavedRegularAutomataWorkspace {
   pub id: i32,
   pub user_id: i32,
   pub workspace_name: String,
@@ -31,6 +42,18 @@ pub struct SavedWorkspace {
   pub should_show_string_traversal: bool,
   pub should_strict_check: bool,
   pub default_connection_character: String
+}
+
+#[derive(Queryable, Insertable, QueryableByName, QueryId, Selectable, Identifiable, Serialize, Deserialize)]
+#[diesel(table_name = crate::schema::saved_regex_workspaces)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[derive(Debug)]
+pub struct SavedRegexWorkspace {
+  pub id: i32,
+  pub user_id: i32,
+  pub regex_name: String,
+  pub regex: String,
+  pub date_of_last_update: NaiveDateTime,
 }
 
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
@@ -46,7 +69,7 @@ pub struct SavedState {
 }
 
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
-#[diesel(table_name = crate::schema::saved_connections)]
+#[diesel(table_name = crate::schema::saved_regular_automata_connections)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
 pub struct SavedConnection {
@@ -59,15 +82,6 @@ pub struct SavedConnection {
   pub connection_character: String
 }
 
-use serde::Deserialize;
-use serde::Serialize;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::hash::Hash;
-
-use crate::establish_connection;
-use crate::schema::saved_connections;
-use crate::schema::saved_states;
 #[derive(Debug, Deserialize, Serialize, Clone, Eq)]
 pub struct State { 
   position: Coordinate,
@@ -299,9 +313,45 @@ pub enum TypeOfAutomata {
   NFA
 }
 
-#[derive(Debug, Deserialize, Serialize, )]
-pub struct WorkspaceData {
-  
+impl User {
+
+  // Changes both the number stored in the object itself and the database
+  // Get and update methods tied together as I do not expect for retrieval of this info
+  // To ever occur without updating
+  pub fn get_and_update_number_of_untitled_regular_automata_workspaces(&mut self) -> i32 {
+
+    self.number_of_untitled_regular_automata_workspaces += 1;
+    let mut conn = establish_connection();
+
+    diesel::update(users::table
+      .filter(users::id.eq(self.id)))
+      .set(users::number_of_untitled_regular_automata_workspaces.eq(self.number_of_untitled_regular_automata_workspaces))
+      .execute(&mut conn)
+      .expect("There was an error updating the number of untitled regular automata workspaces in the database");
+
+    self.number_of_untitled_regular_automata_workspaces
+
+  }
+
+  pub fn get_and_update_number_of_untitled_regex_workspaces(&mut self) -> i32 {
+
+    self.number_of_untitled_regex_workspaces += 1;
+    let mut conn = establish_connection();
+
+    diesel::update(users::table
+      .filter(users::id.eq(self.id)))
+      .set(users::number_of_untitled_regex_workspaces.eq(self.number_of_untitled_regex_workspaces))
+      .execute(&mut conn)
+      .expect("There was an error updating the number of untitled regex workspaces in the database");
+
+    self.number_of_untitled_regex_workspaces
+  }
+
+}
+
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RegularAutomataWorkspaceData {
   start_state_index: Option<usize>,
   start_state_position: Option<String>,
   state_positions: HashMap<String, State>,
@@ -313,12 +363,11 @@ pub struct WorkspaceData {
   should_strict_check: bool,
   should_show_string_traversal: bool,
   default_connection_character: String
-
 }
 
-impl WorkspaceData {
+impl RegularAutomataWorkspaceData {
 
-  pub fn new(workspace: SavedWorkspace) -> Self {
+  pub fn new(workspace: SavedRegularAutomataWorkspace) -> Self {
 
     let mut conn = establish_connection();
 
@@ -334,7 +383,7 @@ impl WorkspaceData {
     let should_show_string_traversal = workspace.should_show_string_traversal;
     let default_connection_character = workspace.default_connection_character;
     
-    return WorkspaceData {
+    return RegularAutomataWorkspaceData {
       start_state_index,
       start_state_position,
       state_positions,
@@ -376,7 +425,7 @@ impl WorkspaceData {
 
   }
 
-  fn get_list_of_states_from_saved_workspace(saved_workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> Vec<State> {
+  fn get_list_of_states_from_saved_workspace(saved_workspace: &SavedRegularAutomataWorkspace, conn: &mut SqliteConnection) -> Vec<State> {
     // First get the states and connections from the database
 
     let mut list_of_states = Vec::new();
@@ -395,11 +444,11 @@ impl WorkspaceData {
 
   }
 
-  fn parse_saved_state_to_regular_state(state: SavedState, workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> State {
+  fn parse_saved_state_to_regular_state(state: SavedState, workspace: &SavedRegularAutomataWorkspace, conn: &mut SqliteConnection) -> State {
     
-    let states_connected_to_given_state: Vec<SavedConnection> = saved_connections::table
-      .filter(saved_connections::workspace_id.eq(&workspace.id))
-      .filter(saved_connections::start_point.eq(&state.position))
+    let states_connected_to_given_state: Vec<SavedConnection> = saved_regular_automata_connections::table
+      .filter(saved_regular_automata_connections::workspace_id.eq(&workspace.id))
+      .filter(saved_regular_automata_connections::start_point.eq(&state.position))
       .get_results::<SavedConnection>(conn)
       .expect("There was an issue getting the workspace's states");
 
@@ -414,12 +463,12 @@ impl WorkspaceData {
     parsed_state
   }
 
-  fn get_list_of_connections_from_saved_workspace(workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> Vec<Connection> {
+  fn get_list_of_connections_from_saved_workspace(workspace: &SavedRegularAutomataWorkspace, conn: &mut SqliteConnection) -> Vec<Connection> {
 
     let mut list_of_connections = Vec::new();
 
-    let retrieved_connections: Vec<SavedConnection> = saved_connections::table
-      .filter(saved_connections::workspace_id.eq(&workspace.id))
+    let retrieved_connections: Vec<SavedConnection> = saved_regular_automata_connections::table
+      .filter(saved_regular_automata_connections::workspace_id.eq(&workspace.id))
       .get_results::<SavedConnection>(conn)
       .expect("There was an issue getting the workspace's states");
 
@@ -448,7 +497,6 @@ impl WorkspaceData {
     };
 
     parsed_connection
-
   }
   
   // Return type corresponds to start state index and start state key respectively
@@ -458,19 +506,34 @@ impl WorkspaceData {
       if state_reference.is_start() {
         return (Some(index), Some(state_reference.get_position_as_string()));
       }
-  
     }
     return (None, None);
-  
   }
 
-  fn parse_alphabet(saved_workspace: &SavedWorkspace) -> Vec<String> {
+  fn parse_alphabet(saved_workspace: &SavedRegularAutomataWorkspace) -> Vec<String> {
 
     return saved_workspace.alphabet
       .split(',')
       .map(|s| s.to_string())
       .collect();
+  }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RegexWorkspaceData {
+  regex_name: String,
+  regex: String,
+  date_of_last_update: String,
+}
+
+impl RegexWorkspaceData {
+  pub fn new(workspace: SavedRegexWorkspace) -> Self {
+
+    RegexWorkspaceData {
+      regex_name: workspace.regex_name,
+      regex: workspace.regex,
+      date_of_last_update: workspace.date_of_last_update.format("%Y-%m-%d %H:%M:%S").to_string()
+    }
 
   }
-
 }

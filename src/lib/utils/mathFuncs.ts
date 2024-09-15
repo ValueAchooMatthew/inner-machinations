@@ -1,4 +1,4 @@
-import { list_of_connections } from "$lib/utils/automataStores";
+import { list_of_connections } from "$lib/utils/svelteStores";
 import type { BezierCurve, Coordinate } from "$lib/types/interfaces";
 
 export const roundToNearest = (

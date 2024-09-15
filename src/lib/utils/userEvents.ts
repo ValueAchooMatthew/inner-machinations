@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { current_action, dialogue_to_user, input_alphabet, list_of_all_elements, list_of_connections, list_of_states, selected_connection_index, start_state_index, start_state_position, state_positions } from "./automataStores";
+import { current_action, dialogue_to_user, input_alphabet, list_of_all_elements, list_of_connections, list_of_states, selected_connection_index, start_state_index, start_state_position, state_positions } from "./svelteStores";
 import type { BezierCurve, Connection, Coordinate, State } from "../types/interfaces";
 import { convertCoordinateToString } from "./miscUtils";
 import { Action } from "../types/enums";
@@ -185,17 +185,17 @@ const addState = (cursor_coords: Coordinate, cursor_coords_as_string: string, ma
     update_start_state_information(new_state);
   }
 
-  list_of_all_elements.update((elements)=>{
+  list_of_all_elements.update((elements) => {
     elements.push(new_state);
     return elements;
   });
 
-  list_of_states.update((states)=>{
+  list_of_states.update((states) => {
     states.push(new_state);
     return states;
   });
 
-  state_positions.update((positions)=>{
+  state_positions.update((positions) => {
     positions.set(cursor_coords_as_string, new_state);
     return positions;
   });
@@ -206,16 +206,19 @@ const update_start_state_information = (new_start_state: State): void => {
 
   const previous_start_state_index = get(start_state_index);
   if(previous_start_state_index !== null) {
-    list_of_states.update((states)=>{
-      const previous_start_state = states[previous_start_state_index];
-      previous_start_state.is_start = false;
-      states[previous_start_state_index] = previous_start_state;
-      return states;
+    list_of_states.update((states) => {
+        const previous_start_state = states[previous_start_state_index];
+        previous_start_state.is_start = false;
+        state_positions.update((state_positions) => {
+          state_positions.set(convertCoordinateToString(previous_start_state.position), previous_start_state);
+          return state_positions;
+        });
+        states[previous_start_state_index] = previous_start_state;
+        return states;
     });
   }
   start_state_index.set(get(list_of_states).length);
   start_state_position.set(convertCoordinateToString(new_start_state.position));
-
 }
 
 const make_final_state = (state_to_update: State, cursor_x_pos: number, cursor_y_pos: number, cursor_coords_as_string: string) => {

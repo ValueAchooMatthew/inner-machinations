@@ -1,7 +1,7 @@
 use app::models::State;
 use std::collections::{HashMap, HashSet};
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn test_string_dfa(state_positions: HashMap<String, State>, start_state_coordinates: String, string_to_check: String) -> (bool, Vec<State>) {
 
   let mut states_visited: Vec<State> = vec![];
@@ -57,7 +57,7 @@ fn dfa_delta_function<'a>(state_positions: &'a HashMap<String, State>, s: &'a St
 fn nfa_delta_function(
   state_positions: &HashMap<String, State>, 
   current_state: &State, 
-  string_to_check: &String,
+  string_to_check: &str,
   states_visited: &mut Vec<State>) -> bool {
   
   if string_to_check.is_empty() && current_state.is_final() {
@@ -169,11 +169,11 @@ fn get_states_connected_by_epsilon_in_nfa<'a>(
 
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn test_string_nfa(
   state_positions: HashMap<String, State>, 
   start_state_coordinates: String, 
-  string_to_check: String
+  string_to_check: &str
   ) -> (bool, Vec<State>) {
 
   let mut states_visited: Vec<State> = vec![];

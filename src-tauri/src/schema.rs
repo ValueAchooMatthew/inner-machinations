@@ -1,7 +1,17 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    saved_connections (id) {
+    saved_regex_workspaces (id) {
+        id -> Integer,
+        user_id -> Integer,
+        regex_name -> Text,
+        regex -> Text,
+        date_of_last_update -> Timestamp,
+    }
+}
+
+diesel::table! {
+    saved_regular_automata_connections (id) {
         id -> Integer,
         workspace_id -> Integer,
         start_point -> Text,
@@ -9,6 +19,20 @@ diesel::table! {
         control_point_two -> Text,
         end_point -> Text,
         connection_character -> Text,
+    }
+}
+
+diesel::table! {
+    saved_regular_automata_workspaces (id) {
+        id -> Integer,
+        user_id -> Integer,
+        workspace_name -> Text,
+        type_of_automata -> crate::models::TypeOfAutomataMapping,
+        date_of_last_update -> Timestamp,
+        alphabet -> Text,
+        should_show_string_traversal -> Bool,
+        should_strict_check -> Bool,
+        default_connection_character -> Text,
     }
 }
 
@@ -23,36 +47,26 @@ diesel::table! {
 }
 
 diesel::table! {
-    saved_workspaces (id) {
-        id -> Integer,
-        user_id -> Integer,
-        workspace_name -> Text,
-        type_of_automata -> crate::models::TypeOfAutomataMapping,
-        date_of_last_update -> Timestamp,
-        alphabet -> Text,
-        should_show_string_traversal -> Bool,
-        should_strict_check -> Bool,
-        default_connection_character -> Text,
-    }
-}
-
-diesel::table! {
     users (id) {
         id -> Integer,
         email -> Text,
         password -> Text,
         verified -> Bool,
+        number_of_untitled_regular_automata_workspaces -> Integer,
+        number_of_untitled_regex_workspaces -> Integer,
         code -> Nullable<Text>,
     }
 }
 
-diesel::joinable!(saved_connections -> saved_workspaces (workspace_id));
-diesel::joinable!(saved_states -> saved_workspaces (workspace_id));
-diesel::joinable!(saved_workspaces -> users (user_id));
+diesel::joinable!(saved_regex_workspaces -> users (user_id));
+diesel::joinable!(saved_regular_automata_connections -> saved_regular_automata_workspaces (workspace_id));
+diesel::joinable!(saved_regular_automata_workspaces -> users (user_id));
+diesel::joinable!(saved_states -> saved_regular_automata_workspaces (workspace_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    saved_connections,
+    saved_regex_workspaces,
+    saved_regular_automata_connections,
+    saved_regular_automata_workspaces,
     saved_states,
-    saved_workspaces,
     users,
 );

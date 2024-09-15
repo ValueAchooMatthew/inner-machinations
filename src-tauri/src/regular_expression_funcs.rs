@@ -1,4 +1,5 @@
 mod regex_models;
+pub mod saving_regex_funcs;
 use std::collections::HashMap;
 
 use app::{create_unique_state_coordinates, remove_all_epsilon_transitions};
@@ -9,9 +10,8 @@ use app::models::{State, Coordinate};
 use crate::{advanced_automata_funcs::reconstruct_nfa_state_positions, testing_automata_funcs::test_string_nfa};
 mod tests;
 
-// Fix case ac + b
-#[tauri::command]
-pub fn test_string_regex(regex: &str, string_to_check: String) -> bool {
+#[tauri::command(rename_all = "snake_case")]
+pub fn test_string_regex(regex: &str, string_to_check: &str) -> bool {
 
   let parse_tree = match build_parse_tree(regex) {
     Ok(parse_tree) => parse_tree,
@@ -45,7 +45,7 @@ pub fn test_string_regex(regex: &str, string_to_check: String) -> bool {
 
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn build_parse_tree(regex: &str) -> Result<Token, ParsingError> {
   let (tokenized_expression, _) = tokenize_regular_expression(regex)?;
   let parse_tree = tokenized_expression.parse_tokens()?;

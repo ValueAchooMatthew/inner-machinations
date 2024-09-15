@@ -1,6 +1,6 @@
 import { writable, type Writable } from "svelte/store";
 import type { Connection, State } from "../types/interfaces";
-import { Action, Automata } from "../types/enums";
+import { Action, Automata, WorkspaceType } from "../types/enums";
 import { getCookie } from "./miscUtils";
 
 export const start_state_index: Writable<number | null> = writable(null);
@@ -30,3 +30,5 @@ export const should_show_string_traversal: Writable<boolean> = writable(false);
 export const default_connection_character: Writable<string> = writable("a");
 export const workspace_name: Writable<string> = writable(getCookie("workspace_name"));
 export const email: Writable<string> = writable(getCookie("email"));
+export const current_regex: Writable<string> = writable("");
+export const current_workspace_type: Writable<WorkspaceType | null> = writable(null);

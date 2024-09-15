@@ -8,7 +8,7 @@ use magic_crypt::MagicCrypt256;
 use crate::models::User;
 use crate::{diesel::ExpressionMethods, schema::users};
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn send_verification_email(email: &str) -> Option<String> {
 
   let code = generate_code();
@@ -42,7 +42,7 @@ pub fn send_verification_email(email: &str) -> Option<String> {
 
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn verify_user(email: &str){
 
   let key = get_encryption_key();
@@ -58,7 +58,7 @@ pub fn verify_user(email: &str){
     .expect("There was an error assigning a code for the user");
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn is_user_verified(email: &str) -> bool {
   use crate::diesel::ExpressionMethods;
 

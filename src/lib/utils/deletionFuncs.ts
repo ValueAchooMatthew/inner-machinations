@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { list_of_all_elements, list_of_connections, list_of_states, start_state_index, start_state_position, state_positions } from "./automataStores";
+import { list_of_all_elements, list_of_connections, list_of_states, start_state_index, start_state_position, state_positions } from "./svelteStores";
 import type { Connection, State } from "../types/interfaces";
 import { convertCoordinateToString, removeFirstElementFromArray } from "./miscUtils";
 

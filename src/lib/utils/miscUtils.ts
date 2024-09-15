@@ -33,7 +33,6 @@ export function getCookie(cname: string): string {
   return "";
 }
 
-
 export function convertFormDataEntriesToStringArray(form_data: Array<FormDataEntryValue>): Array<string> {
 
   const stringified_array = form_data.map((data)=> {
