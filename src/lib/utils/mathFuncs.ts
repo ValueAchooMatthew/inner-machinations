@@ -1,5 +1,5 @@
-import { list_of_connections } from "$lib/utils/svelteStores";
 import type { BezierCurve, Coordinate } from "$lib/types/interfaces";
+import { list_of_regular_automata_connections } from "./regularAutomataStores";
 
 export const roundToNearest = (
   number_to_round: number,
@@ -40,7 +40,7 @@ const distanceBetweenTwoPoints = (
   return Math.sqrt((point_a.x - point_b.x) ** 2 + (point_a.y - point_b.y) ** 2);
 };
 
-// Returns index of connection in array of the curve closest to the given x, y coords
+// Returns index of RegularAutomataConnection in array of the curve closest to the given x, y coords
 // The math for finding the exact closest curve would be too computationally intensive, and instead, and average of all of the points
 // Making up the curve is used to roughly estimate its position
 export const indexOfClosestBezierCurveToPoint = (
@@ -48,7 +48,7 @@ export const indexOfClosestBezierCurveToPoint = (
 ): number => {
 
   let connections = new Array();
-  list_of_connections.subscribe((value)=>{
+  list_of_regular_automata_connections.subscribe((value)=>{
     connections = value;
   });
 
@@ -58,10 +58,10 @@ export const indexOfClosestBezierCurveToPoint = (
     connections[0].curve,
     10,
   );
-  connections.forEach((connection, index) => {
+  connections.forEach((RegularAutomataConnection, index) => {
     const distance = distanceFromBezierCurveToPoint(
       origin,
-      connection.curve,
+      RegularAutomataConnection.curve,
       10,
     );
     if (distance < minimumDistance) {

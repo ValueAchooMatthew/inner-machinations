@@ -1,9 +1,8 @@
 import { invoke } from "@tauri-apps/api";
-import { dialogue_to_user, input_alphabet, list_of_connections, 
-state_positions, email, workspace_name, should_strict_check, should_show_string_traversal,
-default_connection_character } from "./svelteStores";
 import { get } from "svelte/store";
 import { convertFormDataEntriesToStringArray } from "./miscUtils";
+import { dialogue_to_user, email, workspace_name } from "./userStores";
+import { default_connection_character, input_alphabet, list_of_regular_automata_connections, should_show_string_traversal, should_strict_check, state_positions } from "./regularAutomataStores";
 
 export const saveWorkspace = async () => {
 
@@ -13,7 +12,7 @@ export const saveWorkspace = async () => {
     workspace_name: get(workspace_name),
     email: get(email),
     states: get(state_positions),
-    connections: get(list_of_connections),
+    connections: get(list_of_regular_automata_connections),
     alphabet: get(input_alphabet)
   });
 };

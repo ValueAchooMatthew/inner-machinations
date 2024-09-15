@@ -1,22 +1,19 @@
 import type { Token } from "$lib/types/types";
-import type { State, Connection, Coordinate, BezierCurve, Literal, KleeneOperator, OrOperator, ConcatenatedExpression } from "../types/interfaces";
-import {
-  getBezierCurveAngleAtPoint,
-  getPointOnBezierCurveAtDistance,
-} from "./mathFuncs";
+import type { State, RegularAutomataConnection, Coordinate, BezierCurve, KleeneOperator, OrOperator, ConcatenatedExpression } from "../types/interfaces";
+import { getBezierCurveAngleAtPoint, getPointOnBezierCurveAtDistance } from "./mathFuncs";
 
 export const drawRegularAutomaton = (
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
   nodes: Array<State>,
-  connections: Array<Connection>,
+  connections: Array<RegularAutomataConnection>,
   selected_connection_index: number | null,
   highlighted_state: State | null,
   scale: number
 ) => {
   // Needed so position specified for where characters are drawn is not drawn differently depending on if its offset is above/below or
-  // left/right of the Connection
+  // left/right of the RegularAutomataConnection
   context.textBaseline = "middle";
   context.textAlign = "center";
   context.strokeStyle = "black";
@@ -26,10 +23,10 @@ export const drawRegularAutomaton = (
   nodes.forEach((node) => {
     drawNode(context, node, highlighted_state, scale, tick);
   });
-  connections.forEach((connection, index) => {
+  connections.forEach((RegularAutomataConnection, index) => {
     drawConnection(
       context,
-      connection,
+      RegularAutomataConnection,
       index,
       selected_connection_index,
       scale
@@ -39,17 +36,17 @@ export const drawRegularAutomaton = (
 
 const drawConnection = (
   context: CanvasRenderingContext2D,
-  connection: Connection,
+  RegularAutomataConnection: RegularAutomataConnection,
   index: number,
   selected_connection_index: number | null,
   scale: number,
 ): void => {
   context.lineCap = "round";
 
-  const start_coord: Coordinate = connection.curve.start_point;
+  const start_coord: Coordinate = RegularAutomataConnection.curve.start_point;
   // +1 to make self loops easier to drawRegularAutomaton
-  const end_coord: Coordinate = connection.curve.end_point;
-  const curve: BezierCurve = connection.curve;
+  const end_coord: Coordinate = RegularAutomataConnection.curve.end_point;
+  const curve: BezierCurve = RegularAutomataConnection.curve;
   const headSize = 30 / scale;
   context.lineWidth = 5 / scale;
 
@@ -101,7 +98,7 @@ const drawConnection = (
   const halfway_point = getPointOnBezierCurveAtDistance(curve, 0.5);
 
   context.fillText(
-    connection.connection_character,
+    RegularAutomataConnection.connection_character,
     halfway_point.x / scale + (50 / scale) * Math.sin(angle_of_curve_at_end),
     halfway_point.y / scale - (50 / scale) * Math.cos(angle_of_curve_at_end),
   );
@@ -273,7 +270,7 @@ function drawToken(
         end_point: {x: position.x, y: position.y + arrow_y_end}
       },
       connection_character: "",
-      element: "Connection"
+      element: "RegularAutomataConnection"
     }, 0, -1, 1);
   } else if ("OrOperator" in token) {
     const or_operator = token.OrOperator as OrOperator;
@@ -310,7 +307,7 @@ function drawToken(
         end_point: {x: position.x - x_distance_of_children, y: position.y + arrow_y_end}
       },
       connection_character: "",
-      element: "Connection"
+      element: "RegularAutomataConnection"
     }, 0, -1, 1);
     drawConnection(context, {
       curve: {
@@ -320,7 +317,7 @@ function drawToken(
         end_point: {x: position.x + x_distance_of_children, y: position.y + arrow_y_end}
       },
       connection_character: "",
-      element: "Connection"
+      element: "RegularAutomataConnection"
     }, 0, -1, 1);
   } else if ("ConcatenatedExpression" in token) {
     const concatenated_expression = token.ConcatenatedExpression as ConcatenatedExpression;
@@ -357,7 +354,7 @@ function drawToken(
         end_point: {x: position.x - x_distance_of_children, y: position.y + arrow_y_end}
       },
       connection_character: "",
-      element: "Connection"
+      element: "RegularAutomataConnection"
     }, 0, -1, 1);
     drawConnection(context, {
       curve: {
@@ -367,7 +364,7 @@ function drawToken(
         end_point: {x: position.x + x_distance_of_children, y: position.y + arrow_y_end}
       },
       connection_character: "",
-      element: "Connection"
+      element: "RegularAutomataConnection"
     }, 0, -1, 1);
   } else if ("Literal" in token) {
     context.beginPath();

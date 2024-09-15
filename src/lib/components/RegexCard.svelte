@@ -2,11 +2,12 @@
   import { goto } from "$app/navigation";
   import type { RegexWorkspaceData } from "$lib/types/interfaces";
   import type { Token } from "$lib/types/types";
-  import { current_workspace_type, dialogue_to_user, email, workspace_name } from "$lib/utils/svelteStores";
   import { drawRegexParseTree, get_dimensions_of_parse_tree } from "$lib/utils/drawingFuncs";
   import { invoke } from "@tauri-apps/api";
   import { onMount } from "svelte";
   import { WorkspaceType } from "$lib/types/enums";
+  import { dialogue_to_user, email, workspace_name } from "$lib/utils/userStores";
+  import { current_workspace_type } from "$lib/utils/regexStores";
 
   export let workspace_title: string;
   export let workspace_to_delete: string | null;

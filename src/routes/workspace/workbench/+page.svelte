@@ -1,20 +1,20 @@
 <script lang="ts">
   import OptionsMenu from "./OptionsMenu.svelte";
-  import type { CheckedStringResponse, Connection, State } from "$lib/types/interfaces";
+  import type { CheckedStringResponse, State } from "$lib/types/interfaces";
   import Whiteboard from "./Whiteboard.svelte";
   import Banner from "./Banner.svelte";
   import { checkInputtedString } from "$lib/utils/stringVerificationFuncs";
   import Notifications from "$lib/components/Notifications.svelte";
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api";
-  import { dialogue_to_user, start_state_index, state_positions, input_alphabet, 
-  start_state_position, type_of_automata, email, workspace_name } from "$lib/utils/svelteStores";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
   import type { RegularAutomataWorkspaceData } from "$lib/types/interfaces";
   import TestFeedback from "./TestFeedback.svelte";
   import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
   import Sidebar from "./Sidebar.svelte";
   import LanguageOfAutomata from "./LanguageOfAutomata.svelte";
+  import { dialogue_to_user, email, workspace_name } from "$lib/utils/userStores";
+  import { input_alphabet, start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/regularAutomataStores";
 
   let string_to_check: string;
   let is_string_accepted: boolean | null = null;
@@ -77,7 +77,7 @@
     }
   };
 
-  const handleIncrementalStringChecking = async () => {
+  async function handleIncrementalStringChecking() {
     let i = 0;
     const traverseAutomata = setInterval(() => {
       // Every other tick, we're going to unhighlight the previously highlighted state so transitions
@@ -110,17 +110,8 @@
         highlighted_state = states_traversed[i/2];
       }
       i++
-
     }, 300)
-
   }
-
-  async function handleKeyDownEvent(event: KeyboardEvent) {
-    if(event.key === "Escape") {
-      is_option_menu_open = !is_option_menu_open;
-    }
-  }
-
 </script>
 
 <div class="relative flex font-semibold w-full h-full bg-gray-200 min-h-screen">
@@ -169,7 +160,6 @@
             </button>
           </form>      
         </div>
-
       </div>
       <LanguageOfAutomata />
     </main>

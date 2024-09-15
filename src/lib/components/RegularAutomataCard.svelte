@@ -3,9 +3,10 @@
   import { drawRegularAutomaton } from "$lib/utils/drawingFuncs";
   import { invoke } from "@tauri-apps/api";
   import { onMount } from "svelte";
-  import { current_workspace_type, dialogue_to_user, email, workspace_name } from "$lib/utils/svelteStores";
   import type { RegularAutomataWorkspaceData } from "$lib/types/interfaces";
   import { WorkspaceType } from "$lib/types/enums";
+  import { dialogue_to_user, email, workspace_name } from "$lib/utils/userStores";
+  import { current_workspace_type } from "$lib/utils/regexStores";
 
   export let workspace_title: string;
   export let workspace_to_delete: string | null;
@@ -45,7 +46,7 @@
       width,
       height,
       workspace_data.list_of_states,
-      workspace_data.list_of_connections,
+      workspace_data.list_of_regular_automata_connections,
       null,
       null,
       5

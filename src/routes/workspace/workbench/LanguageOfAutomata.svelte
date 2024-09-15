@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Automata } from "$lib/types/enums";
-  import { start_state_position, state_positions, type_of_automata } from "$lib/utils/svelteStores";
+  import { start_state_position, state_positions, type_of_automata } from "$lib/utils/regularAutomataStores";
   import { invoke } from "@tauri-apps/api";
 
   let language_of_automata: string;

@@ -2,10 +2,11 @@
 
   import { Automata } from "$lib/types/enums";
   import type { RegularAutomataWorkspaceData } from "$lib/types/interfaces";
-  import { input_alphabet, list_of_connections, list_of_states, 
-  start_state_index, start_state_position, state_positions, type_of_automata, email, workspace_name } from "$lib/utils/svelteStores";
   import { convertCoordinateToString, getCookie } from "$lib/utils/miscUtils";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
+  import { input_alphabet, list_of_regular_automata_connections, list_of_states, 
+  start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/regularAutomataStores";
+  import { email, workspace_name } from "$lib/utils/userStores";
   import { invoke } from "@tauri-apps/api";
   import { tick } from "svelte";
 
@@ -14,7 +15,7 @@
     const tauri_response: RegularAutomataWorkspaceData =
     await invoke("minimize_dfa", {
       state_positions: $state_positions, 
-      connections: $list_of_connections, 
+      connections: $list_of_regular_automata_connections, 
       inputAlphabet: $input_alphabet,
       workspace_name: $workspace_name,
       email: $email

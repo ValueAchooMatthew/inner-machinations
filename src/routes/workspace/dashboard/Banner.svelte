@@ -1,6 +1,6 @@
 
 
-<div class="bg-orange-500 flex shadow-lg py-4 pl-2 pr-4 w-full text-gray-100 text-4xl font-bold justify-between align-middle z-50 fixed top-0">
+<div class="bg-orange-500 flex shadow-lg py-4 pl-2 pr-4 w-full text-gray-100 text-4xl font-bold justify-between align-middle z-50 fixed top-0 select-none">
   <div class="flex justify-start w-64">
 
   </div>

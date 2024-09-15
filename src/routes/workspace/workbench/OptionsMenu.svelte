@@ -1,9 +1,9 @@
 <script lang="ts">
   // Todo: make scrolling alphabet input boxes for large alphabets and common cases providable (alphabet, alphanumeric, etc.)
-  import { input_alphabet, should_show_string_traversal, should_strict_check, 
-  default_connection_character, workspace_name, email } from "$lib/utils/svelteStores";
   import { convertFormDataEntriesToStringArray} from "$lib/utils/miscUtils";
+  import { default_connection_character, input_alphabet, should_show_string_traversal, should_strict_check } from "$lib/utils/regularAutomataStores";
   import { saveOptions } from "$lib/utils/savingWorkspaceFuncs";
+  import { email, workspace_name } from "$lib/utils/userStores";
   import { invoke } from "@tauri-apps/api";
   import { tick } from "svelte";
 
@@ -142,8 +142,7 @@
                 maxlength="1"
                 {value}
                 type="text"
-                name="alphabet"
-                id="alphabet"/>
+                name="alphabet"/>
               <button class="w-8 h-8">
                 <svg 
                   on:click={() => {
@@ -213,7 +212,7 @@
 
     <div class="flex justify-between gap-3">
       <label class="self-center" for="default_character">
-        Specify default connection character:
+        Specify default RegularAutomataConnection character:
       </label>
       <input class="border-black border-2 rounded-md px-2 py-1"
         value={$default_connection_character}

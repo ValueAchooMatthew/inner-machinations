@@ -1,8 +1,10 @@
 import { get } from "svelte/store";
-import { current_action, dialogue_to_user, input_alphabet, list_of_all_elements, list_of_connections, list_of_states, selected_connection_index, start_state_index, start_state_position, state_positions } from "./svelteStores";
-import type { BezierCurve, Connection, Coordinate, State } from "../types/interfaces";
+import type { BezierCurve, RegularAutomataConnection, Coordinate, State } from "../types/interfaces";
 import { convertCoordinateToString } from "./miscUtils";
 import { Action } from "../types/enums";
+import { current_action, input_alphabet, list_of_all_elements, list_of_regular_automata_connections, 
+list_of_states, selected_connection_index, start_state_index, start_state_position, state_positions } from "./regularAutomataStores";
+import { dialogue_to_user } from "./userStores";
 
 export const handleUserClickingCanvas = (cursor_x_pos: number, cursor_y_pos: number, default_connection_character: string) => {
   dialogue_to_user.set(null);
@@ -33,7 +35,7 @@ export const handleUserClickingCanvas = (cursor_x_pos: number, cursor_y_pos: num
       return;
     }
     selected_state.is_final = true;
-    make_final_state(selected_state, cursor_x_pos, cursor_y_pos, cursor_coords_as_string);
+    make_final_state(selected_state, cursor_coords, cursor_coords_as_string);
   } else if(current_user_action === Action.PLACING_START_OF_LINE) {
     if(selected_state === undefined) {
       dialogue_to_user.set("You must place an arrow on top of a Node.");
@@ -44,7 +46,7 @@ export const handleUserClickingCanvas = (cursor_x_pos: number, cursor_y_pos: num
       input_alphabet.update((previous_input_alphabet) => {
         previous_input_alphabet.push(default_connection_character);
         return previous_input_alphabet;
-      })
+      });
     }
 
   } else if(current_user_action === Action.PLACING_START_OF_EPSILON_LINE) {
@@ -59,9 +61,9 @@ export const handleUserClickingCanvas = (cursor_x_pos: number, cursor_y_pos: num
       return;
     }
 
-    let connection: Connection | undefined;
+    let connection: RegularAutomataConnection | undefined;
 
-    list_of_connections.update((connections) => {
+    list_of_regular_automata_connections.update((connections) => {
       connection = connections.pop();
       return connections;
     })
@@ -78,14 +80,13 @@ export const handleUserClickingCanvas = (cursor_x_pos: number, cursor_y_pos: num
     // And thus the current action is switched to clicking and the dragged line is updated
     selected_connection_index.set(null);
     current_action.set(Action.CLICKING);
-  }else {
+  } else {
     // If a user is "just" clicking, no action should take place
     return;
   }
-
 }
 
-const placeEndOfLine = (connection: Connection, selected_state: State, cursor_coords: Coordinate, cursor_coords_as_string: string) => {
+const placeEndOfLine = (connection: RegularAutomataConnection, selected_state: State, cursor_coords: Coordinate, cursor_coords_as_string: string) => {
 
   connection.curve.end_point = selected_state.position;
   if(
@@ -100,7 +101,7 @@ const placeEndOfLine = (connection: Connection, selected_state: State, cursor_co
       x: cursor_coords.x - 200,
       y: cursor_coords.y - 200,
     };
-  }else {
+  } else {
     connection.curve.control_point_two = selected_state.position;
   }
 
@@ -125,20 +126,24 @@ const placeEndOfLine = (connection: Connection, selected_state: State, cursor_co
   starting_state_of_connection.states_connected_to.set(
     connection_character,
     states_connected_to_start_state_by_character
-  )
+  );
 
-  list_of_connections.update((connections)=> {
-    // Once again for some reason the typing of connection isn't accurate hence the use of 'as'
+  list_of_regular_automata_connections.update((connections) => {
     connections.push(connection);
     return connections;
   });
 
-  list_of_states.update((states)=>{
-    states.push(starting_state_of_connection);
-    return states;
-  });
+  // list_of_states.update((states) => {
+  //   states.map((state, index) => {
+  //     if(state.position.x === cursor_coords.x && state.position.y === cursor_coords.y) {
+  //       states[index] = start
+  //     }
+  //   })
 
-  state_positions.update((positions)=>{
+  //   return states;
+  // });
+
+  state_positions.update((positions) => {
     positions.set(
       convertCoordinateToString(starting_state_of_connection.position),
       starting_state_of_connection
@@ -146,6 +151,10 @@ const placeEndOfLine = (connection: Connection, selected_state: State, cursor_co
     return positions;
   });
 
+  list_of_all_elements.update((all_elements) => {
+    all_elements.push(connection);
+    return all_elements;
+  });
 }
 
 const addConnection = (cursor_coords: Coordinate, connection_char: string) => {
@@ -157,18 +166,18 @@ const addConnection = (cursor_coords: Coordinate, connection_char: string) => {
     end_point: cursor_coords,
   };
 
-  const connection: Connection = {
+  const regular_automata_connection: RegularAutomataConnection = {
     curve: curve,
-    element: "Connection",
+    element: "RegularAutomataConnection",
     connection_character: connection_char,
   };
 
-  list_of_connections.update((connections)=>{
-    connections.push(connection);
+  list_of_regular_automata_connections.update((connections) => {
+    connections.push(regular_automata_connection);
     return connections;
   });
-  current_action.set(Action.PLACING_END_OF_LINE);
 
+  current_action.set(Action.PLACING_END_OF_LINE);
 }
 
 const addState = (cursor_coords: Coordinate, cursor_coords_as_string: string, make_start: boolean) => {
@@ -199,7 +208,6 @@ const addState = (cursor_coords: Coordinate, cursor_coords_as_string: string, ma
     positions.set(cursor_coords_as_string, new_state);
     return positions;
   });
-
 }
 
 const update_start_state_information = (new_start_state: State): void => {
@@ -221,20 +229,26 @@ const update_start_state_information = (new_start_state: State): void => {
   start_state_position.set(convertCoordinateToString(new_start_state.position));
 }
 
-const make_final_state = (state_to_update: State, cursor_x_pos: number, cursor_y_pos: number, cursor_coords_as_string: string) => {
+const make_final_state = (state_to_update: State, cursor_coords: Coordinate, cursor_coords_as_string: string) => {
 
-  list_of_states.update((states)=>{
-    states.forEach((state, index)=> {
-      if(state.position.x === cursor_x_pos && state.position.y === cursor_y_pos) {
-        states[index] =  state_to_update
+  list_of_states.update((states) => {
+    states.forEach((state, index) => {
+      if(state.position.x === cursor_coords.x && state.position.y === cursor_coords.y) {
+        states[index] = state_to_update;
       }
     });
     return states;
   });
 
-  state_positions.update((positions)=>{
+  state_positions.update((positions) => {
     positions.set(cursor_coords_as_string, state_to_update);
     return positions;
   });
 
+  // Here we add the new state_to_update to the list of all elements without removing the previous state
+  // Because after undoing the state will remain but it's final status will not
+  list_of_all_elements.update((all_elements) => {
+    all_elements.push();
+    return all_elements;
+  })
 }

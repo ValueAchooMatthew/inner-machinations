@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { dialogue_to_user, email, workspace_name } from "$lib/utils/svelteStores";
+  import { dialogue_to_user, email, workspace_name } from "$lib/utils/userStores";
 
   export let workspace_group_name: string;
   export let redirect: string;

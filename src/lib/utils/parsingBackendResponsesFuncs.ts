@@ -1,8 +1,6 @@
-import { get } from "svelte/store";
-import { default_connection_character, input_alphabet, list_of_connections, list_of_states, should_show_string_traversal, should_strict_check, start_state_index, start_state_position, state_positions, type_of_automata } from "$lib/utils/svelteStores";
 import type { State, RegularAutomataWorkspaceData } from "$lib/types/interfaces";
-import { convertCoordinateToString } from "$lib/utils/miscUtils";
 import { Automata } from "../types/enums";
+import { default_connection_character, input_alphabet, list_of_regular_automata_connections, list_of_states, should_show_string_traversal, should_strict_check, start_state_index, start_state_position, state_positions, type_of_automata } from "./regularAutomataStores";
 
 export const parseListOfStates = (
   json_states: Array<State>,
@@ -51,8 +49,8 @@ export const setTauriResponses = (tauri_response: RegularAutomataWorkspaceData):
     parseListOfStates(tauri_response.list_of_states)
   );
 
-  list_of_connections.set(
-    tauri_response.list_of_connections
+  list_of_regular_automata_connections.set(
+    tauri_response.list_of_regular_automata_connections
   );
 
   state_positions.set(

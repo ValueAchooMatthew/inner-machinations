@@ -2,14 +2,13 @@
   import { onMount } from "svelte";
   import { drawRegularAutomaton } from "$lib/utils/drawingFuncs";
   import { roundToNearest, getClosestPointIndex, indexOfClosestBezierCurveToPoint } from "$lib/utils/mathFuncs";
-  import type { State, Connection, Coordinate, BezierCurve } from "$lib/types/interfaces";
+  import type { State, RegularAutomataConnection, Coordinate, BezierCurve } from "$lib/types/interfaces";
   import { Action } from "$lib/types/enums";
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
   import { convertCoordinateToString, removeFirstElementFromArray } from "$lib/utils/miscUtils";
-  import { list_of_states, list_of_connections, selected_connection_index, 
-  state_positions, current_action, input_alphabet} from "$lib/utils/svelteStores";
   import { undo } from "$lib/utils/deletionFuncs";
   import { handleUserClickingCanvas } from "$lib/utils/userEvents";
+  import { current_action, input_alphabet, list_of_regular_automata_connections, list_of_states, selected_connection_index, state_positions } from "$lib/utils/regularAutomataStores";
 
   export let default_connection_character: string = "a";
   export let highlighted_state: State | null;
@@ -24,7 +23,7 @@
         width,
         height,
         $list_of_states,
-        $list_of_connections,
+        $list_of_regular_automata_connections,
         $selected_connection_index,
         highlighted_state,
         1
@@ -77,13 +76,13 @@
     const cursor_y_pos = roundToNearest(event.offsetY, 20);
     const cursor_coords: Coordinate = { x: cursor_x_pos, y: cursor_y_pos };
 
-    list_of_connections.update((connections)=>{
-      const connection = connections.pop();
-      if(!connection){
+    list_of_regular_automata_connections.update((connections)=>{
+      const RegularAutomataConnection = connections.pop();
+      if(!RegularAutomataConnection){
         return connections;
       }
-      connection.curve.end_point = cursor_coords;
-      connections.push(connection);
+      RegularAutomataConnection.curve.end_point = cursor_coords;
+      connections.push(RegularAutomataConnection);
       return connections;
     });
 
@@ -109,7 +108,7 @@
       return;
     }
 
-    const selected_connection = $list_of_connections[$selected_connection_index];
+    const selected_connection = $list_of_regular_automata_connections[$selected_connection_index];
     const old_character = selected_connection.connection_character;
     const new_character = event.key;
     selected_connection.connection_character = new_character;
@@ -138,10 +137,10 @@
     if (state_connections_of_previous_character === undefined) {
       return;
     }
-    // Removing the end state from the old connection character's hashset
+    // Removing the end state from the old RegularAutomataConnection character's hashset
     state_connections_of_previous_character = removeFirstElementFromArray(state_connections_of_previous_character, end_state_key)
 
-    // Adding end state to new connection character's hashset
+    // Adding end state to new RegularAutomataConnection character's hashset
     if (state_connections_of_new_character === undefined) {
 
       start_state.states_connected_to.set(
@@ -152,7 +151,7 @@
       state_connections_of_new_character.push(end_state_key);
     }
 
-    list_of_connections.update((connections)=>{
+    list_of_regular_automata_connections.update((connections)=>{
       // same issue
       connections[$selected_connection_index] = selected_connection;
       return connections;
@@ -180,7 +179,7 @@
     }
     current_action.set(Action.DRAGGING_LINE);
     const cursor_coordinates = { x: event.offsetX, y: event.offsetY };
-    const curve: BezierCurve = $list_of_connections[$selected_connection_index].curve;
+    const curve: BezierCurve = $list_of_regular_automata_connections[$selected_connection_index].curve;
     const control_points: Array<Coordinate> = [
       curve.control_point_one,
       curve.control_point_two,
@@ -200,8 +199,8 @@
     ) {
       return;
     }
-    const connection: Connection = $list_of_connections[$selected_connection_index];
-    const curve: BezierCurve = connection.curve;
+    const RegularAutomataConnection: RegularAutomataConnection = $list_of_regular_automata_connections[$selected_connection_index];
+    const curve: BezierCurve = RegularAutomataConnection.curve;
     const cursor_coords: Coordinate = { x: event.offsetX, y: event.offsetY };
     if (control_point_index === 0) {
       // First control point is closest
@@ -213,9 +212,9 @@
       // unreachable
       return;
     }
-    connection.curve = curve;
-    list_of_connections.update((connections)=>{
-      connections[$selected_connection_index] = connection;
+    RegularAutomataConnection.curve = curve;
+    list_of_regular_automata_connections.update((connections)=>{
+      connections[$selected_connection_index] = RegularAutomataConnection;
       return connections;
     });
   };

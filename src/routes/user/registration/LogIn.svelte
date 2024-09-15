@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { email } from "$lib/utils/userStores";
   import { invoke } from "@tauri-apps/api/tauri";
-  import { email } from "$lib/utils/svelteStores"
   import { Store } from "tauri-plugin-store-api";
 
   let response = "";

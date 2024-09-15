@@ -1,7 +1,8 @@
 <script lang="ts">
   import { Automata } from "$lib/types/enums";
-  import { workspace_name, email, type_of_automata, dialogue_to_user } from "$lib/utils/svelteStores";
+  import { type_of_automata } from "$lib/utils/regularAutomataStores";
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
+  import { dialogue_to_user, email, workspace_name } from "$lib/utils/userStores";
   import { invoke } from "@tauri-apps/api";
 
   export let is_option_menu_open: boolean;
@@ -49,9 +50,9 @@
 
 </script>
 
-<div class="bg-orange-500 flex shadow-lg py-4 pl-2 pr-4 w-full text-gray-100">
+<div class="bg-orange-500 flex shadow-lg py-4 pl-2 pr-4 w-full text-gray-100 select-none">
   <div class="flex justify-center align-middle w-full gap-6 text-4xl">
-    <div class="w-[42rem] flex justify-between">
+    <div class="basis-1/2 w-fit flex justify-start gap-12">
       <button class="w-12 h-12 z-10 self-center"
         on:click={() => {
           is_option_menu_open = !is_option_menu_open;
@@ -100,7 +101,7 @@
         NFA
       </button>
     </div>
-    <button class="w-[42rem] flex gap-3 justify-end" on:click={saveWorkspace}>
+    <button class="basis-1/2 flex gap-3 justify-end cursor-default" on:click={saveWorkspace}>
       <a class="flex gap-2 font-bold self-center justify-self-end"
         href="/workspace/dashboard">
         <svg class="w-10 h-10"

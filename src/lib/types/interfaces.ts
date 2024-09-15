@@ -12,10 +12,10 @@ export interface State {
   element: "State";
 }
 
-export interface Connection {
+export interface RegularAutomataConnection {
   curve: BezierCurve;
   connection_character: string;
-  element: "Connection";
+  element: "RegularAutomataConnection";
 }
 
 export interface BezierCurve {
@@ -69,7 +69,7 @@ export interface RegularAutomataWorkspaceData {
   start_state_position: string | null,
   state_positions: { [key: string]: State; },
   list_of_states: Array<State>,
-  list_of_connections: Array<Connection>,
+  list_of_regular_automata_connections: Array<RegularAutomataConnection>,
   type_of_automata: string,
   date_of_last_update: string,
   alphabet: Array<string>,

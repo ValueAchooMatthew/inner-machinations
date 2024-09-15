@@ -5,8 +5,9 @@
   import { drawRegexParseTree, get_dimensions_of_parse_tree } from "$lib/utils/drawingFuncs";
   import type { Token } from "$lib/types/types";
   import { onMount } from "svelte";
-  import { current_regex, email, workspace_name } from "$lib/utils/svelteStores";
   import type { RegexWorkspaceData } from "$lib/types/interfaces";
+  import { current_regex } from "$lib/utils/regexStores";
+  import { email, workspace_name } from "$lib/utils/userStores";
 
   let was_string_accepted: boolean | null = null;
   let regex: string = "";

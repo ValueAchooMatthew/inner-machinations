@@ -14,7 +14,7 @@ export const checkInputtedString = async (
   const is_dfa_valid: boolean = await checkValidityOfDFA(should_strict_check, type_of_automata, state_positions, input_alphabet);
   if(!is_dfa_valid){
     return {
-      dialogue: `Your DFA either does not specify every connection provided in the input alphabet, or specifies them more than once.
+      dialogue: `Your DFA either does not specify every RegularAutomataConnection provided in the input alphabet, or specifies them more than once.
         Update the model or disable strict checking`,
       is_string_accepted: null,
       states_traversed: []

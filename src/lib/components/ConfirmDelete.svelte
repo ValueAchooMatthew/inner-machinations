@@ -1,6 +1,7 @@
 <script lang="ts">
   import { WorkspaceType } from "$lib/types/enums";
-  import { current_workspace_type, email, workspace_name } from "$lib/utils/svelteStores";
+  import { current_workspace_type } from "$lib/utils/regexStores";
+  import { email } from "$lib/utils/userStores";
   import { invoke } from "@tauri-apps/api";
   export let workspace_to_delete: string | null;
 

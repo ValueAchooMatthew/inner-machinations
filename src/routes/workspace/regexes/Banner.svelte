@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { current_regex, dialogue_to_user, email, workspace_name } from "$lib/utils/svelteStores";
+  import { current_regex } from "$lib/utils/regexStores";
+  import { dialogue_to_user, email, workspace_name } from "$lib/utils/userStores";
   import { invoke } from "@tauri-apps/api";
   
   let timer: NodeJS.Timeout | undefined;

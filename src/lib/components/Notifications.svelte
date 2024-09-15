@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { dialogue_to_user } from "$lib/utils/svelteStores";
+  import { dialogue_to_user } from "$lib/utils/userStores";
 
   let dialogue: string | null = "";
   dialogue_to_user.subscribe((value)=>{
@@ -18,7 +18,7 @@ class:w-0:={!dialogue} class:w-fit={dialogue} class:px-4={dialogue} class:h-0={!
   </svg>
   <div class="self-center max-w-[42rem] text-center">
     {#if dialogue}
-    {dialogue}
+      {dialogue}
     {/if}
   </div>
 </div>

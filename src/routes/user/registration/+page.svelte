@@ -4,7 +4,7 @@
   import { invoke } from "@tauri-apps/api";
   import LogIn from "./LogIn.svelte";
   import { Store } from "tauri-plugin-store-api";
-  import { email } from "$lib/utils/svelteStores";
+  import { email } from "$lib/utils/userStores";
 
   async function authenticateUser() {
     const store = new Store(".settings.dat");
