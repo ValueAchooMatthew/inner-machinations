@@ -23,7 +23,7 @@
 </script>
 
 <Banner/>
-<div class="py-24 px-12 relative h-screen w-full flex flex-col">
+<div class="py-24 px-12 relative w-full flex flex-col h-fit">
   <WorkspaceGroup
     workspace_group_name="NFA's/DFA's"
     redirect="workbench"

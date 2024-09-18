@@ -73,23 +73,21 @@
 </script>
 
 <div class="flex transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl shadow-lg ">
-  <button class="w-64 h-80 p-3 bg-orange-500
-    transition-all duration-300 rounded-md flex flex-col justify-between overflow-hidden shadow-md"
+  <button class="flex flex-col max-w-64 min-h-80 p-3 bg-orange-500 
+    transition-all duration-300 rounded-md justify-between overflow-hidden shadow-md"
     on:click={handleClick}>
     <canvas
     bind:this={canvas} class="bg-white self-center shadow-sm w-fit" />
-    <span class="font-bold text-white text-2xl my-2 self-center">
+    <div class="font-bold text-white text-2xl my-2 self-center text-center break-words max-w-56 px-3 flex flex-col justify-around h-full gap-1">
       {workspace_title}
-      <br>
       {#if workspace_data}
         <span class="text-base">
         </span>
-        <br>
         <span class="text-sm">
           Last updated: {workspace_data.date_of_last_update}
         </span>
       {/if}
-    </span>
+      </div>
   </button>
   <button class="absolute flex justify-center bg-orange-500 rounded-r-md w-12 h-12"
     on:click={() => {

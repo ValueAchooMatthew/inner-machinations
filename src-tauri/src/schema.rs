@@ -1,33 +1,32 @@
 // @generated automatically by Diesel CLI.
-
 diesel::table! {
-    saved_regex_workspaces (id) {
-        id -> Integer,
-        user_id -> Integer,
-        regex_name -> Text,
-        regex -> Text,
-        date_of_last_update -> Timestamp,
-    }
+  saved_regex_workspaces (id) {
+    id -> Integer,
+    user_id -> Integer,
+    regex_name -> Text,
+    regex -> Text,
+    date_of_last_update -> Timestamp,
+  }
 }
 
 diesel::table! {
-    saved_regular_automata_connections (id) {
-        id -> Integer,
-        workspace_id -> Integer,
-        start_point -> Text,
-        control_point_one -> Text,
-        control_point_two -> Text,
-        end_point -> Text,
-        connection_character -> Text,
-    }
+  saved_regular_automata_connections (id) {
+    id -> Integer,
+    workspace_id -> Integer,
+    start_point -> Text,
+    control_point_one -> Text,
+    control_point_two -> Text,
+    end_point -> Text,
+    connection_character -> Text,
+  }
 }
 
 diesel::table! {
-    saved_regular_automata_workspaces (id) {
+  saved_regular_automata_workspaces (id) {
         id -> Integer,
         user_id -> Integer,
         workspace_name -> Text,
-        type_of_automata -> crate::models::TypeOfAutomataMapping,
+        type_of_automata -> crate::miscellaneous::database_models_and_utilities::TypeOfAutomataMapping,
         date_of_last_update -> Timestamp,
         alphabet -> Text,
         should_show_string_traversal -> Bool,

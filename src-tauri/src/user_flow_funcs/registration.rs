@@ -1,11 +1,14 @@
 use magic_crypt::new_magic_crypt;
-use app::{encrypt_user_data, models::User};
 use diesel::SqliteConnection;
-use app::{establish_connection, get_encryption_key};
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
+use crate::miscellaneous::database_models_and_utilities::establish_connection;
+use crate::miscellaneous::database_models_and_utilities::User;
+use crate::miscellaneous::environment::get_encryption_key;
 use crate::schema::users;
 use crate::diesel::ExpressionMethods;
+
+use super::user_models::encrypt_user_data;
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn register_user(email: &str, password: &str) {

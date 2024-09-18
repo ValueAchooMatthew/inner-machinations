@@ -1,0 +1,2 @@
+mod regular_expression_tests;
+mod regular_automata_tests;

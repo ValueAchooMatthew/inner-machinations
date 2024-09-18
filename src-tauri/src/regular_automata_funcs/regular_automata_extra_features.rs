@@ -1,9 +1,9 @@
 use std::{cell::RefCell, collections::{HashMap, HashSet}};
-use app::{create_connections_from_state_positions, create_unique_state_coordinates, models::RegularAutomataWorkspaceData, remove_all_epsilon_transitions};
+use crate::miscellaneous::{common_models::{Coordinate, State}, 
+miscellaneous_utilities::{create_connections_from_state_positions, create_unique_state_coordinates, remove_all_epsilon_transitions}};
 
-use app::models::{Connection, Coordinate, State};
-
-use crate::saving_automata_funcs::{retrieve_regular_automata_workspace_data, save_regular_automata_workspace};
+use super::{regular_automata_models::{RegularAutomataWorkspaceData, RegularAutomatonConnection}, 
+regular_automata_saving::{retrieve_regular_automata_workspace_data, save_regular_automata_workspace}};
 
 fn mark_unequivalent_states_in_dfa(
   state_positions: &HashMap<String, State>, 
@@ -129,10 +129,10 @@ fn remove_redundant_state_connections(
 }
 
 fn remove_redundant_connections(
-  connections: Vec<Connection>,
+  connections: Vec<RegularAutomatonConnection>,
   equivalent_state_keys: &HashMap<&String, &String>,
   state_keys_to_be_ignored: &HashSet<&String>
-) -> Vec<Connection> {
+) -> Vec<RegularAutomatonConnection> {
 
   let mut updated_connections = vec![];
 
@@ -165,15 +165,13 @@ fn remove_redundant_connections(
     }
 
   };
-
   return updated_connections;
-
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn minimize_dfa(
   mut state_positions: HashMap<String, State>,
-  connections: Vec<Connection>,
+  connections: Vec<RegularAutomatonConnection>,
   input_alphabet: Vec<String>,
   email: &str,
   workspace_name: &str

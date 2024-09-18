@@ -1,6 +1,7 @@
 #[cfg(test)]
 pub mod tests {
-  use crate::regular_expression_funcs::{build_parse_tree, regex_models::ParsingError, test_string_regex};
+  use crate::regular_expression_funcs::{regular_expression_parsing::build_parse_tree, regular_expression_models::ParsingError, 
+  regular_expression_linguistics::test_string_regex};
 
   #[test]
   fn test_parsing_invalid_kleene() {

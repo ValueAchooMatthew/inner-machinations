@@ -1,14 +1,22 @@
 use std::collections::HashMap;
 
-use app::{get_user, get_user_id};
-use app::{sanitize_input_alphabet, establish_connection, models::State};
-use app::models::{Connection, SavedRegularAutomataWorkspace, TypeOfAutomata, RegularAutomataWorkspaceData};
-use app::schema::{saved_regular_automata_connections, saved_states, saved_regular_automata_workspaces};
-
 use chrono::NaiveDateTime;
 use diesel::{ExpressionMethods, SqliteConnection};
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
+use crate::miscellaneous::common_models::State;
+use crate::miscellaneous::database_models_and_utilities::establish_connection;
+use crate::miscellaneous::database_models_and_utilities::SavedRegularAutomataWorkspace;
+use crate::miscellaneous::database_models_and_utilities::TypeOfAutomata;
+use crate::miscellaneous::miscellaneous_utilities::sanitize_input_alphabet;
+use crate::schema::saved_regular_automata_connections;
+use crate::schema::saved_regular_automata_workspaces;
+use crate::schema::saved_states;
+use crate::user_flow_funcs::user_models::get_user;
+use crate::user_flow_funcs::user_models::get_user_id;
+
+use super::regular_automata_models::RegularAutomataWorkspaceData;
+use super::regular_automata_models::RegularAutomatonConnection;
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn create_regular_automata_workspace(email: &str) -> String {
@@ -16,7 +24,7 @@ pub fn create_regular_automata_workspace(email: &str) -> String {
   let mut conn = establish_connection();
   let user_id = get_user_id(email, &mut conn);
 
-  let number_of_untitled_projects =  get_user(user_id, &mut conn)
+  let number_of_untitled_projects = get_user(user_id, &mut conn)
     .get_and_update_number_of_untitled_regular_automata_workspaces();
 
   let mut new_workspace_name = format!("Untitled Project #{number_of_untitled_projects}");
@@ -66,7 +74,6 @@ pub fn update_regular_automata_workspace_alphabet(workspace_name: &str, email: &
     .expect("There was an error updating the workspace's alphabet");
 
   return sanitized_input_alphabet;
-
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -74,7 +81,7 @@ pub fn save_regular_automata_workspace(
   workspace_name: &str,
   states: HashMap<String, State>,
   email: &str,
-  connections: Vec<Connection>
+  connections: Vec<RegularAutomatonConnection>
 ) {
 
   let mut conn = establish_connection();
@@ -82,17 +89,16 @@ pub fn save_regular_automata_workspace(
   let workspace: SavedRegularAutomataWorkspace = get_regular_automata_workspace(&workspace_name, &user_id, &mut conn)
     .expect("There was an error retrieving the workspace");
 
-  save_states_to_db(&workspace.id, &states, &mut conn)
+  save_states(&workspace.id, &states, &mut conn)
     .expect("There was an error saving the states to the database");
 
-  save_regular_automata_connections_to_db(&workspace.id, &connections, &mut conn)
+  save_regular_automata_connections(&workspace.id, &connections, &mut conn)
     .expect("There was an error saving the connections to the database");
 
-  set_current_time(&workspace.id, &mut conn)
+  update_last_updated_workspace_time(&workspace.id, &mut conn)
     .expect("There was an error updating the last modified time of the workspace");
 
   println!("Saved!");
-
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -156,7 +162,6 @@ pub fn update_regular_automata_type(workspace_name: &str, email: &str, type_of_a
     .set(saved_regular_automata_workspaces::type_of_automata.eq(type_of_automata))
     .execute(&mut conn)
     .expect("Could not update the automata type of the workspace");
-
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -185,7 +190,6 @@ pub fn update_showing_string_traversal(workspace_name: &str, email: &str, should
     .set(saved_regular_automata_workspaces::should_show_string_traversal.eq(should_show_traversal))
     .execute(&mut conn)
     .expect("Could not update string traversal option for the workspace");
-
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -203,7 +207,6 @@ pub fn update_default_connection_character(workspace_name: &str, email: &str, de
     .set(saved_regular_automata_workspaces::default_connection_character.eq(default_connection_character))
     .execute(&mut conn)
     .expect("Could not update the default connection character for the workspace");
-
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -243,7 +246,7 @@ fn get_regular_automata_workspace(workspace_name: &str, user_id: &i32, conn: &mu
     .get_result::<SavedRegularAutomataWorkspace>(conn)
 }
 
-fn save_states_to_db(workspace_id: &i32, states: &HashMap<String, State>, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
+fn save_states(workspace_id: &i32, states: &HashMap<String, State>, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
   // First step is to remove all existing states corresponding to the workspace
   diesel::delete(saved_states::table)
     .filter(saved_states::workspace_id.eq(&workspace_id))
@@ -273,7 +276,7 @@ fn save_states_to_db(workspace_id: &i32, states: &HashMap<String, State>, conn: 
 
 }
 
-fn save_regular_automata_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
+fn save_regular_automata_connections(workspace_id: &i32, connections: &Vec<RegularAutomatonConnection>, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
 
   // First delete all existing connections relating to the current automata
   diesel::delete(saved_regular_automata_connections::table)
@@ -301,10 +304,9 @@ fn save_regular_automata_connections_to_db(workspace_id: &i32, connections: &Vec
     .execute(conn)?;
 
   return Ok(());
-
 }
 
-fn set_current_time(workspace_id: &i32, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
+fn update_last_updated_workspace_time(workspace_id: &i32, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
 
   // Sets time of last update to current time
   diesel::update(saved_regular_automata_workspaces::table

@@ -1,21 +1,19 @@
-use app::{encrypt_user_data, establish_connection, get_encryption_key, generate_code};
-use diesel::SqliteConnection;
-use diesel::RunQueryDsl;
+use diesel::{RunQueryDsl, SqliteConnection};
 use diesel::query_dsl::methods::FilterDsl;
 use lettre::{message::{header::ContentType, Mailbox}, transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use magic_crypt::new_magic_crypt;
 use magic_crypt::MagicCrypt256;
-use crate::models::User;
-use crate::{diesel::ExpressionMethods, schema::users};
+use crate::miscellaneous::database_models_and_utilities::User;
+use crate::{diesel::ExpressionMethods, miscellaneous::{database_models_and_utilities::establish_connection, environment::get_encryption_key}, schema::users};
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn send_verification_email(email: &str) -> Option<String> {
 
-  let code = generate_code();
+  let code = generate_verification_code();
   let key = get_encryption_key();
   let cipher = magic_crypt::new_magic_crypt!(&key, 256);
 
-  set_verification_code(&cipher, &code, email);
+  update_users_verification_code(&cipher, &code, email);
 
   let email = Message::builder()
     .from("Matthew <info.innermachinations@gmail.com>".parse().unwrap())
@@ -82,7 +80,7 @@ pub fn is_user_verified(email: &str) -> bool {
   }
 }
 
-fn set_verification_code(cipher: &MagicCrypt256, generated_code: &str, email: &str) {
+fn update_users_verification_code(cipher: &MagicCrypt256, generated_code: &str, email: &str) {
   let [encrypted_email, _] = encrypt_user_data(cipher, email, "");
 
   let mut conn: SqliteConnection = establish_connection();
@@ -91,5 +89,16 @@ fn set_verification_code(cipher: &MagicCrypt256, generated_code: &str, email: &s
     .set(users::code.eq(generated_code))
     .execute(&mut conn)
     .expect("There was an error assigning a code for the user");
+}
 
+use rand::{distributions::Alphanumeric, Rng};
+
+use super::user_models::encrypt_user_data;
+fn generate_verification_code() -> String {
+  let code: String = rand::thread_rng()
+    .sample_iter(&Alphanumeric)
+    .take(6)
+    .map(char::from)
+    .collect();
+  code
 }

@@ -1,10 +1,12 @@
-use app::get_user;
-use app::models::RegexWorkspaceData;
-use app::{establish_connection, get_user_id, models::SavedRegexWorkspace};
 use chrono::NaiveDateTime;
 use diesel::query_dsl::methods::{FilterDsl, LimitDsl};
 use diesel::{ExpressionMethods, RunQueryDsl, SqliteConnection};
+
+use crate::miscellaneous::database_models_and_utilities::{establish_connection, SavedRegexWorkspace};
 use crate::schema::saved_regex_workspaces;
+use crate::user_flow_funcs::user_models::{get_user, get_user_id};
+
+use super::regular_expression_models::RegexWorkspaceData;
 
 #[tauri::command(rename_all = "snake_case")]
 // Returns name of newly created workspace for use in frontend

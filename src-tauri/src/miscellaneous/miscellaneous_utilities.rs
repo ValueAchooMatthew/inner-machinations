@@ -1,94 +1,6 @@
-extern crate diesel;
-extern crate dotenv;
-
-pub mod schema;
-pub mod models;
-
-use std::collections::HashSet;
-use std::{collections::HashMap, fs};
-use std::io::Write;
-use std::env;
-
-use diesel::query_dsl::methods::FilterDsl;
-use diesel::{Connection as DieselConnection, ExpressionMethods};
-use diesel::sqlite::SqliteConnection;
-use crate::diesel::query_dsl::methods::LimitDsl;
-use crate::diesel::RunQueryDsl;
-
-pub fn establish_connection() -> SqliteConnection {
-  SqliteConnection::establish(&"mydb.sqlite3")
-    .unwrap_or_else(|_| panic!("Error connecting to database"))
-}
-
-use models::{BezierCurve, Connection, Coordinate, State, User};
-
-use magic_crypt::{new_magic_crypt, MagicCrypt256, MagicCryptTrait};
-pub fn encrypt_user_data(cipher: &MagicCrypt256, email: &str, password: &str) -> [String; 2] {
-  let encrypted_email = cipher.encrypt_str_to_base64(email);
-  let encrypted_password = cipher.encrypt_str_to_base64(password);
-  [encrypted_email, encrypted_password]
-}
-
-pub fn decrypt_user_data(cipher: &MagicCrypt256, user: User) -> [String; 2]{
-  let decrypted_email = cipher.decrypt_base64_to_string(user.email).unwrap();
-  let decrypted_password = cipher.decrypt_base64_to_string(user.password).unwrap();
-  [decrypted_email, decrypted_password]
-}
-
-use rand::{distributions::Alphanumeric, Rng};
-use schema::users; // 0.8
-pub fn generate_code() -> String {
-  let code: String = rand::thread_rng()
-    .sample_iter(&Alphanumeric)
-    .take(6)
-    .map(char::from)
-    .collect();
-  code
-}
-
-pub fn get_encryption_key() -> String {
-
-  let mut env_file = dotenv::dotenv();
-
-  if env_file.is_err() {
-    create_new_env_file();
-    env_file = dotenv::dotenv();
-  }
-  
-  env_file.ok();
-
-  env::var("ENCRYPTION_KEY")
-    .expect("There was an error retrieving the encryption key")
-
-}
-
-fn create_new_env_file() {
-  let mut new_env_file = fs::File
-  ::create_new(".env")
-  .unwrap();
-
-  let random_string: String = rand::thread_rng()
-    .sample_iter(&Alphanumeric)
-    .take(12)
-    .map(char::from)
-    .collect();
-  
-  let env_variable = String::from("ENCRYPTION_KEY=") + format!("{random_string}").as_str();
-  new_env_file.write(env_variable.as_bytes())
-    .expect("There was an error writing to the env file");
-}
-
-pub fn set_working_directory() {
-
-  let path_to_executable = env::current_exe()
-    .expect("There was an error retrieving the path to the executable");
-
-  let exectable_directory = path_to_executable.parent();
-
-  env::set_current_dir(exectable_directory.unwrap())
-    .expect("There was an error setting the working directory");
-
-}
+use std::collections::{HashMap, HashSet};
+use crate::regular_automata_funcs::regular_automata_models::RegularAutomatonConnection;
+use super::common_models::{BezierCurve, Coordinate, State};
 
 pub fn create_unique_state_coordinates(state_positions: &HashSet<String>) -> Coordinate {
   
@@ -115,7 +27,7 @@ pub fn create_unique_state_coordinates(state_positions: &HashSet<String>) -> Coo
   };
 }
 
-pub fn create_connections_from_state_positions(state_positions: &HashMap<String, State>) -> Vec<Connection> {
+pub fn create_connections_from_state_positions(state_positions: &HashMap<String, State>) -> Vec<RegularAutomatonConnection> {
 
   let mut connections = vec![];
 
@@ -157,11 +69,11 @@ pub fn create_connections_from_state_positions(state_positions: &HashMap<String,
           end_point
         };
 
-        let new_connection = Connection {
+        let new_connection = RegularAutomatonConnection {
           connection_character: connection_character
             .to_owned(),
           curve: new_bezier_curve,
-          element: String::from("Connection")
+          element: String::from("RegularAutomatonConnection")
         };
 
         connections.push(new_connection)
@@ -237,8 +149,8 @@ pub fn remove_all_epsilon_transitions(state_positions: &mut HashMap<String, Stat
 // An input alphabet must consist of entirely unique characters and should be at most a single character long
 // We want to preserve the order of the alphabet for ease of use thus hashsets are not an option, thus we will iterate
 // Over everything and ensure it fits our requirements
-pub fn sanitize_input_alphabet(alphabet: Vec<&str>) -> Vec<String> {
 
+pub fn sanitize_input_alphabet(alphabet: Vec<&str>) -> Vec<String> {
   let mut previously_seen_input_characters = HashSet::new();
   let sanitized_alphabet = alphabet.into_iter().filter(|input_character| {
     if !previously_seen_input_characters.contains(input_character) && input_character.len() == 1 {
@@ -251,31 +163,4 @@ pub fn sanitize_input_alphabet(alphabet: Vec<&str>) -> Vec<String> {
   }).collect();
 
   return sanitized_alphabet;
-}
-
-pub fn get_user_id(email: &str, conn: &mut SqliteConnection) -> i32 {
-
-  let key = std::env::var("ENCRYPTION_KEY")
-    .expect("Encryption Key must be set as a .env variable");
-
-  let cipher = new_magic_crypt!(&key, 256);
-  let [encrypted_user_email, _ ] = encrypt_user_data(&cipher, &email, "");
-
-  let user: User = users::table
-    .filter(users::email.eq(&encrypted_user_email))
-    .limit(1)
-    .get_result::<User>(conn)
-    .expect("There was an error retrieving the user's id");
-
-  user.id
-}
-
-pub fn get_user(user_id: i32, conn: &mut SqliteConnection) -> User {
-
-  users::table
-    .filter(users::id.eq(user_id))
-    .limit(1)
-    .get_result::<User>(conn)
-    .expect("There was an error retrieving the user")
-
 }

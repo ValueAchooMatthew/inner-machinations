@@ -1,5 +1,6 @@
-use crate::models::State;
 use std::collections::HashMap;
+
+use crate::miscellaneous::common_models::State;
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn verify_valid_dfa(state_positions: HashMap<String, State>, input_alphabet: Vec<String>) -> bool {

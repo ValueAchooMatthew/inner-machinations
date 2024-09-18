@@ -1,6 +1,7 @@
 use std::collections::HashSet;
-
 use serde::{Deserialize, Serialize};
+
+use crate::miscellaneous::database_models_and_utilities::SavedRegexWorkspace;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
 // Need to add concatonated tokens in future
@@ -344,7 +345,6 @@ impl BinaryOperator for ConcatenatedExpression {
   }
 }
 
-
 impl BinaryOperator for OrOperator {
   fn new(left_argument: Option<Token>, right_argument: Option<Token>) -> Self {
     return OrOperator {
@@ -583,4 +583,21 @@ impl Token {
     }
   }
 
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RegexWorkspaceData {
+  regex_name: String,
+  regex: String,
+  date_of_last_update: String,
+}
+
+impl RegexWorkspaceData {
+  pub fn new(workspace: SavedRegexWorkspace) -> Self {
+    RegexWorkspaceData {
+      regex_name: workspace.regex_name,
+      regex: workspace.regex,
+      date_of_last_update: workspace.date_of_last_update.format("%Y-%m-%d %H:%M:%S").to_string()
+    }
+  }
 }
