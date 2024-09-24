@@ -11,7 +11,7 @@ mod regular_automata_funcs;
 mod tests;
 mod miscellaneous;
 
-use miscellaneous::{database_models_and_utilities::establish_connection, environment::{run_migrations, set_working_directory}};
+use miscellaneous::{database_models_and_utilities::establish_connection, environment::{run_migrations, set_working_directory}, miscellaneous_utilities::find_all_loops_in_state_positions};
 use regular_expression_funcs::{regular_expression_linguistics::test_string_regex, regular_expression_parsing::build_parse_tree, 
 regular_expression_saving::{create_regex_workspace, retrieve_regex_workspace_data, does_regex_workspace_name_exist, 
 delete_regex_workspace, save_regex_workspace, update_regex_workspace_name, get_users_regex_workspace_names}};
@@ -41,7 +41,7 @@ fn main() {
     update_regular_automata_workspace_name, does_regular_automata_workspace_name_exist, update_regular_automata_workspace_alphabet, 
     update_default_connection_character, update_showing_string_traversal, update_strict_checking, update_regular_automata_type, create_regex_workspace, 
     get_users_regular_automata_workspace_names, save_regex_workspace, does_regex_workspace_name_exist, get_users_regex_workspace_names, 
-    retrieve_regex_workspace_data, update_regex_workspace_name, delete_regex_workspace]
+    retrieve_regex_workspace_data, update_regex_workspace_name, delete_regex_workspace, find_all_loops_in_state_positions]
   )
   .run(tauri::generate_context!())
   .expect("error while running tauri application");

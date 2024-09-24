@@ -9,6 +9,7 @@
   import { undo } from "$lib/utils/deletionFuncs";
   import { handleUserClickingCanvas } from "$lib/utils/userEvents";
   import { current_action, input_alphabet, list_of_regular_automata_connections, list_of_states, selected_connection_index, state_positions } from "$lib/utils/regularAutomataStores";
+  import { invoke } from "@tauri-apps/api";
 
   export let default_connection_character: string = "a";
   export let highlighted_state: State | null;
@@ -29,6 +30,10 @@
         1
       );
     }
+  }
+  
+  $: {
+    invoke("find_all_loops_in_state_positions", {state_positions: $state_positions});
   }
 
   // Necessary for removing ghost image when dragging canvas

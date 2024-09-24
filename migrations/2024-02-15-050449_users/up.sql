@@ -10,7 +10,7 @@ CREATE TABLE users (
   code TEXT
 );
 
-CREATE TABLE saved_regular_automaton_workspaces (
+CREATE TABLE saved_regular_automata_workspaces (
   id INTEGER PRIMARY KEY NOT NULL UNIQUE,
   user_id INTEGER NOT NULL,
   workspace_name TEXT NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE saved_states (
   FOREIGN KEY (workspace_id) REFERENCES saved_regular_automata_workspaces(id)
 );
 
-CREATE TABLE saved_regular_automaton_connections (
+CREATE TABLE saved_regular_automata_connections (
   id INTEGER PRIMARY KEY NOT NULL UNIQUE,
   workspace_id INTEGER NOT NULL, 
   start_point TEXT NOT NULL, 

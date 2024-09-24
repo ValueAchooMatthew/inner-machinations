@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, fmt::Debug};
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 
@@ -34,9 +34,13 @@ pub struct BezierCurve {
 
 impl State {
 
-  pub fn new(position: Coordinate, is_start: bool, is_final: bool) -> Self {
+  pub fn new<T: TryInto<Coordinate> + Debug>(position: T, is_start: bool, is_final: bool) -> Self 
+  where <T as TryInto<Coordinate>>::Error: Debug {
+
+    let position = position.try_into().unwrap();
+
     return State {
-      position,
+      position: position,
       states_connected_to: HashMap::new(),
       is_start,
       is_final,
@@ -154,7 +158,6 @@ impl Hash for State {
   }
 }
 
-
 impl Into<String> for Coordinate {
   fn into(self) -> String {
     let mut built_string = self.x.to_string();
@@ -181,12 +184,14 @@ impl TryFrom<String> for Coordinate {
       x: processed_strings
         .get(0)
         .unwrap()
+        .trim()
         .parse::<i32>()
         .unwrap(),
 
       y: processed_strings
         .get(1)
         .unwrap()
+        .trim()
         .parse::<i32>()
         .unwrap()
     };
@@ -210,16 +215,48 @@ impl TryFrom<&String> for Coordinate {
       x: processed_strings
         .get(0)
         .unwrap()
+        .trim()
         .parse::<i32>()
         .unwrap(),
 
       y: processed_strings
         .get(1)
         .unwrap()
+        .trim()
         .parse::<i32>()
         .unwrap()
     };
 
+    return Ok(coordinate);
+  }
+}
+
+impl TryFrom<&str> for Coordinate {
+
+  type Error = ();
+
+  fn try_from(value: &str) -> Result<Coordinate, ()> {
+
+    let processed_strings: Vec<&str> = value.split(",").collect();
+
+    if processed_strings.len() != 2 {
+      return Err(());
+    }
+
+    let coordinate = Coordinate {
+      x: processed_strings
+        .get(0)
+        .unwrap()
+        .trim()
+        .parse::<i32>()
+        .unwrap(),
+      y: processed_strings
+        .get(1)
+        .unwrap()
+        .trim()
+        .parse::<i32>()
+        .unwrap()
+    };
     return Ok(coordinate);
   }
 }
