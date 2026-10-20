@@ -4,7 +4,10 @@ use crate::automaton::{parse_input_alphabet, Automaton, Dfa};
 
 use crate::models::{Connection, Coordinate, State};
 
-use crate::saving_automata_funcs::{retrieve_workspace_data, save_workspace};
+use tauri::State as Managed;
+
+use crate::database::Database;
+use crate::workspace_storage;
 
 // DFA's are typically required to have a connection for each state for each character in the input alphabet.
 // This however, is very unuser friendly as it is very easy to infer that an unspecified connection results in automatic unacceptance.
@@ -12,6 +15,7 @@ use crate::saving_automata_funcs::{retrieve_workspace_data, save_workspace};
 // into it. A DFA that specifies every connection keeps its dead state, if it has one, so it still passes strict checking
 #[tauri::command]
 pub fn minimize_dfa(
+  database: Managed<'_, Database>,
   state_positions: HashMap<String, State>,
   connections: Vec<Connection>,
   input_alphabet: Vec<String>,
@@ -32,8 +36,11 @@ pub fn minimize_dfa(
     None => (state_positions, connections)
   };
 
-  save_workspace(workspace_name, state_positions, connections);
-  let workspace_data = retrieve_workspace_data(workspace_name);
+  let mut connection = database.connection();
+  workspace_storage::save_workspace(&mut connection, workspace_name, &state_positions, &connections)
+    .expect("There was an error saving the workspace");
+  let workspace_data = workspace_storage::retrieve_workspace_data(&mut connection, workspace_name)
+    .expect("There was an error retrieving the workspace");
 
   return workspace_data;
 
@@ -43,6 +50,7 @@ pub fn minimize_dfa(
 // so it passes strict checking
 #[tauri::command]
 pub fn convert_nfa_to_dfa (
+  database: Managed<'_, Database>,
   state_positions: HashMap<String, State>,
   connections: Vec<Connection>,
   input_alphabet: Vec<String>,
@@ -62,8 +70,11 @@ pub fn convert_nfa_to_dfa (
     None => (state_positions, connections)
   };
 
-  save_workspace(workspace_name, state_positions, connections);
-  let workspace_data = retrieve_workspace_data(workspace_name);
+  let mut connection = database.connection();
+  workspace_storage::save_workspace(&mut connection, workspace_name, &state_positions, &connections)
+    .expect("There was an error saving the workspace");
+  let workspace_data = workspace_storage::retrieve_workspace_data(&mut connection, workspace_name)
+    .expect("There was an error retrieving the workspace");
 
   return workspace_data;
 

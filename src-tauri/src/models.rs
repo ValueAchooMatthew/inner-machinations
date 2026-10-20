@@ -53,7 +53,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hash;
 
-use crate::establish_connection;
 use crate::schema::saved_connections;
 use crate::schema::saved_states;
 #[derive(Debug, Deserialize, Serialize, Clone, Eq)]
@@ -306,13 +305,11 @@ pub struct WorkspaceData {
 
 impl WorkspaceData {
 
-  pub fn new(workspace: SavedWorkspace) -> Self {
+  pub fn new(workspace: SavedWorkspace, conn: &mut SqliteConnection) -> QueryResult<Self> {
 
-    let mut conn = establish_connection();
-
-    let list_of_states = Self::get_list_of_states_from_saved_workspace(&workspace, &mut conn);
+    let list_of_states = Self::get_list_of_states_from_saved_workspace(&workspace, conn)?;
     let (start_state_index, start_state_position) = Self::get_start_state_information(&list_of_states);
-    let list_of_connections = Self::get_list_of_connections_from_saved_workspace(&workspace, &mut conn);
+    let list_of_connections = Self::get_list_of_connections_from_saved_workspace(&workspace, conn)?;
     let state_positions = Self::get_state_positions_from_list_of_states(&list_of_states);
     let alphabet = Self::parse_alphabet(&workspace);
 
@@ -322,7 +319,7 @@ impl WorkspaceData {
     let should_show_string_traversal = workspace.should_show_string_traversal;
     let default_connection_character = workspace.default_connection_character;
     
-    return WorkspaceData {
+    return Ok(WorkspaceData {
       start_state_index,
       start_state_position,
       state_positions,
@@ -334,7 +331,7 @@ impl WorkspaceData {
       should_strict_check,
       should_show_string_traversal,
       default_connection_character
-    }
+    })
 
   }
 
@@ -365,32 +362,30 @@ impl WorkspaceData {
   }
 
 
-  fn get_list_of_states_from_saved_workspace(saved_workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> Vec<State> {
+  fn get_list_of_states_from_saved_workspace(saved_workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> QueryResult<Vec<State>> {
     // First get the states and connections from the database
 
     let mut list_of_states = Vec::new();
 
     let retrieved_states: Vec<SavedState> = saved_states::table
       .filter(saved_states::workspace_id.eq(&saved_workspace.id))
-      .get_results::<SavedState>(conn)
-      .expect("There was an issue getting the workspace's states");
+      .get_results::<SavedState>(conn)?;
 
     for retrieved_state in retrieved_states {
-      let parsed_state = Self::parse_saved_state_to_regular_state(retrieved_state, saved_workspace, conn);
+      let parsed_state = Self::parse_saved_state_to_regular_state(retrieved_state, saved_workspace, conn)?;
       list_of_states.push(parsed_state);
     }
 
-    return list_of_states;
+    return Ok(list_of_states);
 
   }
 
-  fn parse_saved_state_to_regular_state(state: SavedState, workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> State {
+  fn parse_saved_state_to_regular_state(state: SavedState, workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> QueryResult<State> {
     
     let states_connected_to_given_state: Vec<SavedConnection> = saved_connections::table
       .filter(saved_connections::workspace_id.eq(&workspace.id))
       .filter(saved_connections::start_point.eq(&state.position))
-      .get_results::<SavedConnection>(conn)
-      .expect("There was an issue getting the workspace's states");
+      .get_results::<SavedConnection>(conn)?;
 
     let parsed_state_position = state.position.try_into()
       .expect("The string should be castable into Coordinate form");
@@ -400,24 +395,23 @@ impl WorkspaceData {
     for connected_state in states_connected_to_given_state {
       parsed_state.add_connection(&connected_state.connection_character, connected_state.end_point);
     }
-    parsed_state
+    Ok(parsed_state)
   }
 
-  fn get_list_of_connections_from_saved_workspace(workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> Vec<Connection> {
+  fn get_list_of_connections_from_saved_workspace(workspace: &SavedWorkspace, conn: &mut SqliteConnection) -> QueryResult<Vec<Connection>> {
 
     let mut list_of_connections = Vec::new();
 
     let retrieved_connections: Vec<SavedConnection> = saved_connections::table
       .filter(saved_connections::workspace_id.eq(&workspace.id))
-      .get_results::<SavedConnection>(conn)
-      .expect("There was an issue getting the workspace's states");
+      .get_results::<SavedConnection>(conn)?;
 
     for retrieved_connection in retrieved_connections {
       let parsed_connection = Self::parse_saved_connection_to_regular_connection(retrieved_connection);
       list_of_connections.push(parsed_connection);
     }
 
-    list_of_connections
+    Ok(list_of_connections)
 
   }
 
