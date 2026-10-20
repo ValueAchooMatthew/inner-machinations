@@ -41,6 +41,16 @@ fn run_migrations(connection: &mut impl MigrationHarness<Sqlite>) {
 
 fn main() {
 
+  // WebKitGTK's DMA-BUF renderer makes the window quit with "Error 71 (Protocol error)
+  // dispatching to Wayland display" on NVIDIA under Wayland, so fall back to its other
+  // renderer unless the user set this themselves. Runs before any other thread starts.
+  #[cfg(target_os = "linux")]
+  {
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+      std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+  }
+
   set_working_directory();
 
   let mut connection = establish_connection();
