@@ -25,7 +25,10 @@ pub fn send_verification_email(email: &str) -> Option<String> {
     .body("Please enter the following code to verify your email: ".to_owned() + &code)
     .unwrap();
 
-  let creds = Credentials::new("matthewtamerfarah@gmail.com".to_owned(), "djdw kldc kuki gwsf".to_owned());
+  // SMTP login comes from .env (loaded by get_encryption_key above), never from source
+  let smtp_username = std::env::var("SMTP_USERNAME").ok()?;
+  let smtp_app_password = std::env::var("SMTP_APP_PASSWORD").ok()?;
+  let creds = Credentials::new(smtp_username, smtp_app_password);
   
   // Open a remote connection to gmail
   let mailer = SmtpTransport::relay("smtp.gmail.com")

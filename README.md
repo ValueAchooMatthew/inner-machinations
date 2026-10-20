@@ -25,3 +25,5 @@ You need Rust, Node.js, and the [Tauri v1 prerequisites](https://v1.tauri.app/v1
 npm install
 npx tauri dev
 ```
+
+Creating an account sends a verification code by email. To enable that, add `SMTP_USERNAME` and `SMTP_APP_PASSWORD` to the `.env` file the app creates on first run (see `.env.example`).
