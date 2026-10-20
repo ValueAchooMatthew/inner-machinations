@@ -1,6 +1,6 @@
 <script lang="ts">
   import { email } from "$lib/utils/automataStores";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
   export let workspace_to_delete: string | null;
 
   const handleDelete = async () => {

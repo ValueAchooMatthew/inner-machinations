@@ -1,11 +1,12 @@
 <script>
+  import { clearSessionValue } from "$lib/utils/miscUtils";
   import { goto } from "$app/navigation";
-  import { Store } from "tauri-plugin-store-api";
+  import { LazyStore } from "@tauri-apps/plugin-store";
 
   const handleClick = async () => {
-    const store = new Store(".settings.dat");
+    const store = new LazyStore(".settings.dat");
     await store.clear();
-    document.cookie = "email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    clearSessionValue("email");
     goto("/");
   };
 </script>

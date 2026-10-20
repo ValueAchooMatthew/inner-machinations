@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { setSessionValue } from "$lib/utils/miscUtils";
   import { goto } from "$app/navigation";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { invoke } from "@tauri-apps/api/core";
   import { email } from "$lib/utils/automataStores"
-  import { Store } from "tauri-plugin-store-api";
+  import { LazyStore } from "@tauri-apps/plugin-store";
 
   let response = "";
 
@@ -17,7 +18,7 @@
     const data = new FormData(event.target);
     const user_email = data.get("email")?.toString();
     const password = data.get("password")?.toString();
-    document.cookie = "email" + "=" + user_email + "; path=/";
+    setSessionValue("email", user_email ?? "");
 
     if (!user_email || !password) {
       return;
@@ -55,7 +56,7 @@
       return;
     }
 
-    const store = new Store(".settings.dat");
+    const store = new LazyStore(".settings.dat");
     // Store always expects object as argument to be stored
     await store.set("email", {value: $email});
 

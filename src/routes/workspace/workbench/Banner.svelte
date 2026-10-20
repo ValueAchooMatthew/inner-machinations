@@ -2,7 +2,7 @@
   import { Automata } from "$lib/types/enums";
   import { workspace_name, email, type_of_automata, dialogue_to_user } from "$lib/utils/automataStores";
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
 
   export let is_option_menu_open: boolean;
 

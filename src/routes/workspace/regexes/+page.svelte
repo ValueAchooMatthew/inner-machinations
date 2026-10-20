@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
   import TestFeedback from "../workbench/TestFeedback.svelte"
   import Banner from "./Banner.svelte";
   import { drawParseTree } from "$lib/utils/drawingFuncs";

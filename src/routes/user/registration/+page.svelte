@@ -1,13 +1,14 @@
 <script lang="ts">
+  import { setSessionValue } from "$lib/utils/miscUtils";
   import { goto } from "$app/navigation";
   import TitleHeader from "$lib/components/TitleHeader.svelte";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
   import LogIn from "./LogIn.svelte";
-  import { Store } from "tauri-plugin-store-api";
+  import { LazyStore } from "@tauri-apps/plugin-store";
   import { email } from "$lib/utils/automataStores";
 
   async function authenticateUser() {
-    const store = new Store(".settings.dat");
+    const store = new LazyStore(".settings.dat");
     let email_obj = await store.get<{value: string}>("email");
 
     if(!email_obj) {
@@ -17,7 +18,7 @@
     const user_email = email_obj.value;
     email.set(user_email);
 
-    document.cookie = "email" + "=" + user_email + "; path=/";
+    setSessionValue("email", user_email);
 
     const is_email_registered = await invoke("is_user_registered", {
       email: user_email

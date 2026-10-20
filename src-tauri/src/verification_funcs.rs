@@ -19,7 +19,9 @@ pub fn send_verification_email(email: &str) -> Option<String> {
 
   let email = Message::builder()
     .from("Matthew <info.innermachinations@gmail.com>".parse().unwrap())
-    .to(email.parse::<Mailbox>().unwrap())
+    // An address that will not parse means no email can be sent; return None rather than
+    // panicking, which would take down the whole app
+    .to(email.parse::<Mailbox>().ok()?)
     .subject("Inner Machinations Verification")
     .header(ContentType::TEXT_PLAIN)
     .body("Please enter the following code to verify your email: ".to_owned() + &code)

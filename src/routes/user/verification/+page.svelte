@@ -1,14 +1,14 @@
 <script lang="ts">
   import TitleHeader from "$lib/components/TitleHeader.svelte";
-  import { getCookie } from "$lib/utils/miscUtils";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { getSessionValue } from "$lib/utils/miscUtils";
+  import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
 
-  // Having to use getCookie instead of server file as prod version of app
+  // Having to use getSessionValue instead of server file as prod version of app
   // cannot work with server files due to disabled SSR
   // Currently implemented like this to mimic functionality of SSR in case workaround can be found
   let data = {
-    email: getCookie("email")
+    email: getSessionValue("email")
   };
 
   let correct_code: string | null = "";

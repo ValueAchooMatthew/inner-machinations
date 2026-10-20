@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api";
+import { invoke } from "@tauri-apps/api/core";
 import { dialogue_to_user, input_alphabet, list_of_connections, 
 state_positions, email, workspace_name, should_strict_check, should_show_string_traversal,
 default_connection_character } from "./automataStores";

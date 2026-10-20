@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api";
+import { invoke } from "@tauri-apps/api/core";
 import { Automata } from "../types/enums";
 import type { CheckedStringResponse, State } from "../types/interfaces";
 

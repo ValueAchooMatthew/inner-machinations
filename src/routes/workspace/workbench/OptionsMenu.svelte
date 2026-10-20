@@ -4,7 +4,7 @@
   default_connection_character, workspace_name, email } from "$lib/utils/automataStores";
   import { convertFormDataEntriesToStringArray} from "$lib/utils/miscUtils";
   import { saveOptions } from "$lib/utils/savingWorkspaceFuncs";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
   import { tick } from "svelte";
 
   export let is_option_menu_open: boolean;

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Automata } from "$lib/types/enums";
   import { email, start_state_position, state_positions, type_of_automata, workspace_name } from "$lib/utils/automataStores";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
 
   let language_of_automata: string;
 

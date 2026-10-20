@@ -1,7 +1,7 @@
 <script lang="ts">
   import Banner from "./Banner.svelte";
   import Card from "./Card.svelte";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
   import SignOut from "./SignOut.svelte";
   import ConfirmDelete from "./ConfirmDelete.svelte";
   import { email } from "$lib/utils/automataStores";

@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { setSessionValue } from "$lib/utils/miscUtils";
   import { goto } from "$app/navigation";
   import { draw } from "$lib/utils/drawingFuncs";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import { dialogue_to_user, email, workspace_name } from "$lib/utils/automataStores";
   import type { WorkspaceData } from "$lib/types/interfaces";
@@ -10,9 +11,7 @@
   export let workspace_to_delete: string | null;
 
   const handleClick = () => {
-    document.cookie =
-      "workspace_name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = "workspace_name" + "=" + workspace_title + "; path=/";
+    setSessionValue("workspace_name", workspace_title);
     workspace_name.set(
       workspace_title
     );

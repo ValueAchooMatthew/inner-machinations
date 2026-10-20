@@ -16,21 +16,22 @@ export const removeFirstElementFromArray = <T>(list: Array<T>, element_to_remove
   list.splice(index_of_element_to_remove, 1);
   return list;
 }
-// Provided by W3 schools and used as page.server files don't seem to work in prod
-export function getCookie(cname: string): string {
-  let name = cname + "=";
-  let decodedCookie = decodeURIComponent(document.cookie);
-  let ca = decodedCookie.split(';');
-  for(let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) == ' ') {
-      c = c.substring(1);
-    }
-    if (c.indexOf(name) == 0) {
-      return c.substring(name.length, c.length);
-    }
+// Values the pages pass to each other for the current session (logged-in email, open workspace).
+// These used to be cookies, but WebKitGTK drops cookies on Tauri 2's tauri://localhost origin
+// on Linux. sessionStorage works on every platform and, like those cookies, clears when the app closes.
+export function getSessionValue(name: string): string {
+  if (typeof sessionStorage === "undefined") {
+    return "";
   }
-  return "";
+  return sessionStorage.getItem(name) ?? "";
+}
+
+export function setSessionValue(name: string, value: string): void {
+  sessionStorage.setItem(name, value);
+}
+
+export function clearSessionValue(name: string): void {
+  sessionStorage.removeItem(name);
 }
 
 

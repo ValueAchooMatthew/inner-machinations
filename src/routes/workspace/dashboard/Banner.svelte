@@ -1,18 +1,18 @@
 <script lang="ts">
+  import { clearSessionValue, setSessionValue } from "$lib/utils/miscUtils";
   import { goto } from "$app/navigation";
   import { dialogue_to_user, email, workspace_name } from "$lib/utils/automataStores";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
 
   async function handleClick() {
-    document.cookie =
-    "workspace_name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    clearSessionValue("workspace_name");
     const does_workspace_exist = await invoke("does_workspace_name_exist", {workspaceName: "Untitled Project", email: $email})
     if(does_workspace_exist) {
       dialogue_to_user.set("Untitled Project already exists")
       return;
     } 
     
-    document.cookie = "workspace_name" + "=" + "Untitled Project" + "; path=/";
+    setSessionValue("workspace_name", "Untitled Project");
     workspace_name.set(
       "Untitled Project"
     )

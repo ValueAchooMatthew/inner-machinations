@@ -6,7 +6,7 @@
   import { checkInputtedString } from "$lib/utils/stringVerificationFuncs";
   import Notifications from "$lib/components/Notifications.svelte";
   import { onMount } from "svelte";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
   import { dialogue_to_user, start_state_index, state_positions, input_alphabet, 
   start_state_position, type_of_automata, email, workspace_name } from "$lib/utils/automataStores";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";

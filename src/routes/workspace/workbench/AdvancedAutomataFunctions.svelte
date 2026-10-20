@@ -4,9 +4,9 @@
   import type { WorkspaceData } from "$lib/types/interfaces";
   import { input_alphabet, list_of_connections, list_of_states, 
   start_state_index, start_state_position, state_positions, type_of_automata, email, workspace_name } from "$lib/utils/automataStores";
-  import { convertCoordinateToString, getCookie } from "$lib/utils/miscUtils";
+  import { convertCoordinateToString } from "$lib/utils/miscUtils";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "@tauri-apps/api/core";
   import { tick } from "svelte";
 
   const handleStateMinimization = async (): Promise<void> => {
