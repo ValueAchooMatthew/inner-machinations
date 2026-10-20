@@ -52,7 +52,7 @@
 
 <div class="bg-orange-500 flex shadow-lg py-4 pl-2 pr-4 w-full text-gray-100">
   <div class="flex justify-center align-middle w-full gap-6 text-4xl">
-    <div class="w-[42rem] flex justify-between">
+    <div class="w-2xl flex justify-between">
       <button class="w-12 h-12 z-10 self-center"
         on:click={() => {
           is_option_menu_open = !is_option_menu_open;
@@ -101,7 +101,7 @@
         NFA
       </button>
     </div>
-    <button class="w-[42rem] flex gap-3 justify-end" on:click={async () => {saveWorkspace()}}>
+    <button class="w-2xl flex gap-3 justify-end" on:click={async () => {saveWorkspace()}}>
       <a class="flex gap-2 font-bold self-center justify-self-end"
         href="/workspace/dashboard">
         <svg class="w-10 h-10"

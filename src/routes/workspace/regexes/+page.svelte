@@ -58,7 +58,7 @@
     </form>
     <TestFeedback is_string_accepted={was_string_accepted} />
   </div>
-    <canvas class="self-center border-black border-2 rounded-md mx-2 my-2 bg-white mr-0 flex-shrink-0"
+    <canvas class="self-center border-black border-2 rounded-md mx-2 my-2 bg-white mr-0 shrink-0"
       style={`width: ${width}px; height: ${height}px;`}
       {width}
       {height}

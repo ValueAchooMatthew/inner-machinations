@@ -31,7 +31,7 @@
       }}
       style="line-height: 15px;">
       New Start State
-      <div class="mt-2 self-center bg-green-600 rounded-full w-14 h-14 border-black border-[1px]">
+      <div class="mt-2 self-center bg-green-600 rounded-full w-14 h-14 border-black border">
       </div>
     </button>
     <button class="flex flex-col self-center"
@@ -40,7 +40,7 @@
         current_action.set(Action.ADDING_REGULAR_STATE);
       }}>
       New State
-      <div class="self-center bg-orange-600 rounded-full w-14 h-14 border-black border-[1px]">
+      <div class="self-center bg-orange-600 rounded-full w-14 h-14 border-black border">
       </div>
     </button>
     <button class="flex flex-col self-center"
@@ -50,7 +50,7 @@
       }}
       style="line-height: 15px;">
       New Final State
-      <div class="bg-white mt-2 self-center rounded-full w-[4.5rem] h-[4.5rem] border-black border-[1px]">
+      <div class="bg-white mt-2 self-center rounded-full w-18 h-18 border-black border">
       </div>
     </button>
     <button class="flex flex-col"

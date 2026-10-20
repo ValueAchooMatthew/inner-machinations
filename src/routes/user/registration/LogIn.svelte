@@ -69,7 +69,7 @@
   on:submit={handleSubmit}>
   <label class="self-center my-4">
     Email
-    <input class="border-black border-[2px] rounded-md px-2 py-1"
+    <input class="border-black border-2 rounded-md px-2 py-1"
       required
       aria-required="true"
       name="email"
@@ -77,7 +77,7 @@
   </label>
   <label class="self-center">
   Password
-  <input class="border-black border-[2px] rounded-md px-2 py-1 mr-[3.5rem]"
+  <input class="border-black border-2 rounded-md px-2 py-1 mr-14"
     required
     aria-required="true"
     name="password"
@@ -87,7 +87,7 @@
     {response}
   </span>
   <button class="mt-4 will-change-transform w-fit mx-auto bg-orange-600 text-gray-100 rounded-md py-3 px-7 border-black border-[1.5px]
-    font-semibold hover:-translate-y-2 transition-all duration-[400ms] shadow-2xl">
+    font-semibold hover:-translate-y-2 transition-all duration-400 shadow-2xl">
       Sign Up/Log-in
     </button>
   <a class="text-center mt-2 font-Montserrat text-xl" href="../">
