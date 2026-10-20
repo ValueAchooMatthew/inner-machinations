@@ -11,7 +11,12 @@ export const removeStateFromConnections = (given_state: State, state_to_remove: 
     return given_state;
   }
 
-  states_connected_by_char.delete(convertCoordinateToString(state_to_remove.position));
+  // These are arrays at runtime (Sets cannot be sent to the Rust side), so filter instead of .delete
+  const key_to_remove = convertCoordinateToString(state_to_remove.position);
+  given_state.states_connected_to.set(
+    connection_character,
+    states_connected_by_char.filter((state_key) => state_key !== key_to_remove)
+  );
 
   state_positions.update((positions)=>{
     positions.set(convertCoordinateToString(given_state.position), given_state);

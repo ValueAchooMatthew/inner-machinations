@@ -73,7 +73,7 @@ const checkValidityOfDFA = async (
     return true;
   }
   return await invoke("verify_valid_dfa", {
-    stateConnections: state_positions,
+    statePositions: state_positions,
     inputAlphabet: input_alphabet,
   });
 

@@ -13,7 +13,7 @@
     workspace_name.set(new_workspace_name);
   }
 
-  let timer: NodeJS.Timeout | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   async function handleInputEvent(event: Event & {currentTarget: EventTarget & HTMLInputElement}): Promise<void> {
     const new_workspace_name = event.currentTarget.value;
     

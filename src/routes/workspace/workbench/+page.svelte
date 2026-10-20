@@ -8,7 +8,8 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { dialogue_to_user, start_state_index, state_positions, input_alphabet, 
-  start_state_position, type_of_automata, email, workspace_name } from "$lib/utils/automataStores";
+  start_state_position, type_of_automata, email, workspace_name, should_strict_check,
+  should_show_string_traversal, default_connection_character } from "$lib/utils/automataStores";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
   import type { WorkspaceData } from "$lib/types/interfaces";
   import TestFeedback from "./TestFeedback.svelte";
@@ -21,10 +22,7 @@
   let states_traversed: Array<State> = [];
 
   let highlighted_state: State | null = null;
-  let should_show_string_traversal: boolean;
-  let default_connection_character: string;
   let is_option_menu_open: boolean = false;
-  let should_strict_check: boolean;
 
   onMount(async () => {
     const workspace_data: WorkspaceData = await invoke("retrieve_workspace_data", {
@@ -60,7 +58,7 @@
       $type_of_automata, 
       $state_positions, 
       string_to_check,
-      should_strict_check,
+      $should_strict_check,
       $input_alphabet)
       .then((result: CheckedStringResponse) => {
         is_string_accepted = result.is_string_accepted;
@@ -72,7 +70,7 @@
       .catch((err)=>{
         console.log(err);
       });
-    if(should_show_string_traversal) {
+    if($should_show_string_traversal) {
       handleIncrementalStringChecking();
     }
   };
@@ -90,7 +88,7 @@
         $type_of_automata, 
         $state_positions, 
         string_to_check,
-        should_strict_check,
+        $should_strict_check,
         $input_alphabet
         )
         .then((result: CheckedStringResponse) => {
@@ -139,7 +137,7 @@
         <div class="flex flex-col">
           <Whiteboard
             {highlighted_state}
-            {default_connection_character}/>
+            default_connection_character={$default_connection_character}/>
         </div>
         <div class="flex flex-col justify-center gap-3 py-3">
           <TestFeedback {is_string_accepted} />
