@@ -1,66 +1,80 @@
 import type { Token } from "$lib/types/types";
-import type { State, Connection, Coordinate, BezierCurve, Literal, KleeneOperator, OrOperator, ConcatenatedExpression } from "../types/interfaces";
+import type { BezierCurve, Coordinate, KleeneOperator, OrOperator, ConcatenatedExpression } from "../types/interfaces";
+import type { Selection } from "./automataStores";
+import { connectionCurve, STATE_RADIUS, type Automaton, type AutomatonState, type Point } from "$lib/workbench/automaton";
 import {
   getBezierCurveAngleAtPoint,
   getPointOnBezierCurveAtDistance,
 } from "./mathFuncs";
 
-export const draw = (
+const SELECTED_COLOUR = "#00008B";
+
+export interface DrawingOptions {
+  // Drawings are this many times smaller than the automaton, as on the dashboard's previews
+  scale?: number;
+  selection?: Selection | null;
+  // The state a string's traversal has reached
+  highlightedStateId?: number | null;
+  // A connection being drawn, from the state it starts at to the pointer
+  connectionPreview?: { from: Point; to: Point } | null;
+}
+
+export const drawAutomaton = (
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
-  nodes: Array<State>,
-  connections: Array<Connection>,
-  selected_connection_index: number | null,
-  highlighted_state: State | null,
-  scale: number
+  automaton: Automaton,
+  options: DrawingOptions = {},
 ) => {
+  const scale = options.scale ?? 1;
+  const selection = options.selection ?? null;
   // Needed so position specified for where characters are drawn is not drawn differently depending on if its offset is above/below or
   // left/right of the Connection
   context.textBaseline = "middle";
   context.textAlign = "center";
   context.strokeStyle = "black";
   context.clearRect(0, 0, width, height);
-  const tick = new Audio("/metronome-85688.mp3");
 
-  nodes.forEach((node) => {
-    drawNode(context, node, highlighted_state, scale, tick);
-  });
-  connections.forEach((connection, index) => {
-    drawConnection(
+  automaton.states.forEach((state) => {
+    drawNode(
       context,
-      connection,
-      index,
-      selected_connection_index,
-      scale
+      state,
+      state.id === options.highlightedStateId,
+      selection?.kind === "state" && selection.id === state.id,
+      scale,
     );
   });
+  automaton.connections.forEach((connection) => {
+    const isSelected = selection?.kind === "connection" && selection.id === connection.id;
+    const curve = connectionCurve(automaton, connection);
+    drawConnection(context, curve, connection.character, isSelected, scale);
+    if (isSelected) {
+      drawControlPoints(context, curve, scale);
+    }
+  });
+  if (options.connectionPreview) {
+    const { from, to } = options.connectionPreview;
+    drawConnection(context, { start_point: from, control_point_one: from, control_point_two: to, end_point: to }, "", false, scale);
+  }
 };
 
 const drawConnection = (
   context: CanvasRenderingContext2D,
-  connection: Connection,
-  index: number,
-  selected_connection_index: number | null,
+  curve: BezierCurve,
+  character: string,
+  isSelected: boolean,
   scale: number,
 ): void => {
   context.lineCap = "round";
 
-  const start_coord: Coordinate = connection.curve.start_point;
-  // +1 to make self loops easier to draw
-  const end_coord: Coordinate = connection.curve.end_point;
-  const curve: BezierCurve = connection.curve;
+  const start_coord: Coordinate = curve.start_point;
+  const end_coord: Coordinate = curve.end_point;
   const headSize = 30 / scale;
   context.lineWidth = 5 / scale;
+  context.strokeStyle = isSelected ? SELECTED_COLOUR : "black";
 
-  if (selected_connection_index === index) {
-    context.strokeStyle = "#00008B";
-  } else {
-    context.strokeStyle = "black";
-  }
   context.beginPath();
   context.moveTo(start_coord.x / scale, start_coord.y / scale);
-  // context.lineTo(endX, endY);
 
   context.bezierCurveTo(
     curve.control_point_one.x / scale,
@@ -96,28 +110,48 @@ const drawConnection = (
   if (scale > 1) {
     context.font = "20px Arial";
   }
-  context.fillStyle = "black";
+  context.fillStyle = isSelected ? SELECTED_COLOUR : "black";
 
   const halfway_point = getPointOnBezierCurveAtDistance(curve, 0.5);
 
   context.fillText(
-    connection.connection_character,
+    character,
     halfway_point.x / scale + (50 / scale) * Math.sin(angle_of_curve_at_end),
     halfway_point.y / scale - (50 / scale) * Math.cos(angle_of_curve_at_end),
   );
 };
 
+// Handles on a selected connection's control points, which can be dragged to reshape it
+const drawControlPoints = (context: CanvasRenderingContext2D, curve: BezierCurve, scale: number): void => {
+  context.lineWidth = 2 / scale;
+  context.strokeStyle = SELECTED_COLOUR;
+  for (const controlPoint of [curve.control_point_one, curve.control_point_two]) {
+    context.setLineDash([6, 6]);
+    context.beginPath();
+    const end = controlPoint === curve.control_point_one ? curve.start_point : curve.end_point;
+    context.moveTo(end.x / scale, end.y / scale);
+    context.lineTo(controlPoint.x / scale, controlPoint.y / scale);
+    context.stroke();
+    context.setLineDash([]);
+    context.fillStyle = "white";
+    context.beginPath();
+    context.arc(controlPoint.x / scale, controlPoint.y / scale, 8 / scale, 0, 2 * Math.PI);
+    context.fill();
+    context.stroke();
+  }
+};
+
 const drawNode = (
   context: CanvasRenderingContext2D,
-  node: State,
-  highlighted_state: State | null,
+  node: AutomatonState,
+  isHighlighted: boolean,
+  isSelected: boolean,
   scale: number,
-  tick: HTMLAudioElement
 ) => {
   context.lineWidth = 3;
-  if (node.is_final) {
+  context.strokeStyle = "black";
+  if (node.isFinal) {
     context.beginPath();
-    context.strokeStyle = "black";
     context.arc(
       node.position.x / scale,
       node.position.y / scale,
@@ -129,50 +163,28 @@ const drawNode = (
     context.closePath();
   }
 
-  if(highlighted_state?.position && node.position.x === highlighted_state.position.x && node.position.y === highlighted_state.position.y) {
+  if (isHighlighted) {
     context.fillStyle = "rgb(218,112,214)";
-    context.beginPath();
-    context.arc(
-      node.position.x / scale,
-      node.position.y / scale,
-      35 / scale,
-      0,
-      2 * Math.PI,
-    );
-    context.fill();
-    context.stroke();
-    context.closePath();
-    tick.play();
-
-  }
-  else if (node.is_start) {
+  } else if (node.isStart) {
     context.fillStyle = "rgb(22, 163, 74)";
-    context.beginPath();
-    context.arc(
-      node.position.x / scale,
-      node.position.y / scale,
-      35 / scale,
-      0,
-      2 * Math.PI,
-    );
-    context.fill();
-    context.stroke();
-    context.closePath();
   } else {
     context.fillStyle = "rgb(234, 88, 12)";
-    context.beginPath();
-    context.arc(
-      node.position.x / scale,
-      node.position.y / scale,
-      35 / scale,
-      0,
-      2 * Math.PI,
-    );
-    context.fill();
-    context.stroke();
-    context.closePath();
-    context.fillStyle = "rgb(22, 163, 74)";
   }
+  if (isSelected) {
+    context.lineWidth = 6;
+    context.strokeStyle = SELECTED_COLOUR;
+  }
+  context.beginPath();
+  context.arc(
+    node.position.x / scale,
+    node.position.y / scale,
+    STATE_RADIUS / scale,
+    0,
+    2 * Math.PI,
+  );
+  context.fill();
+  context.stroke();
+  context.closePath();
 };
 
 export function drawParseTree(parse_tree: Token, context: CanvasRenderingContext2D, start_position: Coordinate) {
@@ -207,15 +219,11 @@ function drawToken(context: CanvasRenderingContext2D, token: Token, position: Co
     
     drawToken(context, kleene_operator.inner_argument, {x: position.x, y: position.y + distance});
     drawConnection(context, {
-      curve: {
-        start_point: {x: position.x, y: position.y + circle_radius},
-        control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x, y: position.y + arrow_y_end},
-        end_point: {x: position.x, y: position.y + arrow_y_end}
-      },
-      connection_character: "",
-      element: "Connection"
-    }, 0, -1, 1);
+      start_point: {x: position.x, y: position.y + circle_radius},
+      control_point_one: {x: position.x, y: position.y + circle_radius},
+      control_point_two: {x: position.x, y: position.y + arrow_y_end},
+      end_point: {x: position.x, y: position.y + arrow_y_end}
+    }, "", false, 1);
   } else if ("OrOperator" in token) {
     const or_operator = token.OrOperator as OrOperator;
     context.beginPath();
@@ -232,25 +240,17 @@ function drawToken(context: CanvasRenderingContext2D, token: Token, position: Co
     drawToken(context, or_operator.left_argument, {x: position.x - distance, y: position.y + distance});
     drawToken(context, or_operator.right_argument, {x: position.x + distance, y: position.y + distance});
     drawConnection(context, {
-      curve: {
-        start_point: {x: position.x, y: position.y + circle_radius},
-        control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x - distance, y: position.y + arrow_y_end},
-        end_point: {x: position.x - distance, y: position.y + arrow_y_end}
-      },
-      connection_character: "",
-      element: "Connection"
-    }, 0, -1, 1);
+      start_point: {x: position.x, y: position.y + circle_radius},
+      control_point_one: {x: position.x, y: position.y + circle_radius},
+      control_point_two: {x: position.x - distance, y: position.y + arrow_y_end},
+      end_point: {x: position.x - distance, y: position.y + arrow_y_end}
+    }, "", false, 1);
     drawConnection(context, {
-      curve: {
-        start_point: {x: position.x, y: position.y + circle_radius},
-        control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x + distance, y: position.y + arrow_y_end},
-        end_point: {x: position.x + distance, y: position.y + arrow_y_end}
-      },
-      connection_character: "",
-      element: "Connection"
-    }, 0, -1, 1);
+      start_point: {x: position.x, y: position.y + circle_radius},
+      control_point_one: {x: position.x, y: position.y + circle_radius},
+      control_point_two: {x: position.x + distance, y: position.y + arrow_y_end},
+      end_point: {x: position.x + distance, y: position.y + arrow_y_end}
+    }, "", false, 1);
   } else if ("ConcatenatedExpression" in token) {
     const concatenated_expression = token.ConcatenatedExpression as ConcatenatedExpression;
     context.beginPath();
@@ -267,25 +267,17 @@ function drawToken(context: CanvasRenderingContext2D, token: Token, position: Co
     drawToken(context, concatenated_expression.left_argument, {x: position.x - distance, y: position.y + distance});
     drawToken(context, concatenated_expression.right_argument, {x: position.x + distance, y: position.y + distance});
     drawConnection(context, {
-      curve: {
-        start_point: {x: position.x, y: position.y + circle_radius},
-        control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x - distance, y: position.y + arrow_y_end},
-        end_point: {x: position.x - distance, y: position.y + arrow_y_end}
-      },
-      connection_character: "",
-      element: "Connection"
-    }, 0, -1, 1);
+      start_point: {x: position.x, y: position.y + circle_radius},
+      control_point_one: {x: position.x, y: position.y + circle_radius},
+      control_point_two: {x: position.x - distance, y: position.y + arrow_y_end},
+      end_point: {x: position.x - distance, y: position.y + arrow_y_end}
+    }, "", false, 1);
     drawConnection(context, {
-      curve: {
-        start_point: {x: position.x, y: position.y + circle_radius},
-        control_point_one: {x: position.x, y: position.y + circle_radius},
-        control_point_two: {x: position.x + distance, y: position.y + arrow_y_end},
-        end_point: {x: position.x + distance, y: position.y + arrow_y_end}
-      },
-      connection_character: "",
-      element: "Connection"
-    }, 0, -1, 1);
+      start_point: {x: position.x, y: position.y + circle_radius},
+      control_point_one: {x: position.x, y: position.y + circle_radius},
+      control_point_two: {x: position.x + distance, y: position.y + arrow_y_end},
+      end_point: {x: position.x + distance, y: position.y + arrow_y_end}
+    }, "", false, 1);
   } else if ("Literal" in token) {
     context.beginPath();
     context.strokeStyle = "#FFFF00";

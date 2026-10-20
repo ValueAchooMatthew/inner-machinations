@@ -1,9 +1,9 @@
 import { invokeCommand } from "$lib/utils/backend";
-import { dialogue_to_user, input_alphabet, list_of_connections, 
-state_positions, workspace_name, should_strict_check, should_show_string_traversal,
+import { automaton, dialogue_to_user, input_alphabet, workspace_name, should_strict_check, should_show_string_traversal,
 default_connection_character } from "./automataStores";
 import { get } from "svelte/store";
 import { convertFormDataEntriesToStringArray } from "./miscUtils";
+import { toConnections, toStatePositions } from "$lib/workbench/api";
 
 export const saveWorkspace = async () => {
 
@@ -11,15 +11,15 @@ export const saveWorkspace = async () => {
 
   await invokeCommand("save_workspace", {
     workspaceName: get(workspace_name),
-    states: get(state_positions),
-    connections: get(list_of_connections),
+    states: toStatePositions(get(automaton)),
+    connections: toConnections(get(automaton)),
     alphabet: get(input_alphabet)
   });
 };
 
 export async function saveOptions(form: HTMLFormElement | undefined) {
   // We are assuming the strict checking and traversal stores have both been
-  // set by the option menu component but input alphabet and default char 
+  // set by the option menu component but input alphabet and default char
   // have not as they require additional processing and are more difficult cases
   // to handle
   if(!form) {
@@ -35,20 +35,20 @@ export async function saveOptions(form: HTMLFormElement | undefined) {
   });
   input_alphabet.set(sanitized_alphabet);
 
-  await invokeCommand("update_strict_checking", 
+  await invokeCommand("update_strict_checking",
     {workspaceName: get(workspace_name), shouldStrictCheck: get(should_strict_check)});
 
-  await invokeCommand("update_showing_string_traversal", 
+  await invokeCommand("update_showing_string_traversal",
     {workspaceName: get(workspace_name), shouldShowTraversal: get(should_show_string_traversal)});
 
   const new_default_connection_character = data.get("default_character")?.toString();
-  
+
   if(!new_default_connection_character) {
     return;
   }
 
-  await invokeCommand("update_default_connection_character", 
+  await invokeCommand("update_default_connection_character",
     {workspaceName: get(workspace_name), defaultConnectionCharacter: new_default_connection_character});
-  
+
   default_connection_character.set(new_default_connection_character);
 }

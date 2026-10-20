@@ -1,7 +1,8 @@
 <script lang="ts">
   import { setSessionValue } from "$lib/utils/miscUtils";
   import { goto } from "$app/navigation";
-  import { draw } from "$lib/utils/drawingFuncs";
+  import { drawAutomaton } from "$lib/utils/drawingFuncs";
+  import { fromWorkspaceData } from "$lib/workbench/api";
   import { invokeCommand } from "$lib/utils/backend";
   import { onMount } from "svelte";
   import { dialogue_to_user, workspace_name } from "$lib/utils/automataStores";
@@ -36,16 +37,7 @@
         workspaceName: workspace_title,
       });
 
-    draw(
-      context,
-      width,
-      height,
-      workspace_data.list_of_states,
-      workspace_data.list_of_connections,
-      null,
-      null,
-      5
-    );
+    drawAutomaton(context, width, height, fromWorkspaceData(workspace_data), { scale: 5 });
     
   });
 </script>

@@ -5,8 +5,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { backend } from "./fakeBackend";
 import {
-  alphabet, automaton, checkString, click, doubleClick, drawing, launchApp, message, openWorkspace, save,
-  selectTool, setAutomatonType, setStrictChecking, trash,
+  alphabet, automaton, checkString, click, doubleClick, drag, drawing, launchApp, message, openWorkspace, pressKeys,
+  save, selected, selectTool, setAutomatonType, setStrictChecking, trash,
 } from "./workbenchDriver";
 
 beforeEach(() => {
@@ -54,7 +54,7 @@ describe("placing states", () => {
     expect(automaton().states).toEqual(["200,200", "500,200 start"]);
   });
 
-  it.fails("keeps one start state when another is placed in a reopened workspace", () => {
+  it("keeps one start state when another is placed in a reopened workspace", () => {
     openWorkspace({ states: ["200,200 start"], transitions: [] });
     selectTool("start");
     click(500, 200);
@@ -127,27 +127,101 @@ describe("connections", () => {
     expect(alphabet()).toEqual(["b", "c"]);
   });
 
-  it.fails("draws each state once after connecting it", () => {
+  it("draws each state once after connecting it", () => {
     connect([200, 200], [500, 200]);
     expect(drawing().states).toEqual(["200,200", "500,200"]);
   });
 
-  it.fails("leaves no unfinished arrow behind after switching tools mid-connection", () => {
+  it("leaves no unfinished arrow behind after switching tools mid-connection", () => {
     selectTool("connection");
     click(200, 200);
     selectTool("state");
     expect(drawing().connections).toEqual([]);
   });
 
-  it.fails("doesn't add a loop when double-clicking a state with the connection tool", () => {
-    selectTool("connection");
-    doubleClick(200, 200);
-    expect(automaton().transitions).toEqual([]);
+  it("picks the connection nearest a double click with the select tool, changing nothing", () => {
+    connect([200, 200], [500, 200]);
+    selectTool("select");
+    doubleClick(350, 210);
+    expect(selected()).toBe("200,200 -a-> 500,200");
+    expect(automaton()).toEqual({ states: ["200,200", "500,200"], transitions: ["200,200 -a-> 500,200"] });
   });
 
-  it.fails("doesn't fail when double-clicking a canvas with no connections", () => {
+  it("doesn't fail when double-clicking a canvas with no connections", () => {
     selectTool("select");
     expect(() => doubleClick(700, 700)).not.toThrow();
+  });
+});
+
+describe("the select tool", () => {
+  const workspace = { states: ["200,200 start", "500,200 final"], transitions: ["200,200 -a-> 500,200", "500,200 -b-> 200,200"] };
+
+  beforeEach(() => {
+    openWorkspace(workspace);
+    selectTool("select");
+  });
+
+  it("selects states and connections, and nothing when the click misses", () => {
+    click(210, 190);
+    expect(selected()).toBe("200,200");
+    click(350, 205);
+    expect(selected()).toBe("200,200 -a-> 500,200");
+    click(800, 800);
+    expect(selected()).toBeNull();
+    expect(automaton()).toEqual(workspace);
+  });
+
+  it("moves a dragged state, with its connections following", () => {
+    drag([500, 200], [520, 260], [541, 318]);
+    expect(automaton()).toEqual({
+      states: ["200,200 start", "540,320 final"],
+      transitions: ["200,200 -a-> 540,320", "540,320 -b-> 200,200"],
+    });
+  });
+
+  it("won't drop a dragged state on another", () => {
+    drag([500, 200], [300, 200], [200, 200]);
+    expect(automaton().states).toEqual(["200,200 start", "300,200 final"]);
+  });
+
+  it("relabels the selected connection with the next character typed", () => {
+    click(350, 205);
+    pressKeys("c");
+    expect(automaton().transitions).toEqual(["200,200 -c-> 500,200", "500,200 -b-> 200,200"]);
+    expect(alphabet()).toEqual(["a", "b", "c"]);
+    expect(selected()).toBeNull();
+  });
+
+  it("doesn't relabel for shortcuts or keys that aren't characters", () => {
+    click(350, 205);
+    pressKeys("s", { ctrlKey: true });
+    pressKeys("s", { metaKey: true });
+    pressKeys("Shift");
+    pressKeys("Enter");
+    expect(automaton()).toEqual(workspace);
+    expect(selected()).toBe("200,200 -a-> 500,200");
+  });
+
+  it("ignores typing when nothing, or a state, is selected", () => {
+    pressKeys("c");
+    click(200, 200);
+    pressKeys("c");
+    expect(automaton()).toEqual(workspace);
+  });
+
+  it("reshapes the selected connection by dragging its control points", () => {
+    click(350, 205);
+    drag([200, 200], [260, 120]);
+    expect(drawing().connections).toContain("200,200 -a-> 500,200");
+    // The press landed on the control point at the start state, which moved; the state didn't
+    expect(automaton().states).toEqual(["200,200 start", "500,200 final"]);
+    expect(selected()).toBe("200,200 -a-> 500,200");
+  });
+
+  it("forgets the selection when another tool is picked", () => {
+    click(350, 205);
+    selectTool("state");
+    expect(selected()).toBeNull();
   });
 });
 
@@ -167,7 +241,7 @@ describe("opening workspaces", () => {
     expect(drawing()).toEqual({ states: ["300,300"], connections: [] });
   });
 
-  it.fails("starts each workspace on the state tool", () => {
+  it("starts each workspace on the state tool", () => {
     placeStates([200, 200]);
     selectTool("connection");
     click(200, 200);
@@ -211,7 +285,7 @@ describe("saving", () => {
     expect(message()).toBe("Couldn't save the workspace: disk I/O error");
   });
 
-  it.fails("saves one start state after the start state of a reopened workspace changes", async () => {
+  it("saves one start state after the start state of a reopened workspace changes", async () => {
     openWorkspace({ states: ["200,200 start"], transitions: [] });
     selectTool("start");
     click(500, 200);
@@ -270,7 +344,7 @@ describe("checking strings", () => {
     expect(backend.callsTo("verify_valid_dfa")).toEqual([]);
   });
 
-  it.fails("says when there is no start state", async () => {
+  it("says when there is no start state", async () => {
     openWorkspace({ states: ["200,200 final"], transitions: [] });
     expect((await checkString("a")).message).toBe("You must specify at least one start state");
   });

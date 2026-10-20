@@ -1,4 +1,3 @@
-import { list_of_connections } from "$lib/utils/automataStores";
 import type { BezierCurve, Coordinate } from "$lib/types/interfaces";
 
 export const roundToNearest = (
@@ -40,43 +39,10 @@ const distanceBetweenTwoPoints = (
   return Math.sqrt((point_a.x - point_b.x) ** 2 + (point_a.y - point_b.y) ** 2);
 };
 
-// Returns index of connection in array of the curve closest to the given x, y coords
-// The math for finding the exact closest curve would be too computationally intensive, and instead, and average of all of the points
-// Making up the curve is used to roughly estimate its position
-export const indexOfClosestBezierCurveToPoint = (
-  origin: Coordinate,
-): number => {
-
-  let connections = new Array();
-  list_of_connections.subscribe((value)=>{
-    connections = value;
-  });
-
-  let indexOfClosestLine = 0;
-  let minimumDistance = distanceFromBezierCurveToPoint(
-    origin,
-    connections[0].curve,
-    10,
-  );
-  connections.forEach((connection, index) => {
-    const distance = distanceFromBezierCurveToPoint(
-      origin,
-      connection.curve,
-      10,
-    );
-    if (distance < minimumDistance) {
-      indexOfClosestLine = index;
-      minimumDistance = distance;
-    }
-  });
-
-  return indexOfClosestLine;
-};
-
 // Roughly estimate's a curve's distance to a given point by taking small slices of the bezier curve and returning the distance of the point
 // of the slice to the given coordinate
 // https://stackoverflow.com/a/34520607 Done with help of this stackoverflow answer
-const distanceFromBezierCurveToPoint = (
+export const distanceFromBezierCurveToPoint = (
   origin: Coordinate,
   curve: BezierCurve,
   slices: number,

@@ -1,63 +1,32 @@
 <script lang="ts">
-  import { Action } from "$lib/types/enums";
-  import { undo } from "$lib/utils/deletionFuncs";
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
-  import { current_action, list_of_all_elements, list_of_connections, list_of_states,
-  selected_connection_index, start_state_index, start_state_position, state_positions } from "$lib/utils/automataStores";
-
-  const clearCursor = (): void => {
-    current_action.set(Action.CLICKING);
-    selected_connection_index.set(null);
-  };
-  
-  function handleTrash() {
-    state_positions.set(new Map());
-    start_state_index.set(null);
-    start_state_position.set(null);
-    list_of_states.set(new Array());
-    list_of_connections.set(new Array());
-    list_of_all_elements.set(new Array());
-    current_action.set(Action.CLICKING);
-  }
-
+  import { selectTool, trash } from "$lib/workbench/actions";
 </script>
 
 <nav class="text-center select-none flex flex-col justify-between self-center gap-3 bg-opacity-100 w-32 h-fit border-black border-2 bg-white rounded-md px-2 py-4 mr-0.5 z-10 transition-all duration-300">
   <div class="flex flex-col gap-2">
     <button class="flex flex-col self-center"
-      on:click={() => {
-        clearCursor();
-        current_action.set(Action.ADDING_START_STATE);
-      }}
+      on:click={() => selectTool("start")}
       style="line-height: 15px;">
       New Start State
       <div class="mt-2 self-center bg-green-600 rounded-full w-14 h-14 border-black border">
       </div>
     </button>
     <button class="flex flex-col self-center"
-      on:click={() => {
-        clearCursor();
-        current_action.set(Action.ADDING_REGULAR_STATE);
-      }}>
+      on:click={() => selectTool("state")}>
       New State
       <div class="self-center bg-orange-600 rounded-full w-14 h-14 border-black border">
       </div>
     </button>
     <button class="flex flex-col self-center"
-      on:click={() => {
-        clearCursor();
-        current_action.set(Action.ADDING_FINAL_STATE);
-      }}
+      on:click={() => selectTool("final")}
       style="line-height: 15px;">
       New Final State
       <div class="bg-white mt-2 self-center rounded-full w-18 h-18 border-black border">
       </div>
     </button>
     <button class="flex flex-col"
-      on:click={() => {
-        clearCursor();
-        current_action.set(Action.PLACING_START_OF_LINE);
-      }}
+      on:click={() => selectTool("connection")}
       style="line-height: 15px;">
       New Connection
       <svg
@@ -77,10 +46,7 @@
       </svg>
     </button>
     <button
-      on:click={() => {
-        clearCursor();
-        current_action.set(Action.PLACING_START_OF_EPSILON_LINE);
-      }}
+      on:click={() => selectTool("epsilon")}
       class="flex flex-col"
       style="line-height: 15px;">
       New Epsilon Connection
@@ -122,10 +88,7 @@
             0 0-3-3h-9.284c-.497 0-.974.198-1.326.55l-6.375 6.374ZM12.53 9.22a.75.75 0 1 0-1.06 1.06L13.19 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 1 0 1.06-1.06L15.31 12l1.72-1.72a.75.75 0 1 0-1.06-1.06l-1.72 1.72-1.72-1.72Z" />
       </svg> -->
     <svg
-      on:click={() => {
-        clearCursor();
-        handleTrash();
-      }}
+      on:click={trash}
       class="hover:cursor-pointer w-6"
       data-slot="icon"
       fill="currentColor"
@@ -141,9 +104,7 @@
       ></path>
     </svg>
     <svg
-      on:click={() => {
-        clearCursor();
-      }}
+      on:click={() => selectTool("select")}
       aria-hidden="true"
       class="hover:cursor-pointer w-6 mb-0.5"
       fill="currentColor"

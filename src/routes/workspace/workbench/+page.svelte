@@ -1,116 +1,80 @@
 <script lang="ts">
   import OptionsMenu from "./OptionsMenu.svelte";
-  import type { CheckedStringResponse, Connection, State } from "$lib/types/interfaces";
   import Whiteboard from "./Whiteboard.svelte";
   import Banner from "./Banner.svelte";
-  import { checkInputtedString } from "$lib/utils/stringVerificationFuncs";
   import Notifications from "$lib/components/Notifications.svelte";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { invokeCommand } from "$lib/utils/backend";
-  import { dialogue_to_user, start_state_index, state_positions, input_alphabet, 
-  start_state_position, type_of_automata, workspace_name, should_strict_check,
-  should_show_string_traversal, default_connection_character } from "$lib/utils/automataStores";
-  import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
+  import { should_show_string_traversal, workspace_name } from "$lib/utils/automataStores";
+  import { checkString, loadWorkspace } from "$lib/workbench/actions";
   import type { WorkspaceData } from "$lib/types/interfaces";
   import TestFeedback from "./TestFeedback.svelte";
   import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
   import Sidebar from "./Sidebar.svelte";
   import LanguageOfAutomata from "./LanguageOfAutomata.svelte";
 
-  let string_to_check: string;
   let is_string_accepted: boolean | null = null;
-  let states_traversed: Array<State> = [];
 
-  let highlighted_state: State | null = null;
+  let highlighted_state_id: number | null = null;
   let is_option_menu_open: boolean = false;
 
   onMount(async () => {
     const workspace_data: WorkspaceData = await invokeCommand("retrieve_workspace_data", {
       workspaceName: $workspace_name,
     });
-
-    setTauriResponses(
-      workspace_data
-    );
-
+    loadWorkspace(workspace_data);
   });
 
-  const handleStringInput = (event: SubmitEvent) => {
+  // The traversal being shown, if any, so a new check or leaving the page can stop it
+  let traversal: ReturnType<typeof setInterval> | undefined;
+  let tick: HTMLAudioElement | undefined;
+
+  const stopTraversal = (): void => {
+    clearInterval(traversal);
+    traversal = undefined;
+    highlighted_state_id = null;
+  };
+
+  onDestroy(stopTraversal);
+
+  const handleStringInput = async (event: SubmitEvent) => {
     if (!(event.target instanceof HTMLFormElement)) {
       return;
     }
     const data = new FormData(event.target);
-    const inputted_string = data.get("string");
-    if (!inputted_string) {
+    const string_to_check = data.get("string")?.toString();
+    if (!string_to_check) {
       return;
     }
-    if (start_state_index === null) {
-      dialogue_to_user.set("You must specify at least one start state");
-      return;
-    }
-    // Here to trigger the tauri invoke to fire even if the same string is inputted as the previous submission
-    string_to_check = "";
-    string_to_check = inputted_string.toString();
+    stopTraversal();
+    is_string_accepted = null;
 
-    checkInputtedString(
-      $start_state_position, 
-      $type_of_automata, 
-      $state_positions, 
-      string_to_check,
-      $should_strict_check,
-      $input_alphabet)
-      .then((result: CheckedStringResponse) => {
-        is_string_accepted = result.is_string_accepted;
-        states_traversed = result.states_traversed;
-        dialogue_to_user.set(
-          result.dialogue
-        );
-      });
-    if($should_show_string_traversal) {
-      handleIncrementalStringChecking();
+    const result = await checkString(string_to_check);
+    if (!$should_show_string_traversal || result.states_traversed.length === 0) {
+      is_string_accepted = result.is_string_accepted;
+      return;
     }
+    showTraversal(result.states_traversed, result.is_string_accepted);
   };
 
-  const handleIncrementalStringChecking = async () => {
-    let i = 0;
-    const traverseAutomata = setInterval(() => {
-      // Every other tick, we're going to unhighlight the previously highlighted state so transitions
-      // are more apparent to see
-      if(i % 2 == 1) {
-        highlighted_state = null;
-      } else if(i === 2*states_traversed.length){
-        checkInputtedString(
-        $start_state_position, 
-        $type_of_automata, 
-        $state_positions, 
-        string_to_check,
-        $should_strict_check,
-        $input_alphabet
-        )
-        .then((result: CheckedStringResponse) => {
-          is_string_accepted = result.is_string_accepted;
-          states_traversed = result.states_traversed;
-          dialogue_to_user.set(
-            result.dialogue
-          );
-        });
-        clearInterval(traverseAutomata);
+  // Lights up each state the string passed through in turn, with a tick, then gives the answer
+  const showTraversal = (states_traversed: Array<number>, accepted: boolean | null) => {
+    tick ??= new Audio("/metronome-85688.mp3");
+    let step = 0;
+    traversal = setInterval(() => {
+      // Every other step clears the highlight, so passing through the same state twice can be seen
+      if (step === 2 * states_traversed.length) {
+        stopTraversal();
+        is_string_accepted = accepted;
+      } else if (step % 2 === 1) {
+        highlighted_state_id = null;
       } else {
-        // Never an odd number, so we can do this without having to worry
-        // about floats
-        highlighted_state = states_traversed[i/2];
+        highlighted_state_id = states_traversed[step / 2];
+        tick?.play().catch(() => {});
       }
-      i++
-
-    }, 300)
-
-  }
-
-  async function handleKeyDownEvent(event: KeyboardEvent) {
-    if(event.key === "Escape") {
-      is_option_menu_open = !is_option_menu_open;
-    }
-  }
+      step++;
+    }, 300);
+  };
 
 </script>
 
@@ -128,9 +92,7 @@
     <main>
       <div class="w-full h-fit font-semibold flex align-middle justify-around">
         <div class="flex flex-col">
-          <Whiteboard
-            {highlighted_state}
-            default_connection_character={$default_connection_character}/>
+          <Whiteboard {highlighted_state_id}/>
         </div>
         <div class="flex flex-col justify-center gap-3 py-3">
           <TestFeedback {is_string_accepted} />

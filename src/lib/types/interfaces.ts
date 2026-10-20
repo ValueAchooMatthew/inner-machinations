@@ -1,14 +1,10 @@
-// Reworked so every state has a reference to it's position, to allow for a single state interface for use
-
-import type { Automata } from "./enums";
 import type { Token } from "./types";
 
-// In both drawing states to the canvas and connecting data in the rust
+// A state as the backend sends and receives it: keyed by its position, and listing the positions of the
+// states it connects to, by character
 export interface State {
-  // Specifying coordinates of node as an identification for a node
   position: Coordinate;
-  // CANNOT use Sets as SERDE cannot deserialize javascript Set into rust HashSet
-  states_connected_to: Map<String, Array<String>>;
+  states_connected_to: Record<string, Array<string>>;
   is_start: boolean;
   is_final: boolean;
   element: "State";
@@ -31,15 +27,6 @@ export interface BezierCurve {
 export interface Coordinate {
   x: number;
   y: number;
-}
-
-export interface CheckedStringResponse {
-  dialogue: string,
-  // The reason we provide null as an option rather than using a boolean is because if the automata being tested is invalid,
-  // We do not want to give a response back to the user indicating the string is either accepted OR rejected since it's not possible
-  // to tell if we cannot test the automata in the first place.
-  is_string_accepted: boolean | null,
-  states_traversed: Array<State>
 }
 
 export interface OrOperator {

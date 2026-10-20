@@ -2,63 +2,35 @@
 
   import { Automata } from "$lib/types/enums";
   import type { WorkspaceData } from "$lib/types/interfaces";
-  import { input_alphabet, list_of_connections, list_of_states, 
-  start_state_index, start_state_position, state_positions, type_of_automata, workspace_name } from "$lib/utils/automataStores";
-  import { convertCoordinateToString } from "$lib/utils/miscUtils";
-  import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
+  import { automaton, input_alphabet, type_of_automata, workspace_name } from "$lib/utils/automataStores";
   import { invokeCommand } from "$lib/utils/backend";
-  import { tick } from "svelte";
+  import { replaceAutomaton } from "$lib/workbench/actions";
+  import { fromWorkspaceData, startStateKey, toConnections, toStatePositions } from "$lib/workbench/api";
 
   const handleStateMinimization = async (): Promise<void> => {
-    
-    const tauri_response: WorkspaceData =
-    await invokeCommand("minimize_dfa", {
-      statePositions: $state_positions, 
-      connections: $list_of_connections, 
+    const tauri_response: WorkspaceData = await invokeCommand("minimize_dfa", {
+      statePositions: toStatePositions($automaton),
+      connections: toConnections($automaton),
       inputAlphabet: $input_alphabet,
-      startStatePosition: $start_state_position,
+      startStatePosition: startStateKey($automaton),
       workspaceName: $workspace_name
     });
-
-    setTauriResponses(
-      tauri_response
-    );
-
-    // This is not included in the setTauriResponses function because the syntactic sugar for $ is not present in .ts files
-    // and I wanted to keep things as svelte-y as possible
-    start_state_position.set(
-      $start_state_index !== null? convertCoordinateToString($list_of_states[$start_state_index].position): 
-      null
-    );
-    
+    replaceAutomaton(fromWorkspaceData(tauri_response));
   }
 
-  // Todo: Fix to work with workspace data
   const convertNFAToDFA = async () => {
-    type_of_automata
-      .set(Automata.DFA);
-
-    await invokeCommand("update_automata_type", {workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.DFA]})
-    
-    await tick();
-    
     const tauri_response: WorkspaceData = await invokeCommand("convert_nfa_to_dfa", {
-      startStatePosition: $start_state_position,
-      statePositions: $state_positions,
-      connections: $list_of_connections,
+      statePositions: toStatePositions($automaton),
+      connections: toConnections($automaton),
       inputAlphabet: $input_alphabet,
+      startStatePosition: startStateKey($automaton),
       workspaceName: $workspace_name
     });
+    replaceAutomaton(fromWorkspaceData(tauri_response));
 
-    setTauriResponses(
-      tauri_response
-    );
-
-    start_state_position.set(
-      $start_state_index !== null? convertCoordinateToString($list_of_states[$start_state_index].position): 
-      null
-    );
-
+    // Only once there is a DFA to show
+    type_of_automata.set(Automata.DFA);
+    await invokeCommand("update_automata_type", {workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.DFA]});
   }
 
 </script>
