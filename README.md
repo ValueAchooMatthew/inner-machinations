@@ -1,9 +1,27 @@
 # Inner Machinations
 
-**_Inner Machinations is still being continually developed_**
+A desktop app for creating, visualizing, and testing deterministic and non-deterministic finite automata, built with Rust, Tauri, SvelteKit, and SQLite.
 
-Inner Machination is a project built using Rust, Tauri, SvelteKit, and SQLite.
+![Inner Machinations workspace](docs/screenshot.png)
 
-I was inspired to make this project from my studies into discrete math at university, with the goal of being able to allow anybody, anyewhere to create and visualize deterministic/non-deterministic finite automata, which have immense and significant applications ranging from pattern matching to compiler theory.
+I was inspired to make this project by my studies in discrete math at university, with the goal of letting anybody, anywhere create and visualize DFAs and NFAs, which have applications ranging from pattern matching to compiler theory.
 
-To check up on the continued status of the project, take a look at the KanBan board, which I routinely update with additional features. Once a minimimal viable version of the project is complete, I hope to be able to distribute open source and for free to everybody.
+## Features
+
+- Draw DFAs and NFAs (including epsilon transitions) on a canvas
+- Check whether an automaton accepts a given string
+- Convert a regular expression to an NFA, and an NFA to an equivalent DFA
+- Minimize a DFA
+- Determine the language an automaton accepts
+- Save automata to a local SQLite database under a user account
+
+The regex-to-NFA conversion, DFA minimization, and state-transition logic are implemented from scratch in Rust (`src-tauri/src`).
+
+## Running it locally
+
+You need Rust, Node.js, and the [Tauri v1 prerequisites](https://v1.tauri.app/v1/guides/getting-started/prerequisites) for your OS.
+
+```sh
+npm install
+npx tauri dev
+```
