@@ -11,10 +11,10 @@ export const checkInputtedString = async (
   input_alphabet: Array<string>
   ): Promise<CheckedStringResponse> => {
 
-  const is_dfa_valid: boolean = await checkValidityOfDFA(should_strict_check, type_of_automata, state_positions, input_alphabet);
+  const is_dfa_valid: boolean = await checkValidityOfDFA(should_strict_check, type_of_automata, state_positions, input_alphabet, start_state_coordinates);
   if(!is_dfa_valid){
     return {
-      dialogue: `Your DFA either does not specify every connection provided in the input alphabet, or specifies them more than once.
+      dialogue: `Your DFA either has no start state, does not specify every connection provided in the input alphabet, or specifies them more than once.
         Update the model or disable strict checking`,
       is_string_accepted: null,
       states_traversed: []
@@ -65,7 +65,8 @@ const checkValidityOfDFA = async (
   should_strict_check: boolean,
   type_of_automata: Automata,
   state_positions: Map<string, State>,
-  input_alphabet: Array<string>
+  input_alphabet: Array<string>,
+  start_state_coordinates: string | null
 ): Promise<boolean> => {
   // If we are not strict checking, or we are not testing a DFA, we should not alert the program
   // if the automata is not strictly valid
@@ -75,6 +76,7 @@ const checkValidityOfDFA = async (
   return await invoke("verify_valid_dfa", {
     statePositions: state_positions,
     inputAlphabet: input_alphabet,
+    startStatePosition: start_state_coordinates,
   });
 
 }

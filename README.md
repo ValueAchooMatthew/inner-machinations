@@ -10,12 +10,13 @@ I was inspired to make this project by my studies in discrete math at university
 
 - Draw DFAs and NFAs (including epsilon transitions) on a canvas
 - Check whether an automaton accepts a given string
-- Convert a regular expression to an NFA, and an NFA to an equivalent DFA
+- Test strings against a regular expression, and see its parse tree
+- Convert an NFA to an equivalent DFA
 - Minimize a DFA
-- Determine the language an automaton accepts
+- Determine the language an automaton accepts, written as a regular expression
 - Save automata to a local SQLite database
 
-The regex-to-NFA conversion, DFA minimization, and state-transition logic are implemented from scratch in Rust (`src-tauri/src`).
+The regex parser and NFA construction, NFA-to-DFA conversion, DFA minimization, and language determination are implemented from scratch in Rust (`src-tauri/src`).
 
 ## Running it locally
 
@@ -27,3 +28,5 @@ npx tauri dev
 ```
 
 Workspaces are saved to `mydb.sqlite3` in the app's data folder: `~/.local/share/com.mach.build` on Linux, `~/Library/Application Support/com.mach.build` on macOS, and `%APPDATA%\com.mach.build` on Windows.
+
+Regular expressions use `+` (or `|`) for union, `*` for the Kleene star, parentheses for grouping, and `ε` for the empty string.

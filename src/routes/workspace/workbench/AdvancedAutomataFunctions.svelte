@@ -16,6 +16,7 @@
       statePositions: $state_positions, 
       connections: $list_of_connections, 
       inputAlphabet: $input_alphabet,
+      startStatePosition: $start_state_position,
       workspaceName: $workspace_name
     });
 
@@ -44,6 +45,8 @@
     const tauri_response: WorkspaceData = await invoke("convert_nfa_to_dfa", {
       startStatePosition: $start_state_position,
       statePositions: $state_positions,
+      connections: $list_of_connections,
+      inputAlphabet: $input_alphabet,
       workspaceName: $workspace_name
     });
 

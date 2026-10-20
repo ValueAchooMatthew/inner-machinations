@@ -196,14 +196,14 @@ pub struct Coordinate {
   pub y: i32
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Connection {
   pub curve: BezierCurve,
   pub connection_character: String,
   pub element: String
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct BezierCurve {
   pub start_point: Coordinate,
   pub control_point_one: Coordinate,
