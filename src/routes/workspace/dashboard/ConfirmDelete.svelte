@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import { invokeCommand } from "$lib/utils/backend";
   export let workspace_to_delete: string | null;
 
   const handleDelete = async () => {
     if (workspace_to_delete === null) {
       return;
     }
-    await invoke("delete_workspace", {
+    await invokeCommand("delete_workspace", {
       workspaceName: workspace_to_delete,
     });
     workspace_to_delete = null;

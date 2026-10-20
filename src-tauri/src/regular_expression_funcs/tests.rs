@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::regular_expression_funcs::{regex_models::{ParsingError, Token}, test_string_regex, build_parse_tree, EMPTY_STRING};
+use crate::regular_expression_funcs::{regex_models::{ParsingError, Token}, test_string_regex, parse_regular_expression, EMPTY_STRING};
 
 fn accepts(regex: &str, string_to_check: &str) -> bool {
   test_string_regex(regex, string_to_check.to_owned()).unwrap()
@@ -8,45 +8,46 @@ fn accepts(regex: &str, string_to_check: &str) -> bool {
 
 #[test]
 fn test_parsing_invalid_kleene() {
-  assert_eq!(Err(ParsingError::NoInnerArg), build_parse_tree("*"));
-  assert_eq!(Err(ParsingError::NoInnerArg), build_parse_tree("*a"));
-  assert_eq!(Err(ParsingError::NoInnerArg), build_parse_tree("(*)"));
+  assert_eq!(Err(ParsingError::NoInnerArg), parse_regular_expression("*"));
+  assert_eq!(Err(ParsingError::NoInnerArg), parse_regular_expression("*a"));
+  assert_eq!(Err(ParsingError::NoInnerArg), parse_regular_expression("(*)"));
   // Previously passed the verifier and then panicked while building the NFA
-  assert_eq!(Err(ParsingError::NoInnerArg), build_parse_tree("a+*"));
+  assert_eq!(Err(ParsingError::NoInnerArg), parse_regular_expression("a+*"));
 }
 
 #[test]
 fn test_parsing_invalid_or() {
-  assert_eq!(Err(ParsingError::EmptyRightArg), build_parse_tree("a+"));
-  assert_eq!(Err(ParsingError::EmptyLeftArg), build_parse_tree("+b"));
-  assert_eq!(Err(ParsingError::EmptyRightArg), build_parse_tree("a++b"));
-  assert_eq!(Err(ParsingError::EmptyLeftArg), build_parse_tree("a(+b)"));
-  assert_eq!(Err(ParsingError::EmptyRightArg), build_parse_tree("a|"));
+  assert_eq!(Err(ParsingError::EmptyRightArg), parse_regular_expression("a+"));
+  assert_eq!(Err(ParsingError::EmptyLeftArg), parse_regular_expression("+b"));
+  assert_eq!(Err(ParsingError::EmptyRightArg), parse_regular_expression("a++b"));
+  assert_eq!(Err(ParsingError::EmptyLeftArg), parse_regular_expression("a(+b)"));
+  assert_eq!(Err(ParsingError::EmptyRightArg), parse_regular_expression("a|"));
 }
 
 #[test]
 fn test_parsing_invalid_brackets_and_empty_expressions() {
   // An unmatched closing bracket used to cut the regex off silently
-  assert_eq!(Err(ParsingError::UnmatchedClosingBracket), build_parse_tree("a)b"));
-  assert_eq!(Err(ParsingError::UnmatchedClosingBracket), build_parse_tree(")"));
-  assert_eq!(Err(ParsingError::MissingClosingBracket), build_parse_tree("(a"));
-  assert_eq!(Err(ParsingError::MissingClosingBracket), build_parse_tree("((a)"));
-  assert_eq!(Err(ParsingError::EmptyExpression), build_parse_tree(""));
-  assert_eq!(Err(ParsingError::EmptyExpression), build_parse_tree("  "));
-  assert_eq!(Err(ParsingError::EmptyExpression), build_parse_tree("()"));
-  assert_eq!(Err(ParsingError::EmptyExpression), build_parse_tree("("));
+  assert_eq!(Err(ParsingError::UnmatchedClosingBracket), parse_regular_expression("a)b"));
+  assert_eq!(Err(ParsingError::UnmatchedClosingBracket), parse_regular_expression(")"));
+  assert_eq!(Err(ParsingError::MissingClosingBracket), parse_regular_expression("(a"));
+  assert_eq!(Err(ParsingError::MissingClosingBracket), parse_regular_expression("((a)"));
+  assert_eq!(Err(ParsingError::EmptyExpression), parse_regular_expression(""));
+  assert_eq!(Err(ParsingError::EmptyExpression), parse_regular_expression("  "));
+  assert_eq!(Err(ParsingError::EmptyBrackets), parse_regular_expression("()"));
+  assert_eq!(Err(ParsingError::EmptyBrackets), parse_regular_expression("a()b"));
+  assert_eq!(Err(ParsingError::MissingClosingBracket), parse_regular_expression("("));
 }
 
 #[test]
 fn test_parse_tree_shape() {
   // The frontend draws this tree, so check the serialized form
-  let parse_tree = build_parse_tree("a+b*").unwrap();
+  let parse_tree = parse_regular_expression("a+b*").unwrap();
   let json = serde_json::to_value(&parse_tree).unwrap();
   assert_eq!(json["OrOperator"]["left_argument"]["Literal"], "a");
   assert_eq!(json["OrOperator"]["right_argument"]["KleeneOperator"]["inner_argument"]["Literal"], "b");
   assert_eq!(json["OrOperator"]["operator_character"], "+");
 
-  let parse_tree = build_parse_tree("abc").unwrap();
+  let parse_tree = parse_regular_expression("abc").unwrap();
   let json = serde_json::to_value(&parse_tree).unwrap();
   assert_eq!(json["ConcatenatedExpression"]["right_argument"]["Literal"], "c");
   assert_eq!(json["ConcatenatedExpression"]["left_argument"]["ConcatenatedExpression"]["left_argument"]["Literal"], "a");
@@ -352,7 +353,7 @@ fn test_random_regexes_match_reference_matcher() {
 
   for _ in 0..300 {
     let regex = random_regex(&mut random, 4);
-    let parse_tree = build_parse_tree(&regex).unwrap();
+    let parse_tree = parse_regular_expression(&regex).unwrap();
 
     for string in &strings {
       let characters: Vec<char> = string.chars().collect();
@@ -360,4 +361,14 @@ fn test_random_regexes_match_reference_matcher() {
       assert_eq!(accepts(&regex, string), expected, "regex {regex:?}, string {string:?}");
     }
   }
+}
+
+#[test]
+fn test_commands_send_readable_errors() {
+  use crate::error::Error;
+  use crate::regular_expression_funcs::build_parse_tree;
+
+  assert_eq!(build_parse_tree("a+").unwrap_err(), Error::new("A union (+) needs something after it"));
+  assert_eq!(test_string_regex("(a", "a".to_owned()).unwrap_err(), Error::new("A bracket is opened but never closed"));
+  assert!(build_parse_tree("a+b").is_ok());
 }

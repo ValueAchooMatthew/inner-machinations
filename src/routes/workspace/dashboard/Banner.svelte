@@ -2,11 +2,11 @@
   import { clearSessionValue, setSessionValue } from "$lib/utils/miscUtils";
   import { goto } from "$app/navigation";
   import { dialogue_to_user, workspace_name } from "$lib/utils/automataStores";
-  import { invoke } from "@tauri-apps/api/core";
+  import { invokeCommand } from "$lib/utils/backend";
 
   async function handleClick() {
     clearSessionValue("workspace_name");
-    const does_workspace_exist = await invoke("does_workspace_name_exist", {workspaceName: "Untitled Project"})
+    const does_workspace_exist = await invokeCommand("does_workspace_name_exist", {workspaceName: "Untitled Project"})
     if(does_workspace_exist) {
       dialogue_to_user.set("Untitled Project already exists")
       return;
@@ -17,7 +17,7 @@
       "Untitled Project"
     )
     dialogue_to_user.set(null);
-    await invoke("create_workspace", {workspaceName: "Untitled Project"});
+    await invokeCommand("create_workspace", {workspaceName: "Untitled Project"});
     goto("/workspace/workbench");
   }
 </script>

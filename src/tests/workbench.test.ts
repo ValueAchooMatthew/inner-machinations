@@ -203,6 +203,14 @@ describe("saving", () => {
     expect(await save()).toEqual(saved);
   });
 
+  it("shows why saving failed", async () => {
+    backend.respond("save_workspace", () => {
+      throw "Couldn't save the workspace: disk I/O error";
+    });
+    await expect(save()).rejects.toThrow();
+    expect(message()).toBe("Couldn't save the workspace: disk I/O error");
+  });
+
   it.fails("saves one start state after the start state of a reopened workspace changes", async () => {
     openWorkspace({ states: ["200,200 start"], transitions: [] });
     selectTool("start");

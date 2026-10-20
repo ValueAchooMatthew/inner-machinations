@@ -7,6 +7,7 @@ use crate::models::{Connection, Coordinate, State};
 use tauri::State as Managed;
 
 use crate::database::Database;
+use crate::error::{CommandResult, Error};
 use crate::workspace_storage;
 
 // DFA's are typically required to have a connection for each state for each character in the input alphabet.
@@ -21,7 +22,7 @@ pub fn minimize_dfa(
   input_alphabet: Vec<String>,
   start_state_position: Option<String>,
   workspace_name: &str
-) -> WorkspaceData {
+) -> CommandResult<WorkspaceData> {
 
   let (automaton, state_keys) = Automaton::from_state_positions(&state_positions, start_state_position.as_deref());
 
@@ -38,11 +39,8 @@ pub fn minimize_dfa(
 
   let mut connection = database.connection();
   workspace_storage::save_workspace(&mut connection, workspace_name, &state_positions, &connections)
-    .expect("There was an error saving the workspace");
-  let workspace_data = workspace_storage::retrieve_workspace_data(&mut connection, workspace_name)
-    .expect("There was an error retrieving the workspace");
-
-  return workspace_data;
+    .and_then(|_| workspace_storage::retrieve_workspace_data(&mut connection, workspace_name))
+    .map_err(|error| Error::from_storage(error, "save the workspace", workspace_name))
 
 }
 
@@ -56,7 +54,7 @@ pub fn convert_nfa_to_dfa (
   input_alphabet: Vec<String>,
   start_state_position: Option<String>,
   workspace_name: &str
-) -> WorkspaceData {
+) -> CommandResult<WorkspaceData> {
 
   let (automaton, state_keys) = Automaton::from_state_positions(&state_positions, start_state_position.as_deref());
 
@@ -72,11 +70,8 @@ pub fn convert_nfa_to_dfa (
 
   let mut connection = database.connection();
   workspace_storage::save_workspace(&mut connection, workspace_name, &state_positions, &connections)
-    .expect("There was an error saving the workspace");
-  let workspace_data = workspace_storage::retrieve_workspace_data(&mut connection, workspace_name)
-    .expect("There was an error retrieving the workspace");
-
-  return workspace_data;
+    .and_then(|_| workspace_storage::retrieve_workspace_data(&mut connection, workspace_name))
+    .map_err(|error| Error::from_storage(error, "save the workspace", workspace_name))
 
 }
 

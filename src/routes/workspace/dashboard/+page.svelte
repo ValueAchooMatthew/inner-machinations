@@ -1,7 +1,7 @@
 <script lang="ts">
   import Banner from "./Banner.svelte";
   import Card from "./Card.svelte";
-  import { invoke } from "@tauri-apps/api/core";
+  import { invokeCommand } from "$lib/utils/backend";
   import ConfirmDelete from "./ConfirmDelete.svelte";
   import Notifications from "$lib/components/Notifications.svelte";
 
@@ -9,7 +9,7 @@
   let workspace_to_delete: string | null = null;
 
   const getWorkspaces = async () => {
-    saved_workspace_names = await invoke("get_saved_workspaces");
+    saved_workspace_names = await invokeCommand("get_saved_workspaces");
   }
 
   $: {

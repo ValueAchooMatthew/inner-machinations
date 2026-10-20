@@ -12,8 +12,10 @@ pub enum Token {
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum ParsingError {
-  // Nothing to parse, as in "" or "()"
+  // Nothing to parse, as in "" or "  "
   EmptyExpression,
+  // As in "()"
+  EmptyBrackets,
   // A union with nothing before it, as in "+a"
   EmptyLeftArg,
   // A union with nothing after it, as in "a+"
@@ -24,6 +26,22 @@ pub enum ParsingError {
   MissingClosingBracket,
   // As in "a)"
   UnmatchedClosingBracket
+}
+
+// What the user sees on the regular expression page
+impl std::fmt::Display for ParsingError {
+  fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    let message = match self {
+      ParsingError::EmptyExpression => "Type a regular expression",
+      ParsingError::EmptyBrackets => "Brackets need something inside them",
+      ParsingError::EmptyLeftArg => "A union (+) needs something before it",
+      ParsingError::EmptyRightArg => "A union (+) needs something after it",
+      ParsingError::NoInnerArg => "A star (*) needs something before it to repeat",
+      ParsingError::MissingClosingBracket => "A bracket is opened but never closed",
+      ParsingError::UnmatchedClosingBracket => "A bracket is closed but was never opened"
+    };
+    write!(formatter, "{message}")
+  }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]

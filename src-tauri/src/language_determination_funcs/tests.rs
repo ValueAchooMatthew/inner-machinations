@@ -4,7 +4,7 @@ use crate::automaton::Automaton;
 use crate::models::{Coordinate, State};
 
 use crate::language_determination_funcs::determine_language_of_automata;
-use crate::regular_expression_funcs::{build_parse_tree, convert_parse_tree_to_nfa};
+use crate::regular_expression_funcs::{parse_regular_expression, convert_parse_tree_to_nfa};
 
 fn state(x: i32, is_final: bool, connections: &[(&str, i32)]) -> (String, State) {
   let mut state = State::new(Coordinate { x, y: 100 }, x == 100, is_final);
@@ -141,7 +141,7 @@ fn test_random_automata_languages_round_trip() {
       continue;
     }
 
-    let parse_tree = build_parse_tree(&language)
+    let parse_tree = parse_regular_expression(&language)
       .unwrap_or_else(|error| panic!("{language:?} does not parse: {error:?}"));
     let nfa = convert_parse_tree_to_nfa(&parse_tree);
 

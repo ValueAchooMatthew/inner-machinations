@@ -336,6 +336,14 @@ try {
       results[`${re} / "${str}"`] = fb ?? 'no result';
       if (expected !== null && fb !== (expected ? ACCEPTED : REJECTED)) ok = false;
     }
+    // A half-typed expression explains what's missing instead of failing silently
+    await type('#regex', 'a+');
+    await sleep(800);
+    const error_shown = await exec('return document.querySelector("#regex_error").innerText.trim();');
+    results['a+ error'] = error_shown;
+    if (error_shown !== 'A union (+) needs something after it') ok = false;
+    await type('#regex', 'a(b+c)*');
+    await sleep(800);
     const canvas_drawn = await exec(`const c = document.querySelector('canvas'); const d = c.getContext('2d').getImageData(0,0,c.width,c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n;`);
     return { ok, ...results, parse_tree_pixels: canvas_drawn };
   });

@@ -225,58 +225,31 @@ impl TryFrom<String> for Coordinate {
   type Error = ();
 
   fn try_from(value: String) -> Result<Coordinate, ()> {
-
-    let processed_strings: Vec<&str> = value.split(",").collect();
-
-    if processed_strings.len() != 2 {
-      return Err(());
-    }
-
-    let coordinate = Coordinate {
-      x: processed_strings
-        .get(0)
-        .unwrap()
-        .parse::<i32>()
-        .unwrap(),
-
-      y: processed_strings
-        .get(1)
-        .unwrap()
-        .parse::<i32>()
-        .unwrap()
-    };
-    return Ok(coordinate);
+    Coordinate::try_from(&value)
   }
 }
 
+// Parses "x,y"
 impl TryFrom<&String> for Coordinate {
 
   type Error = ();
 
   fn try_from(value: &String) -> Result<Coordinate, ()> {
 
-    let processed_strings: Vec<&str> = value.split(",").collect();
+    let (x, y) = value.split_once(',').ok_or(())?;
 
-    if processed_strings.len() != 2 {
-      return Err(());
-    }
-
-    let coordinate = Coordinate {
-      x: processed_strings
-        .get(0)
-        .unwrap()
-        .parse::<i32>()
-        .unwrap(),
-
-      y: processed_strings
-        .get(1)
-        .unwrap()
-        .parse::<i32>()
-        .unwrap()
-    };
-
-    return Ok(coordinate);
+    Ok(Coordinate {
+      x: x.parse::<i32>().map_err(|_| ())?,
+      y: y.parse::<i32>().map_err(|_| ())?
+    })
   }
+}
+
+// A position saved in the database that isn't in the "x,y" form
+fn parse_saved_coordinate(value: String) -> QueryResult<Coordinate> {
+  Coordinate::try_from(&value).map_err(|_| {
+    diesel::result::Error::DeserializationError(format!("\"{value}\" is not a position").into())
+  })
 }
 
 #[derive(Debug, Deserialize, Serialize, diesel_derive_enum::DbEnum)]
@@ -387,8 +360,7 @@ impl WorkspaceData {
       .filter(saved_connections::start_point.eq(&state.position))
       .get_results::<SavedConnection>(conn)?;
 
-    let parsed_state_position = state.position.try_into()
-      .expect("The string should be castable into Coordinate form");
+    let parsed_state_position = parse_saved_coordinate(state.position.clone())?;
   
     let mut parsed_state = State::new(parsed_state_position, state.is_start, state.is_final);
   
@@ -407,7 +379,7 @@ impl WorkspaceData {
       .get_results::<SavedConnection>(conn)?;
 
     for retrieved_connection in retrieved_connections {
-      let parsed_connection = Self::parse_saved_connection_to_regular_connection(retrieved_connection);
+      let parsed_connection = Self::parse_saved_connection_to_regular_connection(retrieved_connection)?;
       list_of_connections.push(parsed_connection);
     }
 
@@ -415,13 +387,13 @@ impl WorkspaceData {
 
   }
 
-  fn parse_saved_connection_to_regular_connection(connection: SavedConnection) -> Connection {
+  fn parse_saved_connection_to_regular_connection(connection: SavedConnection) -> QueryResult<Connection> {
 
     let parsed_curve = BezierCurve {
-      start_point: connection.start_point.try_into().expect("Could not parse string to coordinates"),
-      control_point_one: connection.control_point_one.try_into().expect("Could not parse string to coordinates"),
-      control_point_two: connection.control_point_two.try_into().expect("Could not parse string to coordinates"),
-      end_point: connection.end_point.try_into().expect("Could not parse string to coordinates")
+      start_point: parse_saved_coordinate(connection.start_point)?,
+      control_point_one: parse_saved_coordinate(connection.control_point_one)?,
+      control_point_two: parse_saved_coordinate(connection.control_point_two)?,
+      end_point: parse_saved_coordinate(connection.end_point)?
     };
 
     let parsed_connection = Connection {
@@ -430,7 +402,7 @@ impl WorkspaceData {
       element: String::from("Connection")
     };
 
-    parsed_connection
+    Ok(parsed_connection)
 
   }
   

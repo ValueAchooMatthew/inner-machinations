@@ -6,7 +6,7 @@
   import { checkInputtedString } from "$lib/utils/stringVerificationFuncs";
   import Notifications from "$lib/components/Notifications.svelte";
   import { onMount } from "svelte";
-  import { invoke } from "@tauri-apps/api/core";
+  import { invokeCommand } from "$lib/utils/backend";
   import { dialogue_to_user, start_state_index, state_positions, input_alphabet, 
   start_state_position, type_of_automata, workspace_name, should_strict_check,
   should_show_string_traversal, default_connection_character } from "$lib/utils/automataStores";
@@ -25,7 +25,7 @@
   let is_option_menu_open: boolean = false;
 
   onMount(async () => {
-    const workspace_data: WorkspaceData = await invoke("retrieve_workspace_data", {
+    const workspace_data: WorkspaceData = await invokeCommand("retrieve_workspace_data", {
       workspaceName: $workspace_name,
     });
 
@@ -65,9 +65,6 @@
         dialogue_to_user.set(
           result.dialogue
         );
-      })
-      .catch((err)=>{
-        console.log(err);
       });
     if($should_show_string_traversal) {
       handleIncrementalStringChecking();
@@ -96,9 +93,6 @@
           dialogue_to_user.set(
             result.dialogue
           );
-        })
-        .catch((err)=>{
-          console.log(err);
         });
         clearInterval(traverseAutomata);
       } else {

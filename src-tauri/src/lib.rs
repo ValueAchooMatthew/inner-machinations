@@ -4,6 +4,7 @@ extern crate diesel_migrations;
 pub mod schema;
 pub mod models;
 pub mod database;
+pub mod error;
 pub mod workspace_storage;
 pub mod automaton;
 pub mod testing_automata_funcs;

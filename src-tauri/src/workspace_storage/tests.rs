@@ -284,3 +284,16 @@ fn test_workspaces_are_listed_oldest_first() {
   }
   assert_eq!(get_saved_workspaces(connection).unwrap(), vec!["b", "c", "a"]);
 }
+
+#[test]
+fn test_damaged_positions_are_errors() {
+  let connection = &mut in_memory_connection();
+  create_workspace(connection, "damaged").unwrap();
+  let id = workspace_id(connection, "damaged");
+  diesel::insert_into(saved_states::table)
+    .values((saved_states::workspace_id.eq(id), saved_states::position.eq("nonsense")))
+    .execute(connection)
+    .unwrap();
+
+  assert!(matches!(retrieve_workspace_data(connection, "damaged").unwrap_err(), Error::DeserializationError(_)));
+}

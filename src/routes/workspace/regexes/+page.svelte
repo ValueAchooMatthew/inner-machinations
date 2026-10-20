@@ -3,28 +3,48 @@
   import TestFeedback from "../workbench/TestFeedback.svelte"
   import Banner from "./Banner.svelte";
   import { drawParseTree } from "$lib/utils/drawingFuncs";
+  import { describeFailure } from "$lib/utils/backend";
   import type { Token } from "$lib/types/types";
 
   let was_string_accepted: boolean | null = null;
   let regex: string = "";
   let string_to_test: string = "";
+  // Why the regular expression can't be built, if it can't
+  let error_message: string | null = null;
   let canvas: HTMLCanvasElement | undefined;
   const width = 1000;
   const height = 600;
 
+  // Each keystroke starts a new check; only the latest one's results are shown, however the replies arrive
+  let latest_check = 0;
+
   async function processRegex(regex: string, string_to_test: string) {
+    const check = ++latest_check;
     const context = canvas?.getContext("2d");
     if (!context) {
-      return false;
+      return;
     }
-    context.clearRect(0, 0, width, height);
-    const accepted: boolean = await invoke("test_string_regex", {regex: regex, stringToCheck: string_to_test});
-    const parse_tree: Token = await invoke("build_parse_tree", {regex: regex});
-    drawParseTree(parse_tree, context, {x: width/2, y: 50});
-    was_string_accepted = accepted;
-    return accepted;
+    try {
+      const [accepted, parse_tree] = await Promise.all([
+        invoke<boolean>("test_string_regex", {regex: regex, stringToCheck: string_to_test}),
+        invoke<Token>("build_parse_tree", {regex: regex}),
+      ]);
+      if (check !== latest_check) {
+        return;
+      }
+      context.clearRect(0, 0, width, height);
+      drawParseTree(parse_tree, context, {x: width/2, y: 50});
+      was_string_accepted = accepted;
+      error_message = null;
+    } catch (error) {
+      if (check !== latest_check) {
+        return;
+      }
+      context.clearRect(0, 0, width, height);
+      was_string_accepted = null;
+      error_message = describeFailure(error);
+    }
   }
-
 
   $: {
     processRegex(regex, string_to_test);
@@ -55,6 +75,9 @@
         <label for="string_test">Check String: </label>
         <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2" on:input={handleStringChecking} id="string_test" name="string_test" type="text">
       </div>
+      <p class="text-orange-600 text-xl h-8" id="regex_error">
+        {error_message ?? ""}
+      </p>
     </form>
     <TestFeedback is_string_accepted={was_string_accepted} />
   </div>

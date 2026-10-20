@@ -4,7 +4,7 @@
   default_connection_character, workspace_name } from "$lib/utils/automataStores";
   import { convertFormDataEntriesToStringArray} from "$lib/utils/miscUtils";
   import { saveOptions } from "$lib/utils/savingWorkspaceFuncs";
-  import { invoke } from "@tauri-apps/api/core";
+  import { invokeCommand } from "$lib/utils/backend";
   import { tick } from "svelte";
 
   export let is_option_menu_open: boolean;
@@ -38,17 +38,17 @@
 
       const alphabet = data.getAll("alphabet");
       const stringified_array = convertFormDataEntriesToStringArray(alphabet);
-      const sanitized_alphabet: Array<string> = await invoke("update_workspace_alphabet", {
+      const sanitized_alphabet: Array<string> = await invokeCommand("update_workspace_alphabet", {
         workspaceName: $workspace_name, alphabet: stringified_array
       });
       input_alphabet.set(sanitized_alphabet);
 
-      await invoke("update_showing_string_traversal", {
+      await invokeCommand("update_showing_string_traversal", {
         workspaceName: $workspace_name, 
         shouldShowTraversal: $should_show_string_traversal
       });
 
-      await invoke("update_strict_checking", {
+      await invokeCommand("update_strict_checking", {
         workspaceName: $workspace_name, 
         shouldStrictCheck: $should_strict_check
       });
@@ -58,7 +58,7 @@
         return;
       }
       default_connection_character.set(default_connection_char);
-      await invoke("update_default_connection_character", {
+      await invokeCommand("update_default_connection_character", {
         workspaceName: $workspace_name, 
         defaultConnectionCharacter: default_connection_char
       });

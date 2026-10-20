@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invokeCommand } from "$lib/utils/backend";
 import { Automata } from "../types/enums";
 import type { CheckedStringResponse, State } from "../types/interfaces";
 
@@ -34,7 +34,7 @@ export const checkInputtedString = async (
     // Setting the states traversed when checking 
     // the string and displaying to the user whether the string was accepted
     case Automata.DFA:
-      [is_string_accepted_after_test, states_traversed_after_test] = await invoke("test_string_dfa", {
+      [is_string_accepted_after_test, states_traversed_after_test] = await invokeCommand("test_string_dfa", {
         statePositions: state_positions,
         startStateCoordinates: start_state_coordinates,
         stringToCheck: string_to_check,
@@ -47,7 +47,7 @@ export const checkInputtedString = async (
       };
 
     case Automata.NFA:
-      [is_string_accepted_after_test, states_traversed_after_test] = await invoke("test_string_nfa", {
+      [is_string_accepted_after_test, states_traversed_after_test] = await invokeCommand("test_string_nfa", {
         statePositions: state_positions,
         startStateCoordinates: start_state_coordinates,
         stringToCheck: string_to_check,
@@ -73,7 +73,7 @@ const checkValidityOfDFA = async (
   if(!should_strict_check || type_of_automata !== Automata.DFA){
     return true;
   }
-  return await invoke("verify_valid_dfa", {
+  return await invokeCommand("verify_valid_dfa", {
     statePositions: state_positions,
     inputAlphabet: input_alphabet,
     startStatePosition: start_state_coordinates,

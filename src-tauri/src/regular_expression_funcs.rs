@@ -1,6 +1,7 @@
 mod regex_models;
 
 use crate::automaton::Automaton;
+use crate::error::{CommandResult, Error};
 use regex_models::{ConcatenatedExpression, KleeneOperator, OrOperator, ParsingError, Token};
 
 #[cfg(test)]
@@ -10,19 +11,23 @@ mod tests;
 pub const EMPTY_STRING: &str = "ε";
 
 #[tauri::command]
-pub fn test_string_regex(regex: &str, string_to_check: String) -> Result<bool, ParsingError> {
+pub fn test_string_regex(regex: &str, string_to_check: String) -> CommandResult<bool> {
 
-  let parse_tree = build_parse_tree(regex)?;
+  let parse_tree = parse_regular_expression(regex).map_err(|error| Error::new(error.to_string()))?;
   let nfa = convert_parse_tree_to_nfa(&parse_tree);
 
   return Ok(nfa.accepts(&string_to_check));
 
 }
 
+#[tauri::command]
+pub fn build_parse_tree(regex: &str) -> CommandResult<Token> {
+  parse_regular_expression(regex).map_err(|error| Error::new(error.to_string()))
+}
+
 // Precedence, from loosest to tightest: union (+ or |), then concatenation, then the Kleene star.
 // Whitespace is ignored
-#[tauri::command]
-pub fn build_parse_tree(regex: &str) -> Result<Token, ParsingError> {
+pub fn parse_regular_expression(regex: &str) -> Result<Token, ParsingError> {
 
   let mut parser = Parser {
     characters: regex.chars().filter(|character| !character.is_whitespace()).collect(),
@@ -115,7 +120,11 @@ impl Parser {
       '*' => Err(ParsingError::NoInnerArg),
       '(' => {
         self.bracket_depth += 1;
-        let inner_expression = self.parse_union()?;
+        let inner_expression = match self.parse_union() {
+          Err(ParsingError::EmptyExpression) if self.peek() == Some(')') => Err(ParsingError::EmptyBrackets),
+          Err(ParsingError::EmptyExpression) => Err(ParsingError::MissingClosingBracket),
+          other => other
+        }?;
         if self.peek() != Some(')') {
           return Err(ParsingError::MissingClosingBracket);
         }

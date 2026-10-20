@@ -1,12 +1,12 @@
 <script lang="ts">
   import { start_state_position, state_positions } from "$lib/utils/automataStores";
-  import { invoke } from "@tauri-apps/api/core";
+  import { invokeCommand } from "$lib/utils/backend";
 
   let language_of_automata: string;
 
   $: {
     if($start_state_position !== null) {
-      invoke("determine_language_of_automata", {
+      invokeCommand("determine_language_of_automata", {
         statePositions: $state_positions, 
         startStateKey: $start_state_position,
       })
@@ -14,9 +14,6 @@
         if(typeof(data) === "string") {
           language_of_automata = data
         }
-      })
-      .catch((e)=>{
-        console.log(e)
       });
 
     }
