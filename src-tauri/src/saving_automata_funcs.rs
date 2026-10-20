@@ -289,3 +289,5 @@ fn set_current_time(workspace_id: &i32, conn: &mut SqliteConnection) -> Result<(
 
   Ok(())
 }
+#[cfg(test)]
+mod tests;
