@@ -3,9 +3,11 @@
 
 extern crate diesel;
 extern crate diesel_migrations;
-use app::set_working_directory;
+use std::fs;
+use app::{establish_connection, import_database_from_executable_directory, set_database_path};
 use diesel::sqlite::Sqlite;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use tauri::Manager;
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations");
 
 pub mod schema;
@@ -25,7 +27,6 @@ update_workspace_name, does_workspace_name_exist, create_workspace, update_works
 update_showing_string_traversal, update_default_connection_character, update_strict_checking, update_automata_type};
 use validation_automata_funcs::verify_valid_dfa;
 use language_determination_funcs::determine_language_of_automata;
-use app::establish_connection;
 
 fn run_migrations(connection: &mut impl MigrationHarness<Sqlite>) {
 
@@ -47,12 +48,19 @@ fn main() {
     }
   }
 
-  set_working_directory();
-
-  let mut connection = establish_connection();
-  run_migrations(&mut connection);
-
   tauri::Builder::default()
+  .setup(|app| {
+    // The database lives in the app data folder, which is writable wherever the app is installed
+    let data_directory = app.path().app_data_dir()?;
+    fs::create_dir_all(&data_directory)?;
+
+    let database_path = data_directory.join("mydb.sqlite3");
+    import_database_from_executable_directory(&database_path);
+    set_database_path(database_path);
+
+    run_migrations(&mut establish_connection());
+    Ok(())
+  })
   .invoke_handler(tauri::generate_handler![
     test_string_dfa, test_string_nfa, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, 
     get_saved_workspaces, minimize_dfa, convert_nfa_to_dfa, determine_language_of_automata, build_parse_tree, 

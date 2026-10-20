@@ -3,29 +3,49 @@ extern crate diesel;
 pub mod schema;
 pub mod models;
 
-use std::collections::HashSet;
-use std::collections::HashMap;
-use std::env;
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+use std::{env, fs};
 
 use diesel::Connection as DieselConnection;
 use diesel::sqlite::SqliteConnection;
 
+use models::{BezierCurve, Connection, Coordinate, State};
+
+// Set once at startup, to mydb.sqlite3 in the app data folder
+static DATABASE_PATH: OnceLock<PathBuf> = OnceLock::new();
+
+pub fn set_database_path(database_path: PathBuf) {
+  DATABASE_PATH.set(database_path).ok();
+}
+
 pub fn establish_connection() -> SqliteConnection {
-  SqliteConnection::establish(&"mydb.sqlite3")
+  let database_path = DATABASE_PATH
+    .get()
+    .expect("The database path must be set before connecting to the database");
+
+  SqliteConnection::establish(&database_path.to_string_lossy())
     .unwrap_or_else(|_| panic!("Error connecting to database"))
 }
 
-use models::{BezierCurve, Connection, Coordinate, State};
+// Earlier builds kept the database beside the executable. If the data folder has no database yet,
+// copy that one across, leaving the original where it was
+pub fn import_database_from_executable_directory(database_path: &Path) {
 
-pub fn set_working_directory() {
+  if database_path.exists() {
+    return;
+  }
 
-  let path_to_executable = env::current_exe()
-    .expect("There was an error retrieving the path to the executable");
+  let previous_database_path = env::current_exe()
+    .ok()
+    .and_then(|path_to_executable| Some(path_to_executable.parent()?.join("mydb.sqlite3")));
 
-  let exectable_directory = path_to_executable.parent();
-
-  env::set_current_dir(exectable_directory.unwrap())
-    .expect("There was an error setting the working directory");
+  if let Some(previous_database_path) = previous_database_path {
+    if previous_database_path.is_file() {
+      fs::copy(&previous_database_path, database_path).ok();
+    }
+  }
 
 }
 

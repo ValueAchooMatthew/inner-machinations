@@ -25,3 +25,5 @@ You need Rust, Node.js, and the [Tauri prerequisites](https://v2.tauri.app/start
 npm install
 npx tauri dev
 ```
+
+Workspaces are saved to `mydb.sqlite3` in the app's data folder: `~/.local/share/com.mach.build` on Linux, `~/Library/Application Support/com.mach.build` on macOS, and `%APPDATA%\com.mach.build` on Windows.
