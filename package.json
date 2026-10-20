@@ -27,7 +27,6 @@
   },
   "type": "module",
   "dependencies": {
-    "@tauri-apps/api": "^2.12.4",
-    "@tauri-apps/plugin-store": "^2.5.0"
+    "@tauri-apps/api": "^2.12.4"
   }
 }

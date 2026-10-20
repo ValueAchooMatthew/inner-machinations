@@ -13,7 +13,7 @@ I was inspired to make this project by my studies in discrete math at university
 - Convert a regular expression to an NFA, and an NFA to an equivalent DFA
 - Minimize a DFA
 - Determine the language an automaton accepts
-- Save automata to a local SQLite database under a user account
+- Save automata to a local SQLite database
 
 The regex-to-NFA conversion, DFA minimization, and state-transition logic are implemented from scratch in Rust (`src-tauri/src`).
 
@@ -25,5 +25,3 @@ You need Rust, Node.js, and the [Tauri prerequisites](https://v2.tauri.app/start
 npm install
 npx tauri dev
 ```
-
-Creating an account sends a verification code by email. To enable that, add `SMTP_USERNAME` and `SMTP_APP_PASSWORD` to the `.env` file the app creates on first run (see `.env.example`).

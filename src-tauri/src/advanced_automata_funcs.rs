@@ -175,7 +175,6 @@ pub fn minimize_dfa(
   mut state_positions: HashMap<String, State>,
   connections: Vec<Connection>,
   input_alphabet: Vec<String>,
-  email: &str,
   workspace_name: &str
 ) -> WorkspaceData {
 
@@ -253,8 +252,8 @@ pub fn minimize_dfa(
   // Removing temporary implicit vortex state
   minimized_state_positions.remove::<String>(&vortex_state_coords.into());
 
-  save_workspace(workspace_name, minimized_state_positions, email, connections);
-  let workspace_data = retrieve_workspace_data(workspace_name, email);
+  save_workspace(workspace_name, minimized_state_positions, connections);
+  let workspace_data = retrieve_workspace_data(workspace_name);
 
   return workspace_data;
 
@@ -291,7 +290,6 @@ fn specify_implicit_state_connections(input_alphabet: &Vec<String>, state_positi
 pub fn convert_nfa_to_dfa (
   mut state_positions: HashMap<String, State>,
   start_state_position: &str,
-  email: &str,
   workspace_name: &str
 ) -> WorkspaceData {
   
@@ -308,8 +306,8 @@ pub fn convert_nfa_to_dfa (
 
   let connections = create_connections_from_state_positions(&reconstructed_state_positions);
 
-  save_workspace(workspace_name, reconstructed_state_positions, email, connections);
-  let workspace_data = retrieve_workspace_data(workspace_name, email);
+  save_workspace(workspace_name, reconstructed_state_positions, connections);
+  let workspace_data = retrieve_workspace_data(workspace_name);
 
   return workspace_data;
 

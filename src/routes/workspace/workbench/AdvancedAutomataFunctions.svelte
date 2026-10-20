@@ -3,7 +3,7 @@
   import { Automata } from "$lib/types/enums";
   import type { WorkspaceData } from "$lib/types/interfaces";
   import { input_alphabet, list_of_connections, list_of_states, 
-  start_state_index, start_state_position, state_positions, type_of_automata, email, workspace_name } from "$lib/utils/automataStores";
+  start_state_index, start_state_position, state_positions, type_of_automata, workspace_name } from "$lib/utils/automataStores";
   import { convertCoordinateToString } from "$lib/utils/miscUtils";
   import { setTauriResponses } from "$lib/utils/parsingBackendResponsesFuncs";
   import { invoke } from "@tauri-apps/api/core";
@@ -16,8 +16,7 @@
       statePositions: $state_positions, 
       connections: $list_of_connections, 
       inputAlphabet: $input_alphabet,
-      workspaceName: $workspace_name,
-      email: $email
+      workspaceName: $workspace_name
     });
 
     setTauriResponses(
@@ -38,14 +37,13 @@
     type_of_automata
       .set(Automata.DFA);
 
-    await invoke("update_automata_type", {email: $email, workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.DFA]})
+    await invoke("update_automata_type", {workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.DFA]})
     
     await tick();
     
     const tauri_response: WorkspaceData = await invoke("convert_nfa_to_dfa", {
       startStatePosition: $start_state_position,
       statePositions: $state_positions,
-      email: $email,
       workspaceName: $workspace_name
     });
 

@@ -16,7 +16,7 @@ export const removeFirstElementFromArray = <T>(list: Array<T>, element_to_remove
   list.splice(index_of_element_to_remove, 1);
   return list;
 }
-// Values the pages pass to each other for the current session (logged-in email, open workspace).
+// Values the pages pass to each other for the current session (the open workspace).
 // These used to be cookies, but WebKitGTK drops cookies on Tauri 2's tauri://localhost origin
 // on Linux. sessionStorage works on every platform and, like those cookies, clears when the app closes.
 export function getSessionValue(name: string): string {

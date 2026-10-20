@@ -6,24 +6,12 @@ use diesel::query_builder::QueryId;
 // type scripty back-end, despite being a single character is always of type string since typescript does not have a character data type
 
 // REMEMBER ORDER OF FIELDS IN STRUCTS MATTER
-#[derive(Queryable, Selectable, QueryableByName, Debug)]
-#[diesel(table_name = crate::schema::users)]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-pub struct User {
-  pub id: i32,
-  pub email: String,
-  pub password: String,
-  pub verified: bool,
-  pub code: Option<String>
-}
-
 #[derive(Queryable, Insertable, QueryableByName, QueryId, Selectable, Identifiable, Serialize, Deserialize)]
 #[diesel(table_name = crate::schema::saved_workspaces)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[derive(Debug)]
 pub struct SavedWorkspace {
   pub id: i32,
-  pub user_id: i32,
   pub workspace_name: String,
   pub type_of_automata: TypeOfAutomata,
   pub date_of_last_update: NaiveDateTime,

@@ -29,4 +29,3 @@ export const should_strict_check: Writable<boolean> = writable(false);
 export const should_show_string_traversal: Writable<boolean> = writable(false);
 export const default_connection_character: Writable<string> = writable("a");
 export const workspace_name: Writable<string> = writable(getSessionValue("workspace_name"));
-export const email: Writable<string> = writable(getSessionValue("email"));

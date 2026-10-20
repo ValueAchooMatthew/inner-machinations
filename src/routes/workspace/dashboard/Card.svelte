@@ -4,7 +4,7 @@
   import { draw } from "$lib/utils/drawingFuncs";
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
-  import { dialogue_to_user, email, workspace_name } from "$lib/utils/automataStores";
+  import { dialogue_to_user, workspace_name } from "$lib/utils/automataStores";
   import type { WorkspaceData } from "$lib/types/interfaces";
 
   export let workspace_title: string;
@@ -33,7 +33,6 @@
     }
     workspace_data =
       await invoke("retrieve_workspace_data", {
-        email: $email,
         workspaceName: workspace_title,
       });
 

@@ -1,23 +1,20 @@
 use std::collections::HashMap;
 
-use app::{encrypt_user_data, sanitize_input_alphabet, establish_connection, models::State};
-use app::models::{Connection, SavedWorkspace, TypeOfAutomata, User, WorkspaceData};
-use app::schema::{saved_connections, users, saved_states, saved_workspaces};
+use app::{sanitize_input_alphabet, establish_connection, models::State};
+use app::models::{Connection, SavedWorkspace, TypeOfAutomata, WorkspaceData};
+use app::schema::{saved_connections, saved_states, saved_workspaces};
 
 use chrono::NaiveDateTime;
 use diesel::{ExpressionMethods, SqliteConnection};
-use magic_crypt::new_magic_crypt;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 
 #[tauri::command]
-pub fn create_workspace(email: &str, workspace_name: &str) {
+pub fn create_workspace(workspace_name: &str) {
 
   let mut conn = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
 
   let new_saved_automata = (
-    saved_workspaces::user_id.eq(&user_id), 
     saved_workspaces::workspace_name.eq(&workspace_name),
     saved_workspaces::type_of_automata.eq(&TypeOfAutomata::DFA)
   );
@@ -38,10 +35,9 @@ pub fn create_workspace(email: &str, workspace_name: &str) {
 }
 
 #[tauri::command]
-pub fn update_workspace_alphabet(workspace_name: &str, email: &str, alphabet: Vec<&str>) -> Vec<String> {
+pub fn update_workspace_alphabet(workspace_name: &str, alphabet: Vec<&str>) -> Vec<String> {
   let mut conn: SqliteConnection = establish_connection();
-  let user_id =  get_user_id(&email, &mut conn);
-  let workspace = get_workspace(&workspace_name, &user_id, &mut conn)
+  let workspace = get_workspace(&workspace_name, &mut conn)
     .expect("Could not retrieve workspace");
 
   let sanitized_input_alphabet = sanitize_input_alphabet(alphabet); 
@@ -59,13 +55,11 @@ pub fn update_workspace_alphabet(workspace_name: &str, email: &str, alphabet: Ve
 pub fn save_workspace(
   workspace_name: &str, 
   states: HashMap<String, State>, 
-  email: &str, 
   connections: Vec<Connection>
 ) {
 
   let mut conn = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
-  let workspace: SavedWorkspace = get_workspace(&workspace_name, &user_id, &mut conn)
+  let workspace: SavedWorkspace = get_workspace(&workspace_name, &mut conn)
     .expect("There was an error retrieving the workspace");
 
   save_states_to_db(&workspace.id, &states, &mut conn)
@@ -82,11 +76,10 @@ pub fn save_workspace(
 }
 
 #[tauri::command]
-pub fn delete_workspace(workspace_name: &str, email: &str) {
+pub fn delete_workspace(workspace_name: &str) {
 
   let mut conn: SqliteConnection = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
-  let workspace: SavedWorkspace = get_workspace(&workspace_name, &user_id, &mut conn)
+  let workspace: SavedWorkspace = get_workspace(&workspace_name, &mut conn)
     .expect("There was an eror retrieving the workspace");
 
   diesel::delete(saved_states::table)
@@ -100,7 +93,6 @@ pub fn delete_workspace(workspace_name: &str, email: &str) {
     .expect("There was an error deleting the old workspace's previous connections");
 
   diesel::delete(saved_workspaces::table)
-    .filter(saved_workspaces::user_id.eq(&user_id))
     .filter(saved_workspaces::workspace_name.eq(&workspace_name))
     .execute(&mut conn)
     .expect("There was an error deleting the workspace from the db");
@@ -109,18 +101,16 @@ pub fn delete_workspace(workspace_name: &str, email: &str) {
 }
 
 #[tauri::command]
-pub fn does_workspace_name_exist(workspace_name: &str, email: &str) -> bool {
+pub fn does_workspace_name_exist(workspace_name: &str) -> bool {
   let mut conn: SqliteConnection = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
-  return get_workspace(&workspace_name, &user_id, &mut conn).is_ok()
+  return get_workspace(&workspace_name, &mut conn).is_ok()
 }
 
 #[tauri::command]
-pub fn update_workspace_name(original_workspace_name: &str, email: &str, new_workspace_name: &str) {
+pub fn update_workspace_name(original_workspace_name: &str, new_workspace_name: &str) {
   let mut conn: SqliteConnection = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
 
-  let workspace = get_workspace(&original_workspace_name, &user_id, &mut conn)
+  let workspace = get_workspace(&original_workspace_name, &mut conn)
     .expect("Could not retrieve the requested workspace");
 
   diesel::update(&workspace)
@@ -130,12 +120,11 @@ pub fn update_workspace_name(original_workspace_name: &str, email: &str, new_wor
 }
 
 #[tauri::command]
-pub fn update_automata_type(workspace_name: &str, email: &str, type_of_automata: TypeOfAutomata) {
+pub fn update_automata_type(workspace_name: &str, type_of_automata: TypeOfAutomata) {
 
   let mut conn: SqliteConnection = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
 
-  let workspace = get_workspace(&workspace_name, &user_id, &mut conn)
+  let workspace = get_workspace(&workspace_name, &mut conn)
     .expect("Could not retrieve the requested workspace");
 
   diesel::update(&workspace)
@@ -146,11 +135,10 @@ pub fn update_automata_type(workspace_name: &str, email: &str, type_of_automata:
 }
 
 #[tauri::command]
-pub fn update_strict_checking(workspace_name: &str, email: &str, should_strict_check: bool) {
+pub fn update_strict_checking(workspace_name: &str, should_strict_check: bool) {
   let mut conn: SqliteConnection = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
 
-  let workspace = get_workspace(&workspace_name, &user_id, &mut conn)
+  let workspace = get_workspace(&workspace_name, &mut conn)
     .expect("Could not retrieve the requested workspace");
 
   diesel::update(&workspace)
@@ -160,11 +148,10 @@ pub fn update_strict_checking(workspace_name: &str, email: &str, should_strict_c
 }
 
 #[tauri::command]
-pub fn update_showing_string_traversal(workspace_name: &str, email: &str, should_show_traversal: bool) {
+pub fn update_showing_string_traversal(workspace_name: &str, should_show_traversal: bool) {
   let mut conn: SqliteConnection = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
 
-  let workspace = get_workspace(&workspace_name, &user_id, &mut conn)
+  let workspace = get_workspace(&workspace_name, &mut conn)
     .expect("Could not retrieve the requested workspace");
 
   diesel::update(&workspace)
@@ -175,14 +162,13 @@ pub fn update_showing_string_traversal(workspace_name: &str, email: &str, should
 }
 
 #[tauri::command]
-pub fn update_default_connection_character(workspace_name: &str, email: &str, default_connection_character: String) {
+pub fn update_default_connection_character(workspace_name: &str, default_connection_character: String) {
   // Should sanitize that string passed in is single character
   // Also should consider switching to using char datatype. using string for consistency with ts frontend
 
   let mut conn: SqliteConnection = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
 
-  let workspace = get_workspace(&workspace_name, &user_id, &mut conn)
+  let workspace = get_workspace(&workspace_name, &mut conn)
     .expect("Could not retrieve the requested workspace");
 
   diesel::update(&workspace)
@@ -193,11 +179,10 @@ pub fn update_default_connection_character(workspace_name: &str, email: &str, de
 }
 
 #[tauri::command]
-pub fn retrieve_workspace_data(workspace_name: &str, email: &str) -> WorkspaceData {
+pub fn retrieve_workspace_data(workspace_name: &str) -> WorkspaceData {
     
   let mut conn: SqliteConnection = establish_connection();
-  let user_id = get_user_id(&email, &mut conn);
-  let workspace = get_workspace(&workspace_name, &user_id, &mut conn)
+  let workspace = get_workspace(&workspace_name, &mut conn)
     .expect("There was an error retrieving the workspace");
 
   let workspace_data = WorkspaceData::new(workspace);
@@ -207,15 +192,13 @@ pub fn retrieve_workspace_data(workspace_name: &str, email: &str) -> WorkspaceDa
 }
 
 #[tauri::command]
-pub fn get_users_saved_workspaces(email: &str) -> Vec<String> {
+pub fn get_saved_workspaces() -> Vec<String> {
 
   let mut conn = establish_connection();
-  let user_id = get_user_id(email, &mut conn);
 
   let retrieved_workspaces: Vec<SavedWorkspace> = saved_workspaces::table
-    .filter(saved_workspaces::user_id.eq(&user_id))
     .get_results(&mut conn)
-    .expect("There was an error retrieving the user's saved workspaces");
+    .expect("There was an error retrieving the saved workspaces");
 
   let workspace_names: Vec<String> = retrieved_workspaces
     .iter()
@@ -226,10 +209,9 @@ pub fn get_users_saved_workspaces(email: &str) -> Vec<String> {
 
 }
 
-fn get_workspace(workspace_name: &str, user_id: &i32, conn: &mut SqliteConnection) -> Result<SavedWorkspace, diesel::result::Error> {
+fn get_workspace(workspace_name: &str, conn: &mut SqliteConnection) -> Result<SavedWorkspace, diesel::result::Error> {
   
   saved_workspaces::table
-    .filter(saved_workspaces::user_id.eq(user_id))
     .filter(saved_workspaces::workspace_name.eq(&workspace_name))
     .limit(1)
     .get_result::<SavedWorkspace>(conn)
@@ -264,23 +246,6 @@ fn save_states_to_db(workspace_id: &i32, states: &HashMap<String, State>, conn: 
 
   Ok(())
 
-}
-
-fn get_user_id(email: &str, conn: &mut SqliteConnection) -> i32 {
-
-  let key = std::env::var("ENCRYPTION_KEY")
-    .expect("Encryption Key must be set as a .env variable");
-
-  let cipher = new_magic_crypt!(&key, 256);
-  let [encrypted_user_email, _ ] = encrypt_user_data(&cipher, &email, "");
-
-  let user: User = users::table
-    .filter(users::email.eq(&encrypted_user_email))
-    .limit(1)
-    .get_result::<User>(conn)
-    .expect("There was an error finding the user's profile");
-
-  user.id
 }
 
 fn save_connections_to_db(workspace_id: &i32, connections: &Vec<Connection>, conn: &mut SqliteConnection) -> Result<(), diesel::result::Error> {

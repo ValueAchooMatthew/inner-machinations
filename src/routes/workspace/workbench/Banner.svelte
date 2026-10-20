@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Automata } from "$lib/types/enums";
-  import { workspace_name, email, type_of_automata, dialogue_to_user } from "$lib/utils/automataStores";
+  import { workspace_name, type_of_automata, dialogue_to_user } from "$lib/utils/automataStores";
   import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
   import { invoke } from "@tauri-apps/api/core";
 
@@ -9,7 +9,7 @@
   // Current workaround to save workspace 500ms after typing has stopped
   // as svelte doesn't provide on:inputend event natively
   async function renameWorkspace(new_workspace_name: string) {
-    await invoke("update_workspace_name", {originalWorkspaceName: $workspace_name, email: $email, newWorkspaceName: new_workspace_name});
+    await invoke("update_workspace_name", {originalWorkspaceName: $workspace_name, newWorkspaceName: new_workspace_name});
     workspace_name.set(new_workspace_name);
   }
 
@@ -19,7 +19,7 @@
     
     clearTimeout(timer);
     timer = setTimeout(async () => {
-      const does_new_workspace_name_already_exist: boolean = await invoke("does_workspace_name_exist", {workspaceName: new_workspace_name, email: $email});
+      const does_new_workspace_name_already_exist: boolean = await invoke("does_workspace_name_exist", {workspaceName: new_workspace_name});
       if(does_new_workspace_name_already_exist) {
         return;
       }
@@ -39,7 +39,7 @@
     if(!new_workspace_name) {
       return;
     }
-    const does_new_workspace_name_already_exist: boolean = await invoke("does_workspace_name_exist", {workspaceName: new_workspace_name, email: $email});
+    const does_new_workspace_name_already_exist: boolean = await invoke("does_workspace_name_exist", {workspaceName: new_workspace_name});
     if(does_new_workspace_name_already_exist) {
       dialogue_to_user.set("The entered workspace name already exists");
       return;
@@ -87,7 +87,7 @@
       <button class={$type_of_automata == Automata.DFA ? "" : "text-gray-950"}
         on:click={async () => {
           type_of_automata.set(Automata.DFA);
-          await invoke("update_automata_type", {email: $email, workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.DFA]});
+          await invoke("update_automata_type", {workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.DFA]});
         }}>
         DFA
       </button>
@@ -96,7 +96,7 @@
         class={$type_of_automata === Automata.NFA ? "" : "text-gray-950"}
         on:click={async () => {
           type_of_automata.set(Automata.NFA);
-          await invoke("update_automata_type", {email: $email, workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.NFA]});
+          await invoke("update_automata_type", {workspaceName: $workspace_name, typeOfAutomata: Automata[Automata.NFA]});
         }}>
         NFA
       </button>

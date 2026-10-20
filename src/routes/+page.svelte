@@ -3,13 +3,13 @@
   import { goto } from "$app/navigation";
   function handleKeyDownEvent(event: KeyboardEvent) {
     if(event.key === "Enter") {
-      goto("/user/registration")
+      goto("/workspace/dashboard")
     }
   }
 
 </script>
 <svelte:window on:keydown={handleKeyDownEvent} />
-<a href="/user/registration">
+<a href="/workspace/dashboard">
   <svg class="absolute -top-12 -z-10"
   xmlns="http://www.w3.org/2000/svg"
   viewBox="0 0 1440 320">
@@ -29,7 +29,7 @@
         </h2>
       </div>
       <div></div>
-      <!-- The whole page is already a link to registration, so this is plain text (a link inside a link is invalid HTML) -->
+      <!-- The whole page is already a link to the dashboard, so this is plain text (a link inside a link is invalid HTML) -->
       <span class="font-Montserrat text-2xl">
         Click anywhere to begin
       </span>

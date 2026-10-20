@@ -2,16 +2,14 @@
   import Banner from "./Banner.svelte";
   import Card from "./Card.svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import SignOut from "./SignOut.svelte";
   import ConfirmDelete from "./ConfirmDelete.svelte";
-  import { email } from "$lib/utils/automataStores";
   import Notifications from "$lib/components/Notifications.svelte";
 
   let saved_workspace_names: Array<string> = new Array();
   let workspace_to_delete: string | null = null;
 
   const getWorkspaces = async () => {
-    saved_workspace_names = await invoke("get_users_saved_workspaces", {email: $email});
+    saved_workspace_names = await invoke("get_saved_workspaces");
   }
 
   $: {
@@ -29,9 +27,6 @@
         <Card bind:workspace_to_delete={workspace_to_delete} bind:workspace_title={workspace_title}/>
       {/each}
     {/if}
-  </div>
-  <div class="fixed bottom-12 right-12">
-    <SignOut/>
   </div>
   <ConfirmDelete bind:workspace_to_delete={workspace_to_delete}/>
   <a href="./regexes">Go To regexes</a>

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { email } from "$lib/utils/automataStores";
   import { invoke } from "@tauri-apps/api/core";
   export let workspace_to_delete: string | null;
 
@@ -8,7 +7,6 @@
       return;
     }
     await invoke("delete_workspace", {
-      email: $email,
       workspaceName: workspace_to_delete,
     });
     workspace_to_delete = null;
