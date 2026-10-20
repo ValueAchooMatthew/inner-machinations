@@ -19,7 +19,7 @@ The regex-to-NFA conversion, DFA minimization, and state-transition logic are im
 
 ## Running it locally
 
-You need Rust, Node.js, and the [Tauri v1 prerequisites](https://v1.tauri.app/v1/guides/getting-started/prerequisites) for your OS.
+You need Rust, Node.js, and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS.
 
 ```sh
 npm install
