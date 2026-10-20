@@ -1,4 +1,4 @@
-<script src="" lang="ts">
+<script lang="ts">
 
   import { Automata } from "$lib/types/enums";
   import type { WorkspaceData } from "$lib/types/interfaces";

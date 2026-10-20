@@ -29,9 +29,10 @@
         </h2>
       </div>
       <div></div>
-      <a class="font-Montserrat text-2xl" href="/user/registration">
+      <!-- The whole page is already a link to registration, so this is plain text (a link inside a link is invalid HTML) -->
+      <span class="font-Montserrat text-2xl">
         Click anywhere to begin
-      </a>
+      </span>
     </div>
   </main>
 </a>

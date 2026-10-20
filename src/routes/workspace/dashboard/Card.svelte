@@ -57,7 +57,7 @@
     transition-all duration-300 rounded-md flex flex-col justify-between overflow-hidden"
     on:click={handleClick}>
     <canvas
-    bind:this={canvas} class="bg-white self-center border-black border-[1px] w-fit" />
+    bind:this={canvas} class="bg-white self-center border-black border-[1px] w-fit"></canvas>
     <span class="font-bold text-white text-2xl my-2 self-center">
       {workspace_title}
       <br>
