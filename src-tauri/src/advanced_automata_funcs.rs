@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
-use app::{create_connections_from_state_positions, create_unique_state_coordinates, models::WorkspaceData};
-use app::automaton::{parse_input_alphabet, Automaton, Dfa};
+use crate::{create_connections_from_state_positions, create_unique_state_coordinates, models::WorkspaceData};
+use crate::automaton::{parse_input_alphabet, Automaton, Dfa};
 
-use app::models::{Connection, Coordinate, State};
+use crate::models::{Connection, Coordinate, State};
 
 use crate::saving_automata_funcs::{retrieve_workspace_data, save_workspace};
 
@@ -122,9 +122,9 @@ fn create_state_positions_from_dfa(
 #[cfg(test)]
 mod tests {
   use super::create_state_positions_from_dfa;
-  use app::automaton::Automaton;
-  use app::create_connections_from_state_positions;
-  use app::models::{Connection, Coordinate, State};
+  use crate::automaton::Automaton;
+  use crate::create_connections_from_state_positions;
+  use crate::models::{Connection, Coordinate, State};
   use std::collections::{BTreeSet, HashMap, HashSet};
 
   fn state(x: i32, is_start: bool, is_final: bool, connections: &[(&str, i32)]) -> (String, State) {

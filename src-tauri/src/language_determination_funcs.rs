@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 
-use app::automaton::Automaton;
-use app::models::State;
+use crate::automaton::Automaton;
+use crate::models::State;
 
 #[cfg(test)]
 mod tests;

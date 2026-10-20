@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use app::automaton::Automaton;
-use app::models::{Coordinate, State};
+use crate::automaton::Automaton;
+use crate::models::{Coordinate, State};
 
 use crate::language_determination_funcs::determine_language_of_automata;
 use crate::regular_expression_funcs::{build_parse_tree, convert_parse_tree_to_nfa};

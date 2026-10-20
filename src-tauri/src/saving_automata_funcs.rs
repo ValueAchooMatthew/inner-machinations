@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use app::{sanitize_input_alphabet, establish_connection, models::State};
-use app::models::{Connection, SavedWorkspace, TypeOfAutomata, WorkspaceData};
-use app::schema::{saved_connections, saved_states, saved_workspaces};
+use crate::{sanitize_input_alphabet, establish_connection, models::State};
+use crate::models::{Connection, SavedWorkspace, TypeOfAutomata, WorkspaceData};
+use crate::schema::{saved_connections, saved_states, saved_workspaces};
 
 use chrono::NaiveDateTime;
 use diesel::{ExpressionMethods, SqliteConnection};

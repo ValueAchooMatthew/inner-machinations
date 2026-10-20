@@ -1,5 +1,5 @@
-use app::automaton::parse_input_alphabet;
-use app::models::State;
+use crate::automaton::parse_input_alphabet;
+use crate::models::State;
 use std::collections::HashMap;
 
 #[tauri::command]
@@ -65,7 +65,7 @@ pub fn verify_valid_dfa(
 #[cfg(test)]
 mod tests {
   use super::verify_valid_dfa;
-  use app::models::{Coordinate, State};
+  use crate::models::{Coordinate, State};
   use std::collections::HashMap;
 
   fn state(x: i32, connections: &[(&str, i32)]) -> (String, State) {

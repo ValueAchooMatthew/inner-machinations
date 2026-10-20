@@ -1,5 +1,5 @@
-use app::automaton::Automaton;
-use app::models::State;
+use crate::automaton::Automaton;
+use crate::models::State;
 use std::collections::HashMap;
 
 #[tauri::command]
@@ -36,7 +36,7 @@ fn test_string(state_positions: &HashMap<String, State>, start_state_coordinates
 #[cfg(test)]
 mod tests {
   use super::{test_string_dfa, test_string_nfa};
-  use app::models::{Coordinate, State};
+  use crate::models::{Coordinate, State};
   use std::collections::HashMap;
 
   fn state(x: i32, is_start: bool, is_final: bool, connections: &[(&str, i32)]) -> (String, State) {

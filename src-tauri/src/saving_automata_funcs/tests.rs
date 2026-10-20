@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard, Once};
 
-use app::models::{BezierCurve, Connection, Coordinate, State, TypeOfAutomata};
-use app::schema::{saved_connections, saved_states, saved_workspaces};
-use app::{establish_connection, set_database_path};
+use crate::models::{BezierCurve, Connection, Coordinate, State, TypeOfAutomata};
+use crate::schema::{saved_connections, saved_states, saved_workspaces};
+use crate::{establish_connection, set_database_path};
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use serde_json::Value;
 

@@ -1,6 +1,6 @@
 mod regex_models;
 
-use app::automaton::Automaton;
+use crate::automaton::Automaton;
 use regex_models::{ConcatenatedExpression, KleeneOperator, OrOperator, ParsingError, Token};
 
 #[cfg(test)]
