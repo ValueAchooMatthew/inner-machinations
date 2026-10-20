@@ -84,6 +84,9 @@ pub fn create_connections_from_state_positions(
 
   let mut connections = vec![];
 
+  // How many connections join each pair of states so far, in either direction, so the next one can be drawn apart from them
+  let mut connection_counts: HashMap<(&String, &String), usize> = HashMap::new();
+
   // Sorted so the same states always produce the same connections
   let sorted_state_positions: BTreeMap<&String, &State> = state_positions.iter().collect();
 
@@ -114,10 +117,18 @@ pub fn create_connections_from_state_positions(
             && connection.curve.end_point == end_point
         });
 
+        let state_pair = if current_state_key <= connected_state_key {
+          (current_state_key, connected_state_key)
+        } else {
+          (connected_state_key, current_state_key)
+        };
+        let connection_count = connection_counts.entry(state_pair).or_insert(0);
+
         let curve = match previous_connection {
           Some(previous_connection) => previous_connection.curve.clone(),
-          None => create_default_curve(start_point, end_point, current_state_key == connected_state_key)
+          None => create_default_curve(start_point, end_point, current_state_key == connected_state_key, *connection_count)
         };
+        *connection_count += 1;
 
         connections.push(Connection {
           connection_character: connection_character.to_owned(),
@@ -134,29 +145,57 @@ pub fn create_connections_from_state_positions(
 
 }
 
-fn create_default_curve(start_point: Coordinate, end_point: Coordinate, is_connected_to_self: bool) -> BezierCurve {
+// The first connection between two states is straight, and each one after it bends further away, alternating sides,
+// so their characters are drawn apart. A state's first loop to itself goes to the left, as one the user draws does,
+// and later loops go up, down and right, getting bigger after that
+fn create_default_curve(start_point: Coordinate, end_point: Coordinate, is_connected_to_self: bool, index: usize) -> BezierCurve {
+
+  if is_connected_to_self {
+    let size = 200 + 100 * (index / 4) as i32;
+    let ((first_x, first_y), (second_x, second_y)) = match index % 4 {
+      0 => ((-size, size), (-size, -size)),
+      1 => ((-size, -size), (size, -size)),
+      2 => ((size, size), (-size, size)),
+      _ => ((size, -size), (size, size))
+    };
+    return BezierCurve {
+      start_point,
+      control_point_one: Coordinate { x: start_point.x + first_x, y: start_point.y + first_y },
+      control_point_two: Coordinate { x: end_point.x + second_x, y: end_point.y + second_y },
+      end_point
+    };
+  }
+
+  // The bend is measured from the same side whichever way the connection goes
+  let (first_point, second_point) = if (start_point.x, start_point.y) <= (end_point.x, end_point.y) {
+    (start_point, end_point)
+  } else {
+    (end_point, start_point)
+  };
+  let x_distance = (second_point.x - first_point.x) as f64;
+  let y_distance = (second_point.y - first_point.y) as f64;
+  let length = x_distance.hypot(y_distance);
+
+  if index == 0 || length == 0.0 {
+    return BezierCurve {
+      start_point,
+      control_point_one: start_point,
+      control_point_two: end_point,
+      end_point
+    };
+  }
+
+  // 100 to one side, then 100 to the other, then 200 to the first side, and so on
+  let bend = 100.0 * ((index + 1) / 2) as f64 * if index % 2 == 1 { 1.0 } else { -1.0 };
+  let point_along_curve = |fraction: f64| Coordinate {
+    x: (start_point.x as f64 + (end_point.x - start_point.x) as f64 * fraction - y_distance / length * bend).round() as i32,
+    y: (start_point.y as f64 + (end_point.y - start_point.y) as f64 * fraction + x_distance / length * bend).round() as i32
+  };
 
   BezierCurve {
     start_point,
-
-    control_point_one: 
-      if is_connected_to_self { 
-        Coordinate {
-        x: start_point.x - 200,
-        y: start_point.y + 200
-        } 
-      } else {
-        start_point
-      },
-
-    control_point_two:
-      if is_connected_to_self 
-      { Coordinate {
-        x: end_point.x - 200,
-        y: end_point.y - 200
-      } } else 
-      {end_point},
-    
+    control_point_one: point_along_curve(1.0 / 3.0),
+    control_point_two: point_along_curve(2.0 / 3.0),
     end_point
   }
 

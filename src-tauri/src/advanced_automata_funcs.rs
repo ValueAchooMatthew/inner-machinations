@@ -123,8 +123,9 @@ fn create_state_positions_from_dfa(
 mod tests {
   use super::create_state_positions_from_dfa;
   use app::automaton::Automaton;
-  use app::models::{Coordinate, State};
-  use std::collections::{BTreeSet, HashMap};
+  use app::create_connections_from_state_positions;
+  use app::models::{Connection, Coordinate, State};
+  use std::collections::{BTreeSet, HashMap, HashSet};
 
   fn state(x: i32, is_start: bool, is_final: bool, connections: &[(&str, i32)]) -> (String, State) {
     let mut state = State::new(Coordinate { x, y: 100 }, is_start, is_final);
@@ -171,5 +172,45 @@ mod tests {
       assert_eq!(state.get_connections_by_character("b").unwrap().len(), 1);
     }
     assert_eq!(converted.values().filter(|state| state.is_start()).count(), 1);
+  }
+
+  // Roughly where the frontend draws a connection's character: the middle of its curve
+  fn middle_of_curve(connection: &Connection) -> (i32, i32) {
+    let curve = &connection.curve;
+    (
+      (curve.start_point.x + 3 * curve.control_point_one.x + 3 * curve.control_point_two.x + curve.end_point.x) / 8,
+      (curve.start_point.y + 3 * curve.control_point_one.y + 3 * curve.control_point_two.y + curve.end_point.y) / 8
+    )
+  }
+
+  #[test]
+  fn test_connections_between_the_same_states_are_drawn_apart() {
+    let state_positions = HashMap::from([
+      state(100, true, false, &[("a", 400), ("b", 400), ("a", 100), ("b", 100), ("c", 100)]),
+      state(400, false, true, &[("a", 100), ("b", 100)])
+    ]);
+
+    let connections = create_connections_from_state_positions(&state_positions, &[]);
+    assert_eq!(connections.len(), 7);
+
+    let middles: HashSet<(i32, i32)> = connections.iter().map(middle_of_curve).collect();
+    assert_eq!(middles.len(), 7);
+  }
+
+  #[test]
+  fn test_connections_keep_the_curves_the_user_drew() {
+    let state_positions = HashMap::from([
+      state(100, true, false, &[("a", 400), ("b", 400)]),
+      state(400, false, true, &[])
+    ]);
+    let mut previous_connection = create_connections_from_state_positions(&state_positions, &[])
+      .into_iter()
+      .find(|connection| connection.connection_character == "b")
+      .unwrap();
+    previous_connection.curve.control_point_one = Coordinate { x: 250, y: 900 };
+
+    let connections = create_connections_from_state_positions(&state_positions, &[previous_connection]);
+    let b_connection = connections.iter().find(|connection| connection.connection_character == "b").unwrap();
+    assert_eq!(b_connection.curve.control_point_one, Coordinate { x: 250, y: 900 });
   }
 }
