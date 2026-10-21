@@ -13,7 +13,7 @@ import {
   automaton as automatonStore, connection_start, default_connection_character, dialogue_to_user, input_alphabet,
   selection, should_show_string_traversal, should_strict_check, tool, type_of_automata, workspace_name,
 } from "$lib/utils/automataStores";
-import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
+import { save_status, saveNow, stopAutosave } from "$lib/workbench/autosave";
 import {
   checkString as checkStringAction, clickCanvas, convertNfaToDfa, doubleClickCanvas, dragCanvas, loadWorkspace,
   minimizeDfa, pressCanvas, pressKey, releaseCanvas, selectTool as selectToolAction, trash as trashAction,
@@ -73,6 +73,8 @@ export const describeAutomaton = (current: Automaton): AutomatonDescription => (
 
 // Like starting the app: every store back to how it starts out
 export const launchApp = (): void => {
+  stopAutosave();
+  save_status.set("saved");
   automatonStore.set(emptyAutomaton());
   tool.set("state");
   connection_start.set(null);
@@ -234,7 +236,7 @@ export const drawing = (): { states: Array<string>; connections: Array<string> }
 
 // Saves the way the save button does, and returns the automaton the backend was sent
 export const save = async (): Promise<AutomatonDescription> => {
-  await saveWorkspace();
+  await saveNow();
   const [args] = backend.callsTo("save_workspace").slice(-1);
   return describeAutomaton(args.automaton);
 };

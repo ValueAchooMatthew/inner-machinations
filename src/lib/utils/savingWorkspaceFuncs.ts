@@ -1,20 +1,18 @@
 import { invokeCommand } from "$lib/utils/backend";
-import { automaton, dialogue_to_user, input_alphabet, workspace_name, should_strict_check, should_show_string_traversal,
+import { input_alphabet, workspace_name, should_strict_check, should_show_string_traversal,
 default_connection_character } from "./automataStores";
+import type { Automaton } from "$lib/workbench/automaton";
 import { get } from "svelte/store";
 import { convertFormDataEntriesToStringArray } from "./miscUtils";
 
-// Saves the automaton and the alphabet. The backend keeps the alphabet's distinct single characters
-export const saveWorkspace = async () => {
-
-  dialogue_to_user.set(null);
-
-  const saved_alphabet: Array<string> = await invokeCommand("save_workspace", {
+// Saves the automaton and the alphabet, and returns the alphabet as saved: the backend keeps only its distinct
+// single characters. Autosave decides when (src/lib/workbench/autosave.ts)
+export const saveWorkspace = async (automaton: Automaton, alphabet: Array<string>): Promise<Array<string>> => {
+  return await invokeCommand("save_workspace", {
     workspaceName: get(workspace_name),
-    automaton: get(automaton),
-    alphabet: get(input_alphabet)
+    automaton,
+    alphabet
   });
-  input_alphabet.set(saved_alphabet);
 };
 
 export async function saveOptions(form: HTMLFormElement | undefined) {

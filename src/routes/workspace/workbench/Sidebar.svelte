@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
+  import { saveNow } from "$lib/workbench/autosave";
   import { selectTool, trash } from "$lib/workbench/actions";
 </script>
 
@@ -119,7 +119,7 @@
       ></path>
     </svg>
     <svg class="hover:cursor-pointer w-6 mb-0.5"
-      on:click={saveWorkspace}
+      on:click={() => saveNow().catch(() => {})}
       data-slot="icon"
       fill="currentColor"
       viewBox="0 0 24 24"

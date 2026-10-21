@@ -4,7 +4,7 @@
   import { automaton, connection_start, selection } from "$lib/utils/automataStores";
   import { stateById, type Point } from "$lib/workbench/automaton";
   import { clickCanvas, doubleClickCanvas, dragCanvas, pressCanvas, pressKey, releaseCanvas } from "$lib/workbench/actions";
-  import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
+  import { saveNow } from "$lib/workbench/autosave";
 
   // The state a string's traversal has reached, while it is being shown
   export let highlighted_state_id: number | null = null;
@@ -69,7 +69,7 @@
   const handleKeyDown = (event: KeyboardEvent): void => {
     if ((event.ctrlKey || event.metaKey) && event.key === "s") {
       event.preventDefault();
-      saveWorkspace();
+      saveNow().catch(() => {});
       return;
     }
     if (!isTextEntry(event.target)) {

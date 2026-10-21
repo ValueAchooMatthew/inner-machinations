@@ -7,6 +7,8 @@
   import { invokeCommand } from "$lib/utils/backend";
   import { should_show_string_traversal, workspace_name } from "$lib/utils/automataStores";
   import { checkString, loadWorkspace } from "$lib/workbench/actions";
+  import { saveNow, startAutosave, stopAutosave } from "$lib/workbench/autosave";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import type { WorkspaceData } from "$lib/types/interfaces";
   import TestFeedback from "./TestFeedback.svelte";
   import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
@@ -18,11 +20,24 @@
   let highlighted_state_id: number | null = null;
   let is_option_menu_open: boolean = false;
 
+  // Closing the window waits for unsaved changes to be saved. The window closes either way: a failed save
+  // can't be put right by keeping the user from leaving
+  let stopWaitingForClose: (() => void) | undefined;
+
   onMount(async () => {
     const workspace_data: WorkspaceData = await invokeCommand("retrieve_workspace_data", {
       workspaceName: $workspace_name,
     });
     loadWorkspace(workspace_data);
+    startAutosave();
+    stopWaitingForClose = await getCurrentWindow().onCloseRequested(async () => {
+      await saveNow().catch(() => {});
+    });
+  });
+
+  onDestroy(() => {
+    stopAutosave();
+    stopWaitingForClose?.();
   });
 
   // The traversal being shown, if any, so a new check or leaving the page can stop it

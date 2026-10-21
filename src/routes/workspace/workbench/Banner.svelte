@@ -1,10 +1,28 @@
 <script lang="ts">
   import { Automata } from "$lib/types/enums";
   import { workspace_name, type_of_automata, dialogue_to_user } from "$lib/utils/automataStores";
-  import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
   import { invokeCommand } from "$lib/utils/backend";
+  import { save_status, saveNow } from "$lib/workbench/autosave";
+  import { goto } from "$app/navigation";
 
   export let is_option_menu_open: boolean;
+
+  const SAVE_STATUS_LABELS = {
+    saved: "Saved",
+    saving: "Saving…",
+    unsaved: "Unsaved changes",
+    failed: "Not saved",
+  };
+
+  // Leaves the workbench once the workspace is saved. If saving fails, the user stays, and is shown why
+  async function leaveFor(destination: string) {
+    try {
+      await saveNow();
+    } catch {
+      return;
+    }
+    goto(destination);
+  }
 
   // Current workaround to save workspace 500ms after typing has stopped
   // as svelte doesn't provide on:inputend event natively
@@ -101,9 +119,13 @@
         NFA
       </button>
     </div>
-    <button class="w-2xl flex gap-3 justify-end" on:click={async () => {saveWorkspace()}}>
+    <nav class="w-2xl flex gap-3 justify-end">
+      <span class="self-center text-lg font-semibold whitespace-nowrap" id="save_status">
+        {SAVE_STATUS_LABELS[$save_status]}
+      </span>
       <a class="flex gap-2 font-bold self-center justify-self-end"
-        href="/workspace/dashboard">
+        href="/workspace/dashboard"
+        on:click|preventDefault={() => leaveFor("/workspace/dashboard")}>
         <svg class="w-10 h-10"
           data-slot="icon"
           aria-hidden="true"
@@ -120,7 +142,7 @@
         </svg>
         <span> Dashboard </span>
       </a>
-      <a class="flex gap-2 font-bold self-center justify-self-end" href="/">
+      <a class="flex gap-2 font-bold self-center justify-self-end" href="/" on:click|preventDefault={() => leaveFor("/")}>
         <svg class="w-10 h-10 inline-block"
           data-slot="icon"
           aria-hidden="true"
@@ -137,6 +159,6 @@
         </svg>
         <span> Home </span>
       </a>
-    </button>
+    </nav>
   </div>
 </div>

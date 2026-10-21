@@ -85,6 +85,8 @@ kwin_wayland --virtual --socket=${SOCKET} --width=${SCREEN.width} --height=${SCR
   --no-lockscreen --no-global-shortcuts --no-kactivities > "${RUN_DIR}/kwin.log" 2>&1 &
 for i in $(seq 1 100); do [ -S "$XDG_RUNTIME_DIR/${SOCKET}" ] && break; sleep 0.1; done
 [ -S "$XDG_RUNTIME_DIR/${SOCKET}" ] || { echo "kwin socket missing" >&2; exit 1; }
+# The harness asks KWin to close the app's window over this session's bus, as a user closing it would
+echo "$DBUS_SESSION_BUS_ADDRESS" > "${RUN_DIR}/bus"
 export WAYLAND_DISPLAY=${SOCKET} GDK_BACKEND=wayland
 exec "${TAURI_DRIVER}" --port ${PORT} --native-port ${NATIVE_PORT} --native-driver /usr/bin/WebKitWebDriver
 `;
@@ -148,6 +150,25 @@ async function type(selector, text, using) {
 const bodyText = () => exec('return document.body.innerText;');
 const waitText = (text, timeout) => waitFor(async () => (await bodyText()).includes(text) && text, `text "${text}"`, timeout);
 const route = () => exec('return location.pathname;');
+
+// Closes the app's window the way a user would, by asking the compositor to, through a KWin script
+function closeAppWindow() {
+  const busEnv = { ...env, DBUS_SESSION_BUS_ADDRESS: fs.readFileSync(`${RUN_DIR}/bus`, 'utf8').trim() };
+  const script = `${RUN_DIR}/close-window.js`;
+  fs.writeFileSync(script, 'for (const window of workspace.windowList()) { if (window.caption.includes("Inner Machinations")) window.closeWindow(); }');
+  const dbus = (...args) => execFileSync('dbus-send', ['--session', '--print-reply', '--dest=org.kde.KWin', ...args], { env: busEnv }).toString();
+  const id = dbus('/Scripting', 'org.kde.kwin.Scripting.loadScript', `string:${script}`, 'string:close-window').match(/int32 (\d+)/)[1];
+  dbus(`/Scripting/Script${id}`, 'org.kde.kwin.Script.run');
+}
+
+const isAppRunning = () => {
+  try {
+    execFileSync('pgrep', ['-f', APP]);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 // Click at canvas-relative pixel coordinates with real pointer events.
 async function clickCanvas(x, y) {
@@ -261,10 +282,15 @@ try {
     const results = {};
     for (const str of ['a', 'b']) {
       results[str] = await checkString(str);
-      results[`${str}_dialogue`] = await dialogue();
       await sleep(300);
     }
-    return { ok: results.a === ACCEPTED && results.b === REJECTED, ...results };
+    // Saved without being asked to
+    results.save_status = await waitFor(async () => {
+      const status = await exec('return document.querySelector("#save_status").innerText.trim();');
+      return status === 'Saved' && status;
+    }, 'autosave', 5000).catch(() => null);
+    results.saved_states = sql(DB, "SELECT count(*) FROM saved_states s JOIN saved_workspaces w ON w.id = s.workspace_id WHERE w.workspace_name = 'e2e-ws';");
+    return { ok: results.a === ACCEPTED && results.b === REJECTED && results.save_status === 'Saved' && results.saved_states === '2', ...results };
   });
 
   await step('f-language-and-minimize', async () => {
@@ -399,6 +425,22 @@ try {
     await click(byText('a', 'Home'), 'xpath');
     await waitText('Click anywhere to begin');
     return { ok: (await route()) === '/', workspaces: sql(DB, "SELECT group_concat(workspace_name, ', ') FROM saved_workspaces;") };
+  });
+
+  // Last, since it ends the app: an edit made just before closing the window is saved, not lost
+  await step('l-closing-the-window-saves', async () => {
+    await click(byText('span', 'Click anywhere to begin'), 'xpath');
+    await waitText('My Dashboard');
+    await click(byText('button', 'Untitled Project'), 'xpath');
+    await waitFor(async () => (await route()).includes('workbench'), 'workbench route');
+    await waitText('The language of the automata is');
+    await click(byText('button', 'New State'), 'xpath');
+    await clickCanvas(1100, 600);
+    // Well inside the autosave delay
+    closeAppWindow();
+    const exited = await waitFor(async () => !isAppRunning(), 'the app to exit', 10000).catch(() => false);
+    const saved = sql(DB, "SELECT count(*) FROM saved_states s JOIN saved_workspaces w ON w.id = s.workspace_id WHERE w.workspace_name = 'Untitled Project' AND s.x = 1100 AND s.y = 600;");
+    return { ok: exited && saved === '1', app_exited: exited, new_state_saved: saved === '1' };
   });
 } catch (e) {
   log('fatal:', e.message);
