@@ -3,11 +3,11 @@ name = "app"
 version = "0.1.0"
 description = "A desktop application to build and test deterministic and non-deterministic finite automata"
 authors = ["Matthew Farah"]
-license = "MIT"
-repository = ""
+license = "GPL-3.0-or-later"
+repository = "https://github.com/ValueAchooMatthew/inner-machinations"
 default-run = "app"
 edition = "2021"
-rust-version = "1.65"
+rust-version = "1.90"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
