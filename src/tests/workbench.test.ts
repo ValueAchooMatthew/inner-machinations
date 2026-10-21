@@ -5,8 +5,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { backend } from "./fakeBackend";
 import {
-  alphabet, automaton, automatonType, checkString, click, convert, doubleClick, drag, drawing, launchApp, message, minimize,
-  openWorkspace, pressKeys, save, selected, selectTool, setAutomatonType, setStrictChecking, trash,
+  alphabet, automaton, automatonType, checkString, click, closeOptions, convert, defaultCharacter, doubleClick, drag, drawing,
+  launchApp, message, minimize, openWorkspace, pressKeys, rename, save, selected, selectTool, setAutomatonType, setStrictChecking,
+  trash, workspaceName,
 } from "./workbenchDriver";
 
 beforeEach(() => {
@@ -350,6 +351,78 @@ describe("minimizing and converting", () => {
     await minimize();
     await convert();
     expect(backend.callsTo("save_workspace")).toEqual([]);
+  });
+});
+
+describe("renaming", () => {
+  beforeEach(() => {
+    backend.respond("does_workspace_name_exist", (args) => args.workspaceName === "Taken");
+    backend.respond("save_workspace", (args) => args.alphabet);
+  });
+
+  it("saves, then renames, and remembers the new name for the session", async () => {
+    await rename("Renamed", { submitted: true });
+    expect(backend.calls.map((call) => call.command)).toEqual(["does_workspace_name_exist", "save_workspace", "update_workspace_name"]);
+    expect(backend.callsTo("update_workspace_name")[0]).toEqual({ originalWorkspaceName: "Test workspace", newWorkspaceName: "Renamed" });
+    expect(workspaceName()).toBe("Renamed");
+    expect(sessionStorage.getItem("workspace_name")).toBe("Renamed");
+  });
+
+  it("won't take a blank name, and says so when the name is submitted", async () => {
+    await rename("   ");
+    expect(message()).toBeNull();
+    await rename("", { submitted: true });
+    expect(message()).toBe("A workspace needs a name");
+    expect(backend.callsTo("update_workspace_name")).toEqual([]);
+    expect(workspaceName()).toBe("Test workspace");
+  });
+
+  it("won't take another workspace's name, and says so when the name is submitted", async () => {
+    await rename("Taken");
+    expect(message()).toBeNull();
+    await rename("Taken", { submitted: true });
+    expect(message()).toBe("There is already a workspace called \"Taken\"");
+    expect(backend.callsTo("update_workspace_name")).toEqual([]);
+  });
+
+  it("keeps the old name when renaming fails", async () => {
+    backend.respond("update_workspace_name", () => {
+      throw "Couldn't rename the workspace: disk I/O error";
+    });
+    await rename("Renamed", { submitted: true });
+    expect(workspaceName()).toBe("Test workspace");
+    expect(message()).toBe("Couldn't rename the workspace: disk I/O error");
+  });
+});
+
+describe("the options menu", () => {
+  beforeEach(() => {
+    backend.respond("update_workspace_alphabet", (args) => args.alphabet.filter((character: string) => character.length === 1));
+  });
+
+  it("saves the alphabet and default character when it closes", async () => {
+    await closeOptions({ alphabet: ["x", "", "y"], defaultCharacter: "y" });
+    expect(alphabet()).toEqual(["x", "y"]);
+    expect(defaultCharacter()).toBe("y");
+    expect(backend.callsTo("update_default_connection_character")[0].defaultConnectionCharacter).toBe("y");
+    expect(backend.callsTo("update_strict_checking")).toHaveLength(1);
+    expect(backend.callsTo("update_showing_string_traversal")).toHaveLength(1);
+  });
+
+  it("keeps the default character when the new one isn't a single character", async () => {
+    for (const notACharacter of ["", "ab", "ϵ"]) {
+      await closeOptions({ alphabet: ["a", "b"], defaultCharacter: notACharacter });
+      expect(defaultCharacter()).toBe("a");
+      expect(message()).toBe("The default connection character must be a single character, other than ϵ");
+    }
+    expect(backend.callsTo("update_default_connection_character")).toEqual([]);
+    // The rest is saved regardless
+    expect(backend.callsTo("update_workspace_alphabet")).toHaveLength(3);
+  });
+
+  it("doesn't save the default character when it hasn't changed", async () => {
+    await closeOptions({ alphabet: ["a", "b"], defaultCharacter: "a" });
+    expect(backend.callsTo("update_default_connection_character")).toEqual([]);
   });
 });
 

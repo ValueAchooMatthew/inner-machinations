@@ -23,7 +23,8 @@
 <div class="text-center p-48 relative h-screen w-full flex flex-col">
   <div class="flex flex-wrap justify-center gap-12 max-w-7xl mx-auto">
     {#if saved_workspace_names}
-      {#each saved_workspace_names as workspace_title, _}
+      <!-- Keyed, so each card keeps the preview it drew when a workspace before it is deleted -->
+      {#each saved_workspace_names as workspace_title (workspace_title)}
         <Card bind:workspace_to_delete={workspace_to_delete} bind:workspace_title={workspace_title}/>
       {/each}
     {/if}

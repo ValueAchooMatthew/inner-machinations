@@ -1,22 +1,28 @@
 <script lang="ts">
   // Todo: make scrolling alphabet input boxes for large alphabets and common cases providable (alphabet, alphanumeric, etc.)
   import { input_alphabet, should_show_string_traversal, should_strict_check, 
-  default_connection_character, workspace_name } from "$lib/utils/automataStores";
-  import { convertFormDataEntriesToStringArray} from "$lib/utils/miscUtils";
-  import { saveOptions } from "$lib/utils/savingWorkspaceFuncs";
-  import { invokeCommand } from "$lib/utils/backend";
+  default_connection_character } from "$lib/utils/automataStores";
+  import { saveOptions } from "$lib/workbench/actions";
   import { tick } from "svelte";
 
   export let is_option_menu_open: boolean;
-  let form: HTMLFormElement | undefined;
   let container: HTMLDivElement | undefined;
 
+  // The alphabet and default character being edited, taken from the workspace when the menu opens and saved
+  // when it closes. The checkboxes change their options straight away
+  let alphabet_inputs: Array<string> = [];
+  let default_character = "";
+  let was_open = false;
+  $: {
+    if (is_option_menu_open && !was_open) {
+      alphabet_inputs = [...$input_alphabet];
+      default_character = $default_connection_character;
+    }
+    was_open = is_option_menu_open;
+  }
+
   const handleAddingInputElement = async () => {
-    
-    input_alphabet.update((prev_input_alphabet) => {
-      prev_input_alphabet.push("");
-      return prev_input_alphabet;
-    })
+    alphabet_inputs = [...alphabet_inputs, ""];
     await tick();
     if(container) {
       container.scrollTop = container.scrollHeight;
@@ -24,52 +30,23 @@
   }
 
   const handleRemovingInputElement = (index: number) => {
-    input_alphabet.update((prev_input_alphabet)=>{
-      prev_input_alphabet.splice(index, 1);
-      return prev_input_alphabet;
-    })
+    alphabet_inputs = alphabet_inputs.filter((_, other_index) => other_index !== index);
   };
 
-  async function handleClosingOptionMenu() {
+  async function closeOptionMenu() {
     is_option_menu_open = false;
-    if(form) {
-
-      const data = new FormData(form);
-
-      const alphabet = data.getAll("alphabet");
-      const stringified_array = convertFormDataEntriesToStringArray(alphabet);
-      const sanitized_alphabet: Array<string> = await invokeCommand("update_workspace_alphabet", {
-        workspaceName: $workspace_name, alphabet: stringified_array
-      });
-      input_alphabet.set(sanitized_alphabet);
-
-      await invokeCommand("update_showing_string_traversal", {
-        workspaceName: $workspace_name, 
-        shouldShowTraversal: $should_show_string_traversal
-      });
-
-      await invokeCommand("update_strict_checking", {
-        workspaceName: $workspace_name, 
-        shouldStrictCheck: $should_strict_check
-      });
-      
-      const default_connection_char = data.get("default_character")?.toString();
-      if(default_connection_char === undefined) {
-        return;
-      }
-      default_connection_character.set(default_connection_char);
-      await invokeCommand("update_default_connection_character", {
-        workspaceName: $workspace_name, 
-        defaultConnectionCharacter: default_connection_char
-      });
-
-    }
+    // A failure has been shown to the user
+    await saveOptions(alphabet_inputs, default_character).catch(() => {});
   }
 
   async function handleKeyDownEvent(event: KeyboardEvent) {
-    if(event.key === "Escape") {
-      is_option_menu_open = !is_option_menu_open;
-      await saveOptions(form);
+    if(event.key !== "Escape") {
+      return;
+    }
+    if (is_option_menu_open) {
+      await closeOptionMenu();
+    } else {
+      is_option_menu_open = true;
     }
   }
 
@@ -109,7 +86,7 @@
 <svelte:window on:keydown={handleKeyDownEvent}/>
 <div class="flex justify-start">
   <button class="w-12 h-12 z-10 self-center ml-4 mt-4"
-    on:click={handleClosingOptionMenu}>
+    on:click={closeOptionMenu}>
     <svg
       data-slot="icon"
       aria-hidden="true"
@@ -128,24 +105,21 @@
 </div>
 <h1 class="text-5xl text-gray-100 text-center my-6 mt-24">Options</h1>
 <div class="font-bold h-fit bg-gray-100 flex flex-col text-3xl justify-start px-52 gap-24 mx-auto rounded-[3rem] p-12">
-  <form class="self-start flex flex-col gap-4" bind:this={form} id="alphabetChange">
+  <form class="self-start flex flex-col gap-4" id="alphabetChange" on:submit|preventDefault={closeOptionMenu}>
     <div class="flex justify-between">
       <label for="alphabet"> Input Alphabet: </label>
       <div class="flex gap-3">
         <div bind:this={container} class="flex flex-col gap-3 max-h-64 overflow-y-scroll px-8 scroll-smooth">
-          {#each $input_alphabet as value, i}
+          {#each alphabet_inputs as _, i}
             <div class="flex gap-1">
               <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2"
                 maxlength="1"
-                {value}
+                bind:value={alphabet_inputs[i]}
                 type="text"
                 name="alphabet"
                 id="alphabet"/>
-              <button class="w-8 h-8">
-                <svg 
-                  on:click={() => {
-                    handleRemovingInputElement(i);
-                  }}
+              <button class="w-8 h-8" type="button" title="Remove this character" on:click={() => handleRemovingInputElement(i)}>
+                <svg
                   data-slot="icon"
                   aria-hidden="true"
                   fill="none"
@@ -163,7 +137,7 @@
             </div>
           {/each}
         </div>
-        <button class="self-end mb-1" on:click={handleAddingInputElement}>
+        <button class="self-end mb-1" type="button" title="Add a character" on:click={handleAddingInputElement}>
           <svg class="w-8 h-8"
             data-slot="icon"
             aria-hidden="true"
@@ -186,10 +160,6 @@
       <label class="self-center" for="strict"> Strict Checking (works for DFA's only): </label>
       <input class="w-6 h-6 accent-orange-500checked:bg-orange-500 checked:border-transparent 
         checked:ring-2 checked:ring-orange-500 checked:ring-offset-2 checked:ring-offset-white rounded-md px-2 py-1 mr-1"
-        on:change={() => {
-          should_strict_check.set(!$should_strict_check);
-        }}
-
         bind:checked={$should_strict_check}
         type="checkbox"
         name="strict"
@@ -199,9 +169,6 @@
       <label class="self-center" for="traversal"> Show Step-By-Step String Traversal: </label>
       <input class="w-6 h-6 accent-orange-500 checked:bg-orange-500 checked:border-transparent 
         checked:ring-2 checked:ring-orange-500 checked:ring-offset-2 checked:ring-offset-white rounded-md px-2 py-1 mr-1"
-        on:change={() => {
-          should_show_string_traversal.set(!$should_show_string_traversal);
-        }}
         bind:checked={$should_show_string_traversal}
         type="checkbox"
         name="traversal"
@@ -213,7 +180,7 @@
         Specify default connection character:
       </label>
       <input class="border-black border-2 rounded-md px-2 py-1"
-        value={$default_connection_character}
+        bind:value={default_character}
         maxlength="1"
         type="text"
         name="default_character"

@@ -1,4 +1,9 @@
 import type { ConcatenatedExpression, KleeneOperator, Literal, OrOperator } from "./interfaces";
 
-// Not including grouped expressions as they are parsed out in rust backend before being passed to ts
-export type Token = OrOperator | KleeneOperator | ConcatenatedExpression | Literal;
+// A node of a regular expression's parse tree, as the backend sends it: an object with one key, naming the
+// kind of node. Grouped expressions are parsed out in the backend before the tree is sent
+export type Token =
+  | Literal
+  | { OrOperator: OrOperator }
+  | { KleeneOperator: KleeneOperator }
+  | { ConcatenatedExpression: ConcatenatedExpression };

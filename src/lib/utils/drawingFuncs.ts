@@ -1,5 +1,6 @@
 import type { Token } from "$lib/types/types";
-import type { BezierCurve, Coordinate, KleeneOperator, OrOperator, ConcatenatedExpression } from "../types/interfaces";
+import type { BezierCurve, Coordinate } from "../types/interfaces";
+import { layoutParseTree, type LaidOutToken } from "./parseTreeLayout";
 import type { Selection } from "./automataStores";
 import { connectionCurve, STATE_RADIUS, type Automaton, type AutomatonState, type Point } from "$lib/workbench/automaton";
 import {
@@ -187,109 +188,49 @@ const drawNode = (
   context.closePath();
 };
 
-export function drawParseTree(parse_tree: Token, context: CanvasRenderingContext2D, start_position: Coordinate) {
-  // Ugliest fucking code of all type because javascript is a piece of shit language and should kill itself
-  context.lineWidth = 7;
+const PARSE_TREE_COLOURS: Record<LaidOutToken["kind"], string> = {
+  kleene: "#008000",
+  or: "#0096FF",
+  concatenation: "#F08000",
+  literal: "#FFFF00",
+};
+
+// Draws the parse tree centred at the top of the canvas, shrunk to fit when it is too big for it
+export function drawParseTree(parse_tree: Token, context: CanvasRenderingContext2D, width: number, height: number) {
+  const { root, width: tree_width, height: tree_height } = layoutParseTree(parse_tree);
+  const margin = 60;
+  const scale = Math.min(
+    1,
+    (width - 2 * margin) / Math.max(tree_width, 1),
+    (height - 2 * margin) / Math.max(tree_height, 1),
+  );
+
+  context.save();
+  context.translate(width / 2 - (tree_width * scale) / 2, margin);
+  context.scale(scale, scale);
   context.font = "40px Arial";
   context.textBaseline = "middle";
   context.textAlign = "center";
-  drawToken(context, parse_tree, start_position);
-
+  drawLaidOutToken(context, root);
+  context.restore();
 }
 
-function drawToken(context: CanvasRenderingContext2D, token: Token, position: Coordinate) {
-  const distance = 175;
+function drawLaidOutToken(context: CanvasRenderingContext2D, token: LaidOutToken) {
   const circle_radius = 35;
-  const arrow_y_end = distance - circle_radius - 6;
 
-  if ("KleeneOperator" in token) {
-    // We know the current token in the parse tree is a literal
-    const kleene_operator = token.KleeneOperator as KleeneOperator;
-    context.beginPath();
-    context.strokeStyle = "#008000";
-    context
-      .arc(position.x, position.y, circle_radius, 0, 2 * Math.PI);
-    context.stroke();
-    context.closePath();
-    context.fillText(
-      kleene_operator.operator_character,
-      position.x,
-      position.y
-    )
-    
-    drawToken(context, kleene_operator.inner_argument, {x: position.x, y: position.y + distance});
-    drawConnection(context, {
-      start_point: {x: position.x, y: position.y + circle_radius},
-      control_point_one: {x: position.x, y: position.y + circle_radius},
-      control_point_two: {x: position.x, y: position.y + arrow_y_end},
-      end_point: {x: position.x, y: position.y + arrow_y_end}
-    }, "", false, 1);
-  } else if ("OrOperator" in token) {
-    const or_operator = token.OrOperator as OrOperator;
-    context.beginPath();
-    context.strokeStyle = "#0096FF";
-    context
-      .arc(position.x, position.y, circle_radius, 0, 2 * Math.PI);
-    context.stroke();
-    context.closePath();
-    context.fillText(
-      or_operator.operator_character,
-      position.x,
-      position.y
-    )
-    drawToken(context, or_operator.left_argument, {x: position.x - distance, y: position.y + distance});
-    drawToken(context, or_operator.right_argument, {x: position.x + distance, y: position.y + distance});
-    drawConnection(context, {
-      start_point: {x: position.x, y: position.y + circle_radius},
-      control_point_one: {x: position.x, y: position.y + circle_radius},
-      control_point_two: {x: position.x - distance, y: position.y + arrow_y_end},
-      end_point: {x: position.x - distance, y: position.y + arrow_y_end}
-    }, "", false, 1);
-    drawConnection(context, {
-      start_point: {x: position.x, y: position.y + circle_radius},
-      control_point_one: {x: position.x, y: position.y + circle_radius},
-      control_point_two: {x: position.x + distance, y: position.y + arrow_y_end},
-      end_point: {x: position.x + distance, y: position.y + arrow_y_end}
-    }, "", false, 1);
-  } else if ("ConcatenatedExpression" in token) {
-    const concatenated_expression = token.ConcatenatedExpression as ConcatenatedExpression;
-    context.beginPath();
-    context.strokeStyle = "#F08000";
-    context
-      .arc(position.x, position.y, circle_radius, 0, 2 * Math.PI);
-    context.stroke();
-    context.closePath();
-    context.fillText(
-      concatenated_expression.operator_character,
-      position.x,
-      position.y
-    )
-    drawToken(context, concatenated_expression.left_argument, {x: position.x - distance, y: position.y + distance});
-    drawToken(context, concatenated_expression.right_argument, {x: position.x + distance, y: position.y + distance});
-    drawConnection(context, {
-      start_point: {x: position.x, y: position.y + circle_radius},
-      control_point_one: {x: position.x, y: position.y + circle_radius},
-      control_point_two: {x: position.x - distance, y: position.y + arrow_y_end},
-      end_point: {x: position.x - distance, y: position.y + arrow_y_end}
-    }, "", false, 1);
-    drawConnection(context, {
-      start_point: {x: position.x, y: position.y + circle_radius},
-      control_point_one: {x: position.x, y: position.y + circle_radius},
-      control_point_two: {x: position.x + distance, y: position.y + arrow_y_end},
-      end_point: {x: position.x + distance, y: position.y + arrow_y_end}
-    }, "", false, 1);
-  } else if ("Literal" in token) {
-    context.beginPath();
-    context.strokeStyle = "#FFFF00";
-    context
-      .arc(position.x, position.y, circle_radius, 0, 2 * Math.PI);
-    context.stroke();
-    context.closePath();
-    context.fillText(
-      token.Literal,
-      position.x,
-      position.y
-    )
+  context.lineWidth = 7;
+  context.strokeStyle = PARSE_TREE_COLOURS[token.kind];
+  context.beginPath();
+  context.arc(token.x, token.y, circle_radius, 0, 2 * Math.PI);
+  context.stroke();
+  context.closePath();
+  context.fillStyle = "black";
+  context.fillText(token.label, token.x, token.y);
+
+  for (const child of token.children) {
+    drawLaidOutToken(context, child);
+    const from = { x: token.x, y: token.y + circle_radius };
+    const to = { x: child.x, y: child.y - circle_radius - 6 };
+    drawConnection(context, { start_point: from, control_point_one: from, control_point_two: to, end_point: to }, "", false, 1);
   }
-
 }

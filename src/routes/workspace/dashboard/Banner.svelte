@@ -1,23 +1,17 @@
 <script lang="ts">
-  import { clearSessionValue, setSessionValue } from "$lib/utils/miscUtils";
+  import { firstFreeName, setSessionValue } from "$lib/utils/miscUtils";
   import { goto } from "$app/navigation";
   import { dialogue_to_user, workspace_name } from "$lib/utils/automataStores";
   import { invokeCommand } from "$lib/utils/backend";
 
+  // A new workspace is called "Untitled Project", numbered if that name is taken
   async function handleClick() {
-    clearSessionValue("workspace_name");
-    const does_workspace_exist = await invokeCommand("does_workspace_name_exist", {workspaceName: "Untitled Project"})
-    if(does_workspace_exist) {
-      dialogue_to_user.set("Untitled Project already exists")
-      return;
-    } 
-    
-    setSessionValue("workspace_name", "Untitled Project");
-    workspace_name.set(
-      "Untitled Project"
-    )
+    const saved_workspace_names: Array<string> = await invokeCommand("get_saved_workspaces");
+    const new_workspace_name = firstFreeName("Untitled Project", saved_workspace_names);
+    await invokeCommand("create_workspace", {workspaceName: new_workspace_name});
+    setSessionValue("workspace_name", new_workspace_name);
+    workspace_name.set(new_workspace_name);
     dialogue_to_user.set(null);
-    await invokeCommand("create_workspace", {workspaceName: "Untitled Project"});
     goto("/workspace/workbench");
   }
 </script>

@@ -16,7 +16,8 @@ import {
 import { save_status, saveNow, stopAutosave } from "$lib/workbench/autosave";
 import {
   checkString as checkStringAction, clickCanvas, convertNfaToDfa, doubleClickCanvas, dragCanvas, loadWorkspace,
-  minimizeDfa, pressCanvas, pressKey, releaseCanvas, selectTool as selectToolAction, trash as trashAction,
+  minimizeDfa, pressCanvas, pressKey, releaseCanvas, renameWorkspace, saveOptions, selectTool as selectToolAction,
+  trash as trashAction,
 } from "$lib/workbench/actions";
 import { connectionCurve, defaultControlPoints, emptyAutomaton, stateById, type Automaton } from "$lib/workbench/automaton";
 import { backend } from "./fakeBackend";
@@ -198,6 +199,17 @@ export const selected = (): string | null => {
 // Like pressing "Minimize DFA" or "Convert NFA to DFA". Failures are shown to the user, as message() reports
 export const minimize = (): Promise<void> => minimizeDfa().catch(() => {});
 export const convert = (): Promise<void> => convertNfaToDfa().catch(() => {});
+
+// Like typing a new name in the banner. Typing renames once the user stops; submitted, it is like pressing Enter
+export const rename = (newName: string, { submitted = false } = {}): Promise<void> =>
+  renameWorkspace(newName, { explain: submitted }).then(() => {}, () => {});
+
+// Like closing the options menu with the alphabet and default character filled in
+export const closeOptions = (options: { alphabet: Array<string>; defaultCharacter: string }): Promise<void> =>
+  saveOptions(options.alphabet, options.defaultCharacter).catch(() => {});
+
+export const workspaceName = (): string => get(workspace_name);
+export const defaultCharacter = (): string => get(default_connection_character);
 
 export const automatonType = (): "DFA" | "NFA" => (get(type_of_automata) === Automata.DFA ? "DFA" : "NFA");
 

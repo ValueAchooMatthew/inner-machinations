@@ -43,3 +43,16 @@ export function convertFormDataEntriesToStringArray(form_data: Array<FormDataEnt
 
   return stringified_array;
 }
+
+// The name, or if a workspace has it already, the name numbered from 2 up
+export function firstFreeName(name: string, taken_names: Array<string>): string {
+  const taken = new Set(taken_names);
+  if (!taken.has(name)) {
+    return name;
+  }
+  let number = 2;
+  while (taken.has(`${name} ${number}`)) {
+    number++;
+  }
+  return `${name} ${number}`;
+}

@@ -341,6 +341,41 @@ try {
       strict_on: on, flagged_incomplete: flagged, strict_off: off, a_after_off: accepted_after };
   });
 
+  await step('h3-options-and-renaming', async () => {
+    const pressEscape = () => exec('window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));');
+    // Add "c" to the alphabet, and try to make the default connection character empty
+    await pressEscape();
+    await sleep(500);
+    await click('button[title="Add a character"]');
+    await sleep(300);
+    await exec(`const inputs = document.querySelectorAll('input[name="alphabet"]');
+      const input = inputs[inputs.length - 1];
+      input.value = 'c';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      const character = document.querySelector('#default_character');
+      character.value = '';
+      character.dispatchEvent(new Event('input', { bubbles: true }));`);
+    await pressEscape();
+    await sleep(1500);
+    const default_character_refused = /must be a single character/.test(await bodyText());
+    const alphabet_saved = sql(DB, "SELECT alphabet FROM saved_workspaces WHERE workspace_name = 'e2e-ws';");
+    const still_on_workbench = (await route()).includes('workbench');
+
+    // A blank name is explained, not used
+    await type('#workspaceName', ' ');
+    await exec('document.querySelector("#workspaceName").form.requestSubmit();');
+    await sleep(800);
+    const blank_name_refused = (await bodyText()).includes('A workspace needs a name');
+    await type('#workspaceName', 'e2e-ws');
+    await sleep(1500);
+    const name_kept = sql(DB, "SELECT count(*) FROM saved_workspaces WHERE workspace_name = 'e2e-ws';") === '1';
+
+    return {
+      ok: default_character_refused && alphabet_saved === 'a,b,c' && still_on_workbench && blank_name_refused && name_kept,
+      default_character_refused, alphabet_saved, still_on_workbench, blank_name_refused, name_kept,
+    };
+  });
+
   await step('i-regexes', async () => {
     await click(byText('a', 'Dashboard'), 'xpath');
     await waitText('My Dashboard');
@@ -371,6 +406,9 @@ try {
     results['a+ error'] = error_shown;
     if (error_shown !== 'A union (+) needs something after it') ok = false;
     await type('#regex', 'a(b+c)*');
+    await sleep(800);
+    // Deep enough that its nodes used to overlap
+    await type('#regex', '((a+b)(c+d))*((e+f)(g+h))');
     await sleep(800);
     const canvas_drawn = await exec(`const c = document.querySelector('canvas'); const d = c.getContext('2d').getImageData(0,0,c.width,c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n;`);
     return { ok, ...results, parse_tree_pixels: canvas_drawn };
@@ -421,10 +459,18 @@ try {
     };
   });
 
-  await step('k-home', async () => {
+  await step('k-new-workspace-names-and-home', async () => {
+    // "Untitled Project" is taken by now, so the next new workspace is numbered
+    await click(byText('a', 'Dashboard'), 'xpath');
+    await waitText('My Dashboard');
+    await click('div.fixed.top-0 svg');
+    await waitFor(async () => (await route()).includes('workbench'), 'workbench route');
+    await sleep(800);
+    const new_name = await exec('return document.querySelector("#workspaceName").value;');
     await click(byText('a', 'Home'), 'xpath');
     await waitText('Click anywhere to begin');
-    return { ok: (await route()) === '/', workspaces: sql(DB, "SELECT group_concat(workspace_name, ', ') FROM saved_workspaces;") };
+    if (new_name !== 'Untitled Project 2') return { ok: false, new_name };
+    return { ok: (await route()) === '/', new_name, workspaces: sql(DB, "SELECT group_concat(workspace_name, ', ') FROM saved_workspaces;") };
   });
 
   // Last, since it ends the app: an edit made just before closing the window is saved, not lost

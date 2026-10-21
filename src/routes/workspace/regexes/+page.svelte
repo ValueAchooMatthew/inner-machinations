@@ -33,7 +33,7 @@
         return;
       }
       context.clearRect(0, 0, width, height);
-      drawParseTree(parse_tree, context, {x: width/2, y: 50});
+      drawParseTree(parse_tree, context, width, height);
       was_string_accepted = accepted;
       error_message = null;
     } catch (error) {

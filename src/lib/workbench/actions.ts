@@ -9,6 +9,8 @@ import {
   should_show_string_traversal, should_strict_check, tool, type_of_automata, workspace_name, type Tool,
 } from "$lib/utils/automataStores";
 import { invokeCommand } from "$lib/utils/backend";
+import { setSessionValue } from "$lib/utils/miscUtils";
+import { saveNow } from "./autosave";
 import { roundToNearest } from "$lib/utils/mathFuncs";
 import { checkInputtedString, type CheckedStringResponse } from "$lib/utils/stringVerificationFuncs";
 import {
@@ -249,4 +251,51 @@ export async function convertNfaToDfa(): Promise<void> {
   replaceAutomaton(dfa);
   type_of_automata.set(Automata.DFA);
   await invokeCommand("update_automata_type", { workspaceName: get(workspace_name), typeOfAutomata: Automata[Automata.DFA] });
+}
+
+// Renames the workspace, saving it first so no save can go to the old name afterwards. A blank name, or one
+// another workspace has, is left alone; `explain` says why, for when the user has asked to rename rather than
+// merely paused typing
+export async function renameWorkspace(newName: string, { explain = false } = {}): Promise<void> {
+  const currentName = get(workspace_name);
+  if (newName === currentName) {
+    return;
+  }
+  if (!newName.trim()) {
+    if (explain) {
+      tell("A workspace needs a name");
+    }
+    return;
+  }
+  if (await invokeCommand<boolean>("does_workspace_name_exist", { workspaceName: newName })) {
+    if (explain) {
+      tell(`There is already a workspace called "${newName}"`);
+    }
+    return;
+  }
+  await saveNow();
+  await invokeCommand("update_workspace_name", { originalWorkspaceName: currentName, newWorkspaceName: newName });
+  workspace_name.set(newName);
+  setSessionValue("workspace_name", newName);
+}
+
+// Saves the options menu's choices as it closes. Its checkboxes change their stores as they are clicked; the
+// alphabet and default character are given here. A default character that isn't a single character is not taken
+export async function saveOptions(alphabet: Array<string>, defaultCharacter: string): Promise<void> {
+  const workspaceName = get(workspace_name);
+
+  const savedAlphabet: Array<string> = await invokeCommand("update_workspace_alphabet", { workspaceName, alphabet });
+  input_alphabet.set(savedAlphabet);
+  await invokeCommand("update_strict_checking", { workspaceName, shouldStrictCheck: get(should_strict_check) });
+  await invokeCommand("update_showing_string_traversal", { workspaceName, shouldShowTraversal: get(should_show_string_traversal) });
+
+  if (defaultCharacter === get(default_connection_character)) {
+    return;
+  }
+  if ([...defaultCharacter].length !== 1 || defaultCharacter === EPSILON) {
+    tell("The default connection character must be a single character, other than ϵ");
+    return;
+  }
+  await invokeCommand("update_default_connection_character", { workspaceName, defaultConnectionCharacter: defaultCharacter });
+  default_connection_character.set(defaultCharacter);
 }

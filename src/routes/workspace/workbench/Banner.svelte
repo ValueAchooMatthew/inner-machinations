@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Automata } from "$lib/types/enums";
-  import { workspace_name, type_of_automata, dialogue_to_user } from "$lib/utils/automataStores";
+  import { workspace_name, type_of_automata } from "$lib/utils/automataStores";
+  import { renameWorkspace } from "$lib/workbench/actions";
   import { invokeCommand } from "$lib/utils/backend";
   import { save_status, saveNow } from "$lib/workbench/autosave";
   import { goto } from "$app/navigation";
@@ -24,46 +25,24 @@
     goto(destination);
   }
 
-  // Current workaround to save workspace 500ms after typing has stopped
-  // as svelte doesn't provide on:inputend event natively
-  async function renameWorkspace(new_workspace_name: string) {
-    await invokeCommand("update_workspace_name", {originalWorkspaceName: $workspace_name, newWorkspaceName: new_workspace_name});
-    workspace_name.set(new_workspace_name);
-  }
-
+  // Renames the workspace once the user stops typing. Pressing Enter renames straight away, and explains
+  // when the name can't be used
   let timer: ReturnType<typeof setTimeout> | undefined;
-  async function handleInputEvent(event: Event & {currentTarget: EventTarget & HTMLInputElement}): Promise<void> {
+  function handleInputEvent(event: Event & {currentTarget: EventTarget & HTMLInputElement}): void {
     const new_workspace_name = event.currentTarget.value;
-    
     clearTimeout(timer);
-    timer = setTimeout(async () => {
-      const does_new_workspace_name_already_exist: boolean = await invokeCommand("does_workspace_name_exist", {workspaceName: new_workspace_name});
-      if(does_new_workspace_name_already_exist) {
-        return;
-      }
-      await renameWorkspace(new_workspace_name);
+    timer = setTimeout(() => {
+      renameWorkspace(new_workspace_name).catch(() => {});
     }, 800);
   }
 
   async function handleSubmitEvent(event: SubmitEvent) {
-    // In case a user has finished typing and thus begun the timer for automatic input handling
-    // But then prior to submission fires submit event
     clearTimeout(timer);
     if (!(event.target instanceof HTMLFormElement)) {
       return;
     }
-    const form_data = new FormData(event.target);
-    const new_workspace_name = form_data.get("workspaceName")?.toString();
-    if(!new_workspace_name) {
-      return;
-    }
-    const does_new_workspace_name_already_exist: boolean = await invokeCommand("does_workspace_name_exist", {workspaceName: new_workspace_name});
-    if(does_new_workspace_name_already_exist) {
-      dialogue_to_user.set("The entered workspace name already exists");
-      return;
-    }
-    await renameWorkspace(new_workspace_name)
-
+    const new_workspace_name = new FormData(event.target).get("workspaceName")?.toString() ?? "";
+    await renameWorkspace(new_workspace_name, { explain: true }).catch(() => {});
   }
 
 </script>
@@ -90,7 +69,7 @@
         </svg>
       </button>
       <div>
-        <form on:submit={handleSubmitEvent}>
+        <form on:submit|preventDefault={handleSubmitEvent}>
           <label for="workspaceName"></label>
           <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2"
             on:input={handleInputEvent}
