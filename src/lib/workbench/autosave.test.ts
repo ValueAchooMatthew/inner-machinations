@@ -2,7 +2,7 @@ import { get } from "svelte/store";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { input_alphabet } from "$lib/utils/automataStores";
 import { backend } from "../../tests/fakeBackend";
-import { automaton, click, launchApp, message, openWorkspace, selectTool } from "../../tests/workbenchDriver";
+import { automaton, click, launchApp, message, openWorkspace, selectTool, undo } from "../../tests/workbenchDriver";
 import { AUTOSAVE_DELAY, save_status, saveNow, startAutosave, stopAutosave } from "./autosave";
 
 const saves = () => backend.callsTo("save_workspace");
@@ -57,6 +57,15 @@ describe("autosave", () => {
     await vi.advanceTimersByTimeAsync(5 * AUTOSAVE_DELAY);
     expect(get(input_alphabet)).toEqual(["a", "b"]);
     expect(saves()).toHaveLength(1);
+    expect(get(save_status)).toBe("saved");
+  });
+
+  it("counts an edit undone before it was saved as saved", async () => {
+    click(500, 200);
+    undo();
+    expect(get(save_status)).toBe("saved");
+    await vi.advanceTimersByTimeAsync(5 * AUTOSAVE_DELAY);
+    expect(saves()).toEqual([]);
     expect(get(save_status)).toBe("saved");
   });
 

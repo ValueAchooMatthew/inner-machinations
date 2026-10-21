@@ -39,6 +39,11 @@ export function startAutosave(): () => void {
 
   const handleChange = (): void => {
     if (!hasChanges()) {
+      // An edit undone before it was saved leaves nothing to save
+      if (get(save_status) === "unsaved") {
+        clearTimeout(pending_save);
+        save_status.set("saved");
+      }
       return;
     }
     if (get(save_status) !== "saving") {
