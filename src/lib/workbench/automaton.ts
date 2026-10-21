@@ -4,7 +4,9 @@
 // be kept for undo.
 
 import type { BezierCurve } from "$lib/types/interfaces";
-import { distanceFromBezierCurveToPoint } from "$lib/utils/mathFuncs";
+import {
+  distanceFromBezierCurveToPoint, getBezierCurveAngleAtPoint, getPointOnBezierCurveAtDistance, type Bounds,
+} from "$lib/utils/mathFuncs";
 
 export const EPSILON = "ϵ";
 
@@ -179,6 +181,39 @@ export function connectionCurve(automaton: Automaton, connection: AutomatonConne
     control_point_two: connection.controlPoints[1],
     end_point: to.position,
   };
+}
+
+// Where a connection's character is drawn: 50 pixels from the middle of its curve, to the left going along it
+export function connectionLabelPosition(curve: BezierCurve): Point {
+  const middle = getPointOnBezierCurveAtDistance(curve, 0.5);
+  const angle = getBezierCurveAngleAtPoint(curve, 0.99);
+  return { x: middle.x + 50 * Math.sin(angle), y: middle.y - 50 * Math.cos(angle) };
+}
+
+// The smallest box around everything drawn: states, curves, and the middle of each character. None for an
+// automaton with nothing in it
+export function automatonBounds(automaton: Automaton): Bounds | null {
+  if (automaton.states.length === 0) {
+    return null;
+  }
+  const bounds = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+  const include = (point: Point, reach = 0): void => {
+    bounds.left = Math.min(bounds.left, point.x - reach);
+    bounds.top = Math.min(bounds.top, point.y - reach);
+    bounds.right = Math.max(bounds.right, point.x + reach);
+    bounds.bottom = Math.max(bounds.bottom, point.y + reach);
+  };
+  for (const state of automaton.states) {
+    include(state.position, state.isFinal ? 42 : STATE_RADIUS);
+  }
+  for (const connection of automaton.connections) {
+    const curve = connectionCurve(automaton, connection);
+    for (let step = 0; step <= 20; step++) {
+      include(getPointOnBezierCurveAtDistance(curve, step / 20));
+    }
+    include(connectionLabelPosition(curve));
+  }
+  return bounds;
 }
 
 // The connection whose curve passes nearest the point, if one passes within reach of it. Of curves that pass

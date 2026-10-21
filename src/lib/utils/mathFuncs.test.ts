@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  getBezierCurveAngleAtPoint, getPointOnBezierCurveAtDistance, roundToNearest,
+  fitBounds, getBezierCurveAngleAtPoint, getPointOnBezierCurveAtDistance, roundToNearest,
 } from "./mathFuncs";
 
 const straightCurve = {
@@ -35,5 +35,33 @@ describe("Bezier curves", () => {
     expect(getBezierCurveAngleAtPoint(straightCurve, 0.99)).toBeCloseTo(0);
     const upwards = { ...straightCurve, control_point_two: { x: 0, y: -300 }, end_point: { x: 0, y: -300 } };
     expect(getBezierCurveAngleAtPoint(upwards, 0.99)).toBeCloseTo(-Math.PI / 2);
+  });
+});
+
+describe("fitBounds", () => {
+  // Where a point of the drawing ends up on the canvas
+  const onCanvas = (fit: ReturnType<typeof fitBounds>, point: { x: number; y: number }) => ({
+    x: (point.x - fit.origin.x) / fit.scale,
+    y: (point.y - fit.origin.y) / fit.scale,
+  });
+
+  it("centres something small, drawn no larger than the largest size allowed", () => {
+    const fit = fitBounds({ left: 0, top: 0, right: 100, bottom: 50 }, 300, 150, { margin: 10, smallestScale: 2 });
+    expect(fit.scale).toBe(2);
+    expect(onCanvas(fit, { x: 50, y: 25 })).toEqual({ x: 150, y: 75 });
+  });
+
+  it("shrinks something wide to fit between the side margins, centred from top to bottom", () => {
+    const fit = fitBounds({ left: -200, top: 0, right: 800, bottom: 100 }, 300, 150, { margin: 50, smallestScale: 2 });
+    expect(fit.scale).toBe(5);
+    expect(onCanvas(fit, { x: -200, y: 0 })).toEqual({ x: 50, y: 65 });
+    expect(onCanvas(fit, { x: 800, y: 100 })).toEqual({ x: 250, y: 85 });
+  });
+
+  it("shrinks something tall to fit between the top and bottom margins, centred from side to side", () => {
+    const fit = fitBounds({ left: 0, top: 100, right: 100, bottom: 1100 }, 300, 150, { margin: 25, smallestScale: 2 });
+    expect(fit.scale).toBe(10);
+    expect(onCanvas(fit, { x: 0, y: 100 })).toEqual({ x: 145, y: 25 });
+    expect(onCanvas(fit, { x: 100, y: 1100 })).toEqual({ x: 155, y: 125 });
   });
 });

@@ -2,6 +2,8 @@
   import { setSessionValue } from "$lib/utils/miscUtils";
   import { goto } from "$app/navigation";
   import { drawAutomaton } from "$lib/utils/drawingFuncs";
+  import { fitBounds } from "$lib/utils/mathFuncs";
+  import { automatonBounds } from "$lib/workbench/automaton";
   import { invokeCommand } from "$lib/utils/backend";
   import { onMount } from "svelte";
   import { dialogue_to_user, workspace_name } from "$lib/utils/automataStores";
@@ -36,8 +38,13 @@
         workspaceName: workspace_title,
       });
 
-    drawAutomaton(context, width, height, workspace_data.automaton, { scale: 5 });
-    
+    // Fitted and centred, but no more than half size, so a single state isn't blown up
+    const bounds = automatonBounds(workspace_data.automaton);
+    if (!bounds) {
+      return;
+    }
+    const { scale, origin } = fitBounds(bounds, width, height, { margin: 16, smallestScale: 2 });
+    drawAutomaton(context, width, height, workspace_data.automaton, { scale, origin });
   });
 </script>
 
@@ -45,8 +52,8 @@
   <button class="w-64 h-80 p-3 bg-orange-500
     transition-all duration-300 rounded-md flex flex-col justify-between overflow-hidden"
     on:click={handleClick}>
-    <canvas
-    bind:this={canvas} class="bg-white self-center border-black border w-fit"></canvas>
+    <canvas width="232" height="150"
+    bind:this={canvas} class="bg-white self-center border-black border"></canvas>
     <span class="font-bold text-white text-2xl my-2 self-center">
       {workspace_title}
       <br>

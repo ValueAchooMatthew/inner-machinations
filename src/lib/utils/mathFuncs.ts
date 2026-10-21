@@ -108,3 +108,33 @@ const getCoordOnBezierCurve = (
     d * tCubed
   );
 };
+
+export interface Bounds {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+// How to draw something with these bounds on a width by height canvas so that all of it fits inside the margin,
+// centred: how many times smaller to draw it, and which of its points goes at the canvas's top-left. It is never
+// drawn less than smallestScale times smaller, so something small isn't blown up
+export function fitBounds(
+  bounds: Bounds,
+  width: number,
+  height: number,
+  { margin, smallestScale }: { margin: number; smallestScale: number },
+): { scale: number; origin: Coordinate } {
+  const scale = Math.max(
+    smallestScale,
+    (bounds.right - bounds.left) / (width - 2 * margin),
+    (bounds.bottom - bounds.top) / (height - 2 * margin),
+  );
+  return {
+    scale,
+    origin: {
+      x: (bounds.left + bounds.right) / 2 - (width / 2) * scale,
+      y: (bounds.top + bounds.bottom) / 2 - (height / 2) * scale,
+    },
+  };
+}

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  addConnection, addState, charactersUsed, connectionCurve, connectionNear, defaultControlPoints, emptyAutomaton, EPSILON,
-  moveControlPoint, moveState, relabelConnection, removeConnection, removeState, setFinal, setStart, startState, stateAt,
-  stateIsAt, type Automaton,
+  addConnection, addState, automatonBounds, charactersUsed, connectionById, connectionCurve, connectionLabelPosition,
+  connectionNear, defaultControlPoints, emptyAutomaton, EPSILON, moveControlPoint, moveState, relabelConnection,
+  removeConnection, removeState, setFinal, setStart, startState, stateAt, stateIsAt, type Automaton,
 } from "./automaton";
 
 // Two states 300 pixels apart, joined by "a"
@@ -131,5 +131,33 @@ describe("operations", () => {
     moveControlPoint(automaton, connection, 0, { x: 1, y: 1 });
     removeConnection(automaton, connection);
     expect(automaton).toEqual(before);
+  });
+});
+
+describe("bounds", () => {
+  it("are missing for an automaton with nothing in it", () => {
+    expect(automatonBounds(emptyAutomaton())).toBeNull();
+  });
+
+  it("reach the edge of each state, and the ring around a final state", () => {
+    const first = addState(emptyAutomaton(), { x: 200, y: 200 });
+    const second = addState(first.automaton, { x: 500, y: 300 });
+    const automaton = setFinal(second.automaton, second.id, true);
+    expect(automatonBounds(automaton)).toEqual({ left: 165, top: 165, right: 542, bottom: 342 });
+  });
+
+  it("take in a connection's character, drawn above a straight connection", () => {
+    const { automaton, connection } = twoStates();
+    const curve = connectionCurve(automaton, connectionById(automaton, connection)!);
+    expect(connectionLabelPosition(curve).x).toBeCloseTo(350);
+    expect(connectionLabelPosition(curve).y).toBeCloseTo(150);
+    expect(automatonBounds(automaton)).toEqual({ left: 165, top: 150, right: 535, bottom: 235 });
+  });
+
+  it("take in the whole of a curve, such as a loop out to the left", () => {
+    const { automaton, left } = twoStates();
+    const looped = addConnection(automaton, left, left, "b").automaton;
+    // The loop's control points are 200 to the left, so its curve reaches three quarters of the way to them
+    expect(automatonBounds(looped)?.left).toBe(50);
   });
 });

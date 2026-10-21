@@ -2,17 +2,18 @@ import type { Token } from "$lib/types/types";
 import type { BezierCurve, Coordinate } from "../types/interfaces";
 import { layoutParseTree, type LaidOutToken } from "./parseTreeLayout";
 import type { Selection } from "./automataStores";
-import { connectionCurve, STATE_RADIUS, type Automaton, type AutomatonState, type Point } from "$lib/workbench/automaton";
 import {
-  getBezierCurveAngleAtPoint,
-  getPointOnBezierCurveAtDistance,
-} from "./mathFuncs";
+  connectionCurve, connectionLabelPosition, STATE_RADIUS, type Automaton, type AutomatonState, type Point,
+} from "$lib/workbench/automaton";
+import { getBezierCurveAngleAtPoint } from "./mathFuncs";
 
 const SELECTED_COLOUR = "#00008B";
 
 export interface DrawingOptions {
   // Drawings are this many times smaller than the automaton, as on the dashboard's previews
   scale?: number;
+  // The automaton's point drawn at the canvas's top-left, so a preview can be centred
+  origin?: Point;
   selection?: Selection | null;
   // The state a string's traversal has reached
   highlightedStateId?: number | null;
@@ -28,6 +29,7 @@ export const drawAutomaton = (
   options: DrawingOptions = {},
 ) => {
   const scale = options.scale ?? 1;
+  const origin = options.origin ?? { x: 0, y: 0 };
   const selection = options.selection ?? null;
   // Needed so position specified for where characters are drawn is not drawn differently depending on if its offset is above/below or
   // left/right of the Connection
@@ -35,6 +37,8 @@ export const drawAutomaton = (
   context.textAlign = "center";
   context.strokeStyle = "black";
   context.clearRect(0, 0, width, height);
+  context.save();
+  context.translate(-origin.x / scale, -origin.y / scale);
 
   automaton.states.forEach((state) => {
     drawNode(
@@ -57,6 +61,7 @@ export const drawAutomaton = (
     const { from, to } = options.connectionPreview;
     drawConnection(context, { start_point: from, control_point_one: from, control_point_two: to, end_point: to }, "", false, scale);
   }
+  context.restore();
 };
 
 const drawConnection = (
@@ -113,13 +118,8 @@ const drawConnection = (
   }
   context.fillStyle = isSelected ? SELECTED_COLOUR : "black";
 
-  const halfway_point = getPointOnBezierCurveAtDistance(curve, 0.5);
-
-  context.fillText(
-    character,
-    halfway_point.x / scale + (50 / scale) * Math.sin(angle_of_curve_at_end),
-    halfway_point.y / scale - (50 / scale) * Math.cos(angle_of_curve_at_end),
-  );
+  const label_position = connectionLabelPosition(curve);
+  context.fillText(character, label_position.x / scale, label_position.y / scale);
 };
 
 // Handles on a selected connection's control points, which can be dragged to reshape it
@@ -195,6 +195,28 @@ const PARSE_TREE_COLOURS: Record<LaidOutToken["kind"], string> = {
   literal: "#FFFF00",
 };
 
+// Parse tree nodes are circles of this radius, drawn with lines this wide, so they reach this far from their middles
+const PARSE_TREE_NODE_RADIUS = 35;
+const PARSE_TREE_LINE_WIDTH = 7;
+export const PARSE_TREE_NODE_REACH = PARSE_TREE_NODE_RADIUS + PARSE_TREE_LINE_WIDTH / 2;
+
+// Where to draw a laid out tree: centred across the canvas and at its top, shrunk when it is too big for the
+// canvas, so that every node is inside the margin. `left` and `top` are where the tree's (0, 0) goes
+export function placeParseTree(
+  tree_width: number,
+  tree_height: number,
+  width: number,
+  height: number,
+  margin: number,
+): { scale: number; left: number; top: number } {
+  const scale = Math.min(
+    1,
+    (width - 2 * margin) / (tree_width + 2 * PARSE_TREE_NODE_REACH),
+    (height - 2 * margin) / (tree_height + 2 * PARSE_TREE_NODE_REACH),
+  );
+  return { scale, left: width / 2 - (tree_width * scale) / 2, top: margin + PARSE_TREE_NODE_REACH * scale };
+}
+
 // Draws the parse tree centred at the top of the canvas, shrunk to fit inside the margin when it is too big
 // for it. A small preview wants a small margin
 export function drawParseTree(
@@ -205,14 +227,10 @@ export function drawParseTree(
   { margin = 60 } = {},
 ) {
   const { root, width: tree_width, height: tree_height } = layoutParseTree(parse_tree);
-  const scale = Math.min(
-    1,
-    (width - 2 * margin) / Math.max(tree_width, 1),
-    (height - 2 * margin) / Math.max(tree_height, 1),
-  );
+  const { scale, left, top } = placeParseTree(tree_width, tree_height, width, height, margin);
 
   context.save();
-  context.translate(width / 2 - (tree_width * scale) / 2, margin);
+  context.translate(left, top);
   context.scale(scale, scale);
   context.font = "40px Arial";
   context.textBaseline = "middle";
@@ -222,9 +240,9 @@ export function drawParseTree(
 }
 
 function drawLaidOutToken(context: CanvasRenderingContext2D, token: LaidOutToken) {
-  const circle_radius = 35;
+  const circle_radius = PARSE_TREE_NODE_RADIUS;
 
-  context.lineWidth = 7;
+  context.lineWidth = PARSE_TREE_LINE_WIDTH;
   context.strokeStyle = PARSE_TREE_COLOURS[token.kind];
   context.beginPath();
   context.arc(token.x, token.y, circle_radius, 0, 2 * Math.PI);

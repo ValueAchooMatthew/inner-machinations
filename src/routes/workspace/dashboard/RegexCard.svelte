@@ -26,8 +26,7 @@
     }
     try {
       const parse_tree = await invoke<Token>("build_parse_tree", { regex: saved_regex.regex });
-      // The card shows only the middle of its canvas
-      drawParseTree(parse_tree, context, width, height, { margin: 30 });
+      drawParseTree(parse_tree, context, width, height, { margin: 12 });
     } catch {
       // One that can't be built yet has no preview, only the text below
     }
@@ -38,8 +37,8 @@
   <button class="w-64 h-80 p-3 bg-orange-500
     transition-all duration-300 rounded-md flex flex-col justify-between overflow-hidden"
     on:click={handleClick}>
-    <canvas
-    bind:this={canvas} class="bg-white self-center border-black border w-fit"></canvas>
+    <canvas width="232" height="150"
+    bind:this={canvas} class="bg-white self-center border-black border"></canvas>
     <span class="font-bold text-white text-2xl my-2 self-center max-w-full">
       {saved_regex.regex_name}
       <span class="block font-mono text-lg truncate" title={saved_regex.regex}>
