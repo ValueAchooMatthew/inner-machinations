@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.0"
+version = "2.0.0"
 description = "A desktop application to build and test deterministic and non-deterministic finite automata"
 authors = ["Matthew Farah"]
 license = "GPL-3.0-or-later"

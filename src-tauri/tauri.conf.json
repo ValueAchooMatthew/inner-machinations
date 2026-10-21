@@ -41,7 +41,7 @@
   },
   "productName": "inner-machinations",
   "mainBinaryName": "inner-machinations",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "identifier": "com.mach.build",
   "plugins": {},
   "app": {
