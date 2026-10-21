@@ -59,6 +59,7 @@
 
   </button>
   <button class="absolute flex justify-center bg-orange-500 rounded-r-md w-12 h-12"
+    title="Delete {workspace_title}"
     on:click={() => {
       workspace_to_delete = workspace_title;
     }}>

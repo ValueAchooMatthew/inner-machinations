@@ -22,9 +22,9 @@
 
   <main class="flex justify-center align-middle h-screen w-full">
     <div class="self-center text-center">
-      <div class="z-50 mb-6 text-orange-600 font-outline-2 font-Montserrat">
+      <div class="z-50 mb-6 text-orange-600 font-Montserrat">
         <h1 class="xl:text-7xl text-6xl font-semibold">Inner Machinations</h1>
-        <h2 class="xl:text-2xl text-2xl mt-2 font-outline-2">
+        <h2 class="xl:text-2xl text-2xl mt-2">
           A desktop application to create your very own DFA's, NFA's, and Regular Expressions
         </h2>
       </div>

@@ -51,6 +51,7 @@
   <div class="flex justify-center align-middle w-full gap-6 text-4xl">
     <div class="w-2xl flex justify-between">
       <button class="w-12 h-12 z-10 self-center"
+        title="Options (Esc)"
         on:click={() => {
           is_option_menu_open = !is_option_menu_open;
         }}>

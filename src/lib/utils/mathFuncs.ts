@@ -13,31 +13,6 @@ export const roundToNearest = (
   }
 };
 
-export const getClosestPointIndex = (
-  possible_points: Array<Coordinate>,
-  origin: Coordinate,
-): number => {
-  let closestPointIndex = 0;
-  let closestPointDistance = distanceBetweenTwoPoints(
-    possible_points[0],
-    origin,
-  );
-  possible_points.forEach((point, index) => {
-    const distance = distanceBetweenTwoPoints(point, origin);
-    if (distance < closestPointDistance) {
-      closestPointIndex = index;
-      closestPointDistance = distance;
-    }
-  });
-  return closestPointIndex;
-};
-
-const distanceBetweenTwoPoints = (
-  point_a: Coordinate,
-  point_b: Coordinate,
-): number => {
-  return Math.sqrt((point_a.x - point_b.x) ** 2 + (point_a.y - point_b.y) ** 2);
-};
 
 // Roughly estimate's a curve's distance to a given point by taking small slices of the bezier curve and returning the distance of the point
 // of the slice to the given coordinate

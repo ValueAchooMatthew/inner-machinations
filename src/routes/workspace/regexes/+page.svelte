@@ -78,6 +78,11 @@
       <p class="text-orange-600 text-xl h-8" id="regex_error">
         {error_message ?? ""}
       </p>
+      <p class="text-lg font-normal text-gray-900 max-w-xl" id="regex_help">
+        Characters written one after another follow one another. <b>+</b> or <b>|</b> means "or",
+        <b>*</b> means "any number of times, including none", and brackets group. <b>ε</b> is the empty string.
+        So <b>a(b+c)*</b> matches an a followed by any mix of b's and c's.
+      </p>
     </form>
     <TestFeedback is_string_accepted={was_string_accepted} />
   </div>

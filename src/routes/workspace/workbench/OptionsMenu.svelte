@@ -86,6 +86,7 @@
 <svelte:window on:keydown={handleKeyDownEvent}/>
 <div class="flex justify-start">
   <button class="w-12 h-12 z-10 self-center ml-4 mt-4"
+    title="Close the options (Esc)"
     on:click={closeOptionMenu}>
     <svg
       data-slot="icon"
@@ -158,7 +159,7 @@
     </div>
     <div class="flex justify-between gap-3">
       <label class="self-center" for="strict"> Strict Checking (works for DFA's only): </label>
-      <input class="w-6 h-6 accent-orange-500checked:bg-orange-500 checked:border-transparent 
+      <input class="w-6 h-6 accent-orange-500 checked:bg-orange-500 checked:border-transparent 
         checked:ring-2 checked:ring-orange-500 checked:ring-offset-2 checked:ring-offset-white rounded-md px-2 py-1 mr-1"
         bind:checked={$should_strict_check}
         type="checkbox"

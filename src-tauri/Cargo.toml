@@ -27,7 +27,6 @@ rusqlite = { version = "0.30.0", features = ["bundled"] }
 chrono = { version = "0.4.38", features = ["serde", "clock"] }
 diesel-derive-enum = { version = "2.1.0", features = ["sqlite"] }
 diesel_migrations = "2.2.0"
-envy = "0.4.2"
 
 
 [features]

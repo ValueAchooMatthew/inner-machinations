@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  getBezierCurveAngleAtPoint, getClosestPointIndex, getPointOnBezierCurveAtDistance, roundToNearest,
+  getBezierCurveAngleAtPoint, getPointOnBezierCurveAtDistance, roundToNearest,
 } from "./mathFuncs";
 
 const straightCurve = {
@@ -18,14 +18,6 @@ describe("roundToNearest", () => {
     expect(roundToNearest(0, 100)).toBe(0);
     expect(roundToNearest(29, 20)).toBe(20);
     expect(roundToNearest(30, 20)).toBe(40);
-  });
-});
-
-describe("getClosestPointIndex", () => {
-  it("finds the point nearest the origin", () => {
-    const points = [{ x: 0, y: 0 }, { x: 100, y: 100 }, { x: 40, y: 40 }];
-    expect(getClosestPointIndex(points, { x: 50, y: 50 })).toBe(2);
-    expect(getClosestPointIndex(points, { x: -10, y: 0 })).toBe(0);
   });
 });
 

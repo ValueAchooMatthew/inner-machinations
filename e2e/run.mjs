@@ -399,6 +399,9 @@ try {
       results[`${re} / "${str}"`] = fb ?? 'no result';
       if (expected !== null && fb !== (expected ? ACCEPTED : REJECTED)) ok = false;
     }
+    const syntax_explained = (await bodyText()).includes('means "or"');
+    if (!syntax_explained) ok = false;
+    results.syntax_explained = syntax_explained;
     // A half-typed expression explains what's missing instead of failing silently
     await type('#regex', 'a+');
     await sleep(800);
