@@ -200,4 +200,34 @@ mod tests {
         control_point_one_x, control_point_one_y, control_point_two_x, control_point_two_y) VALUES (1, 9, 1, 7, 'a', 0, 0, 0, 0)"
     ).execute(&mut connection).is_err());
   }
+
+  // Saved regular expressions get a table of their own, which leaves the workspaces as they were
+  #[test]
+  fn test_migrations_add_saved_regexes() {
+    let mut connection = SqliteConnection::establish(":memory:").unwrap();
+    sql_query("PRAGMA foreign_keys = ON").execute(&mut connection).unwrap();
+
+    for _ in 0..3 {
+      connection.run_next_migration(MIGRATIONS).unwrap();
+    }
+    sql_query("INSERT INTO saved_workspaces (id, workspace_name, type_of_automata) VALUES (1, 'first', 'DFA')")
+      .execute(&mut connection)
+      .unwrap();
+
+    connection.run_pending_migrations(MIGRATIONS).unwrap();
+
+    sql_query("INSERT INTO saved_regexes (regex_name) VALUES ('first')").execute(&mut connection).unwrap();
+    let mut count = |query: &str| sql_query(query).load::<Count>(&mut connection).unwrap()[0].count;
+    assert_eq!(count("SELECT count(*) AS count FROM saved_workspaces"), 1);
+    assert_eq!(count("SELECT count(*) AS count FROM saved_regexes WHERE regex = '' AND date_of_last_update IS NOT NULL"), 1);
+
+    // Each needs a name of its own
+    assert!(sql_query("INSERT INTO saved_regexes (regex_name) VALUES ('first')").execute(&mut connection).is_err());
+    assert!(sql_query("INSERT INTO saved_regexes (regex) VALUES ('a')").execute(&mut connection).is_err());
+
+    connection.revert_last_migration(MIGRATIONS).unwrap();
+    let mut count = |query: &str| sql_query(query).load::<Count>(&mut connection).unwrap()[0].count;
+    assert_eq!(count("SELECT count(*) AS count FROM sqlite_master WHERE name = 'saved_regexes'"), 0);
+    assert_eq!(count("SELECT count(*) AS count FROM saved_workspaces"), 1);
+  }
 }

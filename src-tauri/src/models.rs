@@ -51,6 +51,16 @@ pub struct SavedConnection {
   pub control_point_two_y: i32
 }
 
+#[derive(Queryable, Selectable, Debug)]
+#[diesel(table_name = crate::schema::saved_regexes)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct SavedRegex {
+  pub id: i32,
+  pub regex_name: String,
+  pub regex: String,
+  pub date_of_last_update: NaiveDateTime
+}
+
 #[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Hash, Clone, Copy)]
 pub struct Coordinate {
   pub x: i32,
@@ -104,4 +114,12 @@ pub struct WorkspaceData {
   pub should_strict_check: bool,
   pub should_show_string_traversal: bool,
   pub default_connection_character: String
+}
+
+// A saved regular expression, as typed, which needn't be one that can be built yet
+#[derive(Debug, Serialize, PartialEq)]
+pub struct RegexData {
+  pub regex_name: String,
+  pub regex: String,
+  pub date_of_last_update: String
 }

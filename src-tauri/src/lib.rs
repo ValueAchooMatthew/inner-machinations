@@ -6,10 +6,12 @@ pub mod models;
 pub mod database;
 pub mod error;
 pub mod workspace_storage;
+pub mod regex_storage;
 pub mod automaton;
 pub mod testing_automata_funcs;
 pub mod validation_automata_funcs;
 pub mod saving_automata_funcs;
+pub mod saving_regex_funcs;
 pub mod advanced_automata_funcs;
 pub mod language_determination_funcs;
 pub mod regular_expression_funcs;
@@ -31,6 +33,8 @@ use testing_automata_funcs::test_string;
 use saving_automata_funcs::{save_workspace, delete_workspace, retrieve_workspace_data, get_saved_workspaces, 
 update_workspace_name, does_workspace_name_exist, create_workspace, update_workspace_alphabet, 
 update_showing_string_traversal, update_default_connection_character, update_strict_checking, update_automata_type};
+use saving_regex_funcs::{create_regex, get_saved_regexes, retrieve_regex, save_regex, update_regex_name, delete_regex,
+does_regex_name_exist};
 use validation_automata_funcs::verify_valid_dfa;
 use language_determination_funcs::determine_language_of_automata;
 
@@ -62,7 +66,8 @@ pub fn run() {
     test_string, verify_valid_dfa, save_workspace, delete_workspace, retrieve_workspace_data, 
     get_saved_workspaces, minimize_dfa, convert_nfa_to_dfa, determine_language_of_automata, build_parse_tree, 
     test_string_regex, update_workspace_name, does_workspace_name_exist, create_workspace, update_workspace_alphabet, 
-    update_default_connection_character, update_showing_string_traversal, update_strict_checking, update_automata_type]
+    update_default_connection_character, update_showing_string_traversal, update_strict_checking, update_automata_type,
+    create_regex, get_saved_regexes, retrieve_regex, save_regex, update_regex_name, delete_regex, does_regex_name_exist]
   )
   .run(tauri::generate_context!())
   .expect("error while running tauri application");

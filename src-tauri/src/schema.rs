@@ -16,6 +16,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    saved_regexes (id) {
+        id -> Integer,
+        regex_name -> Text,
+        regex -> Text,
+        date_of_last_update -> Timestamp,
+    }
+}
+
+diesel::table! {
     saved_states (id) {
         id -> Integer,
         workspace_id -> Integer,
@@ -45,6 +54,7 @@ diesel::joinable!(saved_states -> saved_workspaces (workspace_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     saved_connections,
+    saved_regexes,
     saved_states,
     saved_workspaces,
 );
