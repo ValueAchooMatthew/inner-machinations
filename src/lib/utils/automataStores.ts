@@ -13,6 +13,13 @@ export const tool: Writable<Tool> = writable("state");
 // While a connection is being drawn, between its two clicks, the state it starts from
 export const connection_start: Writable<number | null> = writable(null);
 
+// Whether there are edits to undo, or undone edits to redo
+export const can_undo: Writable<boolean> = writable(false);
+export const can_redo: Writable<boolean> = writable(false);
+
+// While the trash button is waiting for the user to confirm clearing the canvas
+export const confirming_trash: Writable<boolean> = writable(false);
+
 // The state or connection picked with the select tool
 export type Selection = { kind: "state"; id: number } | { kind: "connection"; id: number };
 export const selection: Writable<Selection | null> = writable(null);

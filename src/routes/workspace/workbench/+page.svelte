@@ -14,6 +14,7 @@
   import AdvancedAutomataFunctions from "./AdvancedAutomataFunctions.svelte";
   import Sidebar from "./Sidebar.svelte";
   import LanguageOfAutomata from "./LanguageOfAutomata.svelte";
+  import ConfirmTrash from "./ConfirmTrash.svelte";
 
   let is_string_accepted: boolean | null = null;
 
@@ -56,11 +57,8 @@
     if (!(event.target instanceof HTMLFormElement)) {
       return;
     }
-    const data = new FormData(event.target);
-    const string_to_check = data.get("string")?.toString();
-    if (!string_to_check) {
-      return;
-    }
+    // An empty box checks the empty string
+    const string_to_check = new FormData(event.target).get("string")?.toString() ?? "";
     stopTraversal();
     is_string_accepted = null;
 
@@ -126,7 +124,8 @@
           <input class="border-black border-2 text-3xl rounded-md px-2 py-1"
             type="text"
             name="string"
-            id="string"/>
+            id="string"
+            placeholder="empty string"/>
           <button class="w-40 bg-orange-500 rounded-md text-xl font-semibold border-black 
             border-2 hover:-translate-y-4 duration-300 transition-all will-change-transform" form="stringCheckingForm">
             Check String
@@ -136,5 +135,6 @@
       </div>
       <LanguageOfAutomata />
     </main>
+    <ConfirmTrash />
   </div>
 </div>

@@ -5,9 +5,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { backend } from "./fakeBackend";
 import {
-  alphabet, automaton, automatonType, checkString, click, closeOptions, convert, defaultCharacter, doubleClick, drag, drawing,
-  launchApp, message, minimize, openWorkspace, pressKeys, rename, save, selected, selectTool, setAutomatonType, setStrictChecking,
-  trash, workspaceName,
+  alphabet, automaton, automatonType, cancelTrash, canRedo, canUndo, checkString, click, closeOptions, convert, defaultCharacter,
+  deleteSelected, doubleClick, drag, drawing, launchApp, message, minimize, openWorkspace, pressKeys, redo, rename, save, selected,
+  selectTool, setAutomatonType, setStrictChecking, trash, undo, workspaceName,
 } from "./workbenchDriver";
 
 beforeEach(() => {
@@ -253,11 +253,165 @@ describe("opening workspaces", () => {
 });
 
 describe("trash", () => {
-  it("clears the canvas", () => {
-    openWorkspace({ states: ["200,200 start", "500,200 final"], transitions: ["200,200 -a-> 500,200"] });
+  const workspace = { states: ["200,200 start", "500,200 final"], transitions: ["200,200 -a-> 500,200"] };
+
+  it("clears the canvas once confirmed", () => {
+    openWorkspace(workspace);
     trash();
     expect(automaton()).toEqual({ states: [], transitions: [] });
     expect(drawing()).toEqual({ states: [], connections: [] });
+  });
+
+  it("leaves the canvas alone when cancelled", () => {
+    openWorkspace(workspace);
+    cancelTrash();
+    expect(automaton()).toEqual(workspace);
+  });
+
+  it("can be undone", () => {
+    openWorkspace(workspace);
+    trash();
+    undo();
+    expect(automaton()).toEqual(workspace);
+  });
+});
+
+describe("undo and redo", () => {
+  beforeEach(() => {
+    placeStates([200, 200]);
+    placeStates([500, 200]);
+    connect([200, 200], [500, 200]);
+  });
+
+  it("undoes each edit in turn, and redoes them", () => {
+    undo();
+    expect(automaton()).toEqual({ states: ["200,200", "500,200"], transitions: [] });
+    undo();
+    expect(automaton().states).toEqual(["200,200"]);
+    undo();
+    expect(automaton().states).toEqual([]);
+    expect(canUndo()).toBe(false);
+    undo();
+    expect(automaton().states).toEqual([]);
+
+    redo();
+    redo();
+    redo();
+    expect(automaton()).toEqual({ states: ["200,200", "500,200"], transitions: ["200,200 -a-> 500,200"] });
+    expect(canRedo()).toBe(false);
+  });
+
+  it("forgets what was undone once there is a new edit", () => {
+    undo();
+    placeStates([800, 200]);
+    expect(canRedo()).toBe(false);
+    redo();
+    expect(automaton().states).toEqual(["200,200", "500,200", "800,200"]);
+  });
+
+  it("undoes a whole drag at once", () => {
+    selectTool("select");
+    drag([500, 200], [520, 220], [540, 240], [560, 260]);
+    expect(automaton().states).toEqual(["200,200", "560,260"]);
+    undo();
+    expect(automaton().states).toEqual(["200,200", "500,200"]);
+    expect(automaton().transitions).toEqual(["200,200 -a-> 500,200"]);
+  });
+
+  it("doesn't count a click that changes nothing", () => {
+    selectTool("select");
+    click(200, 200);
+    click(500, 200);
+    undo();
+    expect(automaton().transitions).toEqual([]);
+  });
+
+  it("undoes converting and minimizing", async () => {
+    backend.respond("minimize_dfa", () => ({ automaton: { states: [], connections: [] }, wasAlreadyMinimal: false }));
+    await minimize();
+    expect(automaton().states).toEqual([]);
+    undo();
+    expect(automaton().transitions).toEqual(["200,200 -a-> 500,200"]);
+  });
+
+  it("starts afresh with each workspace", () => {
+    openWorkspace({ states: ["300,300"], transitions: [] });
+    expect(canUndo()).toBe(false);
+    undo();
+    expect(automaton().states).toEqual(["300,300"]);
+  });
+
+  it("is reached by Ctrl+Z, and Ctrl+Shift+Z or Ctrl+Y", () => {
+    pressKeys("z", { ctrlKey: true });
+    expect(automaton().transitions).toEqual([]);
+    pressKeys("Z", { ctrlKey: true, shiftKey: true });
+    expect(automaton().transitions).toEqual(["200,200 -a-> 500,200"]);
+    pressKeys("z", { ctrlKey: true });
+    pressKeys("y", { ctrlKey: true });
+    expect(automaton().transitions).toEqual(["200,200 -a-> 500,200"]);
+  });
+});
+
+describe("deleting", () => {
+  beforeEach(() => {
+    openWorkspace({
+      states: ["200,200 start", "500,200 final", "800,200"],
+      transitions: ["200,200 -a-> 500,200", "500,200 -b-> 800,200", "800,200 -a-> 200,200"],
+    });
+    selectTool("select");
+  });
+
+  it("deletes the selected state, and its connections, with the Delete key", () => {
+    click(500, 200);
+    pressKeys("Delete");
+    expect(automaton()).toEqual({ states: ["200,200 start", "800,200"], transitions: ["800,200 -a-> 200,200"] });
+    expect(selected()).toBeNull();
+  });
+
+  it("deletes the selected connection with Backspace", () => {
+    click(350, 205);
+    pressKeys("Backspace");
+    expect(automaton().transitions).toEqual(["500,200 -b-> 800,200", "800,200 -a-> 200,200"]);
+  });
+
+  it("deletes from the sidebar's button too", () => {
+    click(800, 200);
+    deleteSelected();
+    expect(automaton().states).toEqual(["200,200 start", "500,200 final"]);
+  });
+
+  it("does nothing with nothing selected", () => {
+    pressKeys("Delete");
+    deleteSelected();
+    expect(automaton().states).toHaveLength(3);
+  });
+});
+
+describe("unmarking start and final states", () => {
+  beforeEach(() => {
+    openWorkspace({ states: ["200,200 start", "500,200 final"], transitions: [] });
+  });
+
+  it("makes an existing state the start with the start tool, then goes back to placing states", () => {
+    selectTool("start");
+    click(500, 200);
+    expect(automaton().states).toEqual(["200,200", "500,200 start final"]);
+    click(800, 200);
+    expect(automaton().states).toEqual(["200,200", "500,200 start final", "800,200"]);
+  });
+
+  it("unmarks the start state with the start tool", () => {
+    selectTool("start");
+    click(200, 200);
+    expect(automaton().states).toEqual(["200,200", "500,200 final"]);
+  });
+
+  it("unmarks a final state with the final tool", () => {
+    selectTool("final");
+    click(500, 200);
+    expect(automaton().states).toEqual(["200,200 start", "500,200"]);
+    click(500, 200);
+    expect(automaton().states).toEqual(["200,200 start", "500,200 final"]);
   });
 });
 
@@ -476,7 +630,7 @@ describe("checking strings", () => {
     expect((await checkString("a")).message).toBe("You must specify at least one start state");
   });
 
-  it.fails("checks the empty string", async () => {
+  it("checks the empty string", async () => {
     openWorkspace(dfa);
     expect(await checkString("")).toMatchObject({ accepted: false, command: "test_string" });
   });

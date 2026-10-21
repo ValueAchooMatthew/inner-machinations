@@ -10,14 +10,14 @@ import { get } from "svelte/store";
 import { Automata } from "$lib/types/enums";
 import type { WorkspaceData } from "$lib/types/interfaces";
 import {
-  automaton as automatonStore, connection_start, default_connection_character, dialogue_to_user, input_alphabet,
-  selection, should_show_string_traversal, should_strict_check, tool, type_of_automata, workspace_name,
+  automaton as automatonStore, can_redo, can_undo, connection_start, default_connection_character, dialogue_to_user,
+  input_alphabet, selection, should_show_string_traversal, should_strict_check, tool, type_of_automata, workspace_name,
 } from "$lib/utils/automataStores";
 import { save_status, saveNow, stopAutosave } from "$lib/workbench/autosave";
 import {
-  checkString as checkStringAction, clickCanvas, convertNfaToDfa, doubleClickCanvas, dragCanvas, loadWorkspace,
-  minimizeDfa, pressCanvas, pressKey, releaseCanvas, renameWorkspace, saveOptions, selectTool as selectToolAction,
-  trash as trashAction,
+  cancelTrash as cancelTrashAction, checkString as checkStringAction, clickCanvas, confirmTrash, convertNfaToDfa,
+  deleteSelection, doubleClickCanvas, dragCanvas, loadWorkspace, minimizeDfa, pressCanvas, pressKey, redo as redoAction,
+  releaseCanvas, renameWorkspace, requestTrash, saveOptions, selectTool as selectToolAction, undo as undoAction,
 } from "$lib/workbench/actions";
 import { connectionCurve, defaultControlPoints, emptyAutomaton, stateById, type Automaton } from "$lib/workbench/automaton";
 import { backend } from "./fakeBackend";
@@ -173,14 +173,29 @@ export const drag = (...points: Array<[number, number]>): void => {
 };
 
 // Like pressing a key while the canvas has the focus
-export const pressKeys = (key: string, modifiers: { ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean } = {}): void => {
-  pressKey({ key, ctrlKey: false, metaKey: false, altKey: false, ...modifiers });
+export const pressKeys = (
+  key: string,
+  modifiers: { ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean } = {},
+): void => {
+  pressKey({ key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...modifiers });
 };
 
-// Like pressing the sidebar's trash button
+// Like pressing the sidebar's trash button, then confirming, or cancelling
 export const trash = (): void => {
-  trashAction();
+  requestTrash();
+  confirmTrash();
 };
+export const cancelTrash = (): void => {
+  requestTrash();
+  cancelTrashAction();
+};
+
+// Like pressing the sidebar's undo, redo and delete buttons
+export const undo = (): void => undoAction();
+export const redo = (): void => redoAction();
+export const deleteSelected = (): void => deleteSelection();
+export const canUndo = (): boolean => get(can_undo);
+export const canRedo = (): boolean => get(can_redo);
 
 // The selected state or connection, described like the others
 export const selected = (): string | null => {
@@ -266,10 +281,7 @@ export const checkString = async (stringToCheck: string): Promise<StringCheck> =
   const callsBefore = backend.calls.length;
   let accepted: boolean | null = null;
 
-  // As the workbench page does it
-  if (stringToCheck) {
-    accepted = (await checkStringAction(stringToCheck)).is_string_accepted;
-  }
+  accepted = (await checkStringAction(stringToCheck)).is_string_accepted;
 
   const testCall = backend.calls.slice(callsBefore).find((call) => call.command === "test_string");
   return {

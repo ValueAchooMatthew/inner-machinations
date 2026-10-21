@@ -72,8 +72,8 @@
       saveNow().catch(() => {});
       return;
     }
-    if (!isTextEntry(event.target)) {
-      pressKey(event);
+    if (!isTextEntry(event.target) && pressKey(event)) {
+      event.preventDefault();
     }
   };
 </script>

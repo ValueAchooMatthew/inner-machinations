@@ -144,12 +144,31 @@ async function click(selector, using) { const el = await waitEl(selector, using)
 async function type(selector, text, using) {
   const el = await waitEl(selector, using);
   await wd('POST', s(`/element/${el}/clear`), {});
-  await wd('POST', s(`/element/${el}/value`), { text });
+  // WebDriver won't type nothing; clearing the box is all there is to do
+  if (text !== '') await wd('POST', s(`/element/${el}/value`), { text });
   return el;
 }
 const bodyText = () => exec('return document.body.innerText;');
 const waitText = (text, timeout) => waitFor(async () => (await bodyText()).includes(text) && text, `text "${text}"`, timeout);
 const route = () => exec('return location.pathname;');
+
+// Presses at the first canvas position, moves through the others and releases at the last, with real pointer events
+async function dragCanvas(...points) {
+  const r = await exec(`const b = document.querySelector('main canvas').getBoundingClientRect(); return {left: b.left, top: b.top};`);
+  const at = ([x, y]) => ({ x: Math.round(r.left + x), y: Math.round(r.top + y) });
+  const [first, ...rest] = points;
+  await wd('POST', s('/actions'), { actions: [{ type: 'pointer', id: 'mouse', parameters: { pointerType: 'mouse' }, actions: [
+    { type: 'pointerMove', duration: 0, origin: 'viewport', ...at(first) },
+    { type: 'pointerDown', button: 0 },
+    ...rest.map((point) => ({ type: 'pointerMove', duration: 100, origin: 'viewport', ...at(point) })),
+    { type: 'pointerUp', button: 0 },
+  ] }] });
+  await wd('DELETE', s('/actions'));
+  await sleep(250);
+}
+
+const pressKey = (key, modifiers = {}) =>
+  exec(`window.dispatchEvent(new KeyboardEvent("keydown", { key: ${JSON.stringify(key)}, ...${JSON.stringify(modifiers)} }));`);
 
 // Closes the app's window the way a user would, by asking the compositor to, through a KWin script
 function closeAppWindow() {
@@ -373,6 +392,54 @@ try {
     return {
       ok: default_character_refused && alphabet_saved === 'a,b,c' && still_on_workbench && blank_name_refused && name_kept,
       default_character_refused, alphabet_saved, still_on_workbench, blank_name_refused, name_kept,
+    };
+  });
+
+  // e2e-ws holds start (200,200) --a--> final (500,200)
+  await step('h4-moving-deleting-and-undoing', async () => {
+    const statesSaved = async () => {
+      await sleep(1500);
+      return sql(DB, "SELECT group_concat(x || ',' || y, ' ') FROM (SELECT s.x, s.y FROM saved_states s JOIN saved_workspaces w ON w.id = s.workspace_id WHERE w.workspace_name = 'e2e-ws' ORDER BY s.x, s.y);");
+    };
+    const connectionsSaved = () => sql(DB, "SELECT count(*) FROM saved_connections c JOIN saved_workspaces w ON w.id = c.workspace_id WHERE w.workspace_name = 'e2e-ws';");
+    const results = {};
+
+    await click('button[title="Select, move and reshape"]');
+    await dragCanvas([500, 200], [550, 260], [600, 300]);
+    results.moved = await statesSaved();
+    await click('button[title="Undo (Ctrl+Z)"]');
+    results.moved_back = await statesSaved();
+
+    // Select the connection and delete it from the keyboard, then undo from the keyboard
+    await clickCanvas(350, 200);
+    await pressKey('Delete');
+    await sleep(1500);
+    results.connections_after_delete = connectionsSaved();
+    await pressKey('z', { ctrlKey: true });
+    await sleep(1500);
+    results.connections_after_undo = connectionsSaved();
+
+    // Trash asks first, in a dialog that slides into place
+    await click('button[title="Clear the canvas"]');
+    await sleep(600);
+    await click(byText('button', 'Keep'), 'xpath');
+    results.kept = await statesSaved();
+    await click('button[title="Clear the canvas"]');
+    await sleep(600);
+    await click(byText('button', 'Clear'), 'xpath');
+    results.cleared = await statesSaved();
+    await click('button[title="Undo (Ctrl+Z)"]');
+    results.restored = await statesSaved();
+
+    // An empty box checks the empty string, which the non-final start state rejects
+    results.empty_string = await checkString('');
+
+    return {
+      ok: results.moved === '200,200 600,300' && results.moved_back === '200,200 500,200'
+        && results.connections_after_delete === '0' && results.connections_after_undo === '1'
+        && results.kept === '200,200 500,200' && results.cleared === '' && results.restored === '200,200 500,200'
+        && results.empty_string === REJECTED,
+      ...results,
     };
   });
 

@@ -5,8 +5,9 @@ import { get } from "svelte/store";
 import type { WorkspaceData } from "$lib/types/interfaces";
 import { Automata } from "$lib/types/enums";
 import {
-  automaton, connection_start, default_connection_character, dialogue_to_user, input_alphabet, selection,
-  should_show_string_traversal, should_strict_check, tool, type_of_automata, workspace_name, type Tool,
+  automaton, can_redo, can_undo, confirming_trash, connection_start, default_connection_character, dialogue_to_user,
+  input_alphabet, selection, should_show_string_traversal, should_strict_check, tool, type_of_automata, workspace_name,
+  type Tool,
 } from "$lib/utils/automataStores";
 import { invokeCommand } from "$lib/utils/backend";
 import { setSessionValue } from "$lib/utils/miscUtils";
@@ -15,7 +16,7 @@ import { roundToNearest } from "$lib/utils/mathFuncs";
 import { checkInputtedString, type CheckedStringResponse } from "$lib/utils/stringVerificationFuncs";
 import {
   addConnection, addState, connectionById, connectionNear, emptyAutomaton, EPSILON, moveControlPoint, moveState,
-  relabelConnection, setFinal, stateAt, stateIsAt, type Automaton, type Point,
+  relabelConnection, removeConnection, removeState, setFinal, setStart, stateAt, stateIsAt, type Automaton, type Point,
 } from "./automaton";
 
 // New states go on a grid this many pixels apart, and dragged states on a finer one
@@ -32,15 +33,68 @@ const snapTo = (point: Point, grid: number): Point => ({
 
 const tell = (message: string): void => dialogue_to_user.set(message);
 
-// What the pointer is dragging with the select tool, from press to release
-type Drag = { kind: "state"; id: number } | { kind: "control point"; connection: number; index: 0 | 1 };
+// What the pointer is dragging with the select tool, from press to release, and whether it has moved it yet
+type Drag = ({ kind: "state"; id: number } | { kind: "control point"; connection: number; index: 0 | 1 }) & { hasMoved: boolean };
 let drag: Drag | null = null;
 
 const clearTransientState = (): void => {
   connection_start.set(null);
   selection.set(null);
+  confirming_trash.set(false);
   drag = null;
 };
+
+// Earlier versions of the automaton, to undo back to, and undone ones, to redo. Kept to a limit
+const HISTORY_LIMIT = 200;
+let earlier_versions: Array<Automaton> = [];
+let undone_versions: Array<Automaton> = [];
+
+const showHistory = (): void => {
+  can_undo.set(earlier_versions.length > 0);
+  can_redo.set(undone_versions.length > 0);
+};
+
+const forgetHistory = (): void => {
+  earlier_versions = [];
+  undone_versions = [];
+  showHistory();
+};
+
+// Every change to the automaton goes through here, so it can be undone. Something that changed nothing isn't an edit
+function edit(newAutomaton: Automaton): void {
+  const current = get(automaton);
+  if (newAutomaton === current) {
+    return;
+  }
+  earlier_versions = [...earlier_versions.slice(-(HISTORY_LIMIT - 1)), current];
+  undone_versions = [];
+  automaton.set(newAutomaton);
+  showHistory();
+}
+
+export function undo(): void {
+  const previous = earlier_versions.at(-1);
+  if (!previous) {
+    return;
+  }
+  clearTransientState();
+  earlier_versions = earlier_versions.slice(0, -1);
+  undone_versions = [...undone_versions, get(automaton)];
+  automaton.set(previous);
+  showHistory();
+}
+
+export function redo(): void {
+  const next = undone_versions.at(-1);
+  if (!next) {
+    return;
+  }
+  clearTransientState();
+  undone_versions = undone_versions.slice(0, -1);
+  earlier_versions = [...earlier_versions, get(automaton)];
+  automaton.set(next);
+  showHistory();
+}
 
 export function selectTool(newTool: Tool): void {
   clearTransientState();
@@ -57,18 +111,40 @@ export function loadWorkspace(workspaceData: WorkspaceData): void {
   default_connection_character.set(workspaceData.default_connection_character);
   dialogue_to_user.set(null);
   clearTransientState();
+  forgetHistory();
   tool.set("state");
 }
 
-// Replaces the automaton, as converting or minimizing does
+// Replaces the automaton, as converting or minimizing does. It can be undone like any edit
 export function replaceAutomaton(newAutomaton: Automaton): void {
   clearTransientState();
-  automaton.set(newAutomaton);
+  edit(newAutomaton);
 }
 
-export function trash(): void {
+// The trash button asks before clearing the canvas, which can be undone too
+export function requestTrash(): void {
   clearTransientState();
-  automaton.set(emptyAutomaton());
+  confirming_trash.set(true);
+}
+
+export function confirmTrash(): void {
+  clearTransientState();
+  edit(emptyAutomaton());
+}
+
+export function cancelTrash(): void {
+  confirming_trash.set(false);
+}
+
+// Deletes the selected state, with its connections, or the selected connection
+export function deleteSelection(): void {
+  const selected = get(selection);
+  if (!selected) {
+    return;
+  }
+  const current = get(automaton);
+  selection.set(null);
+  edit(selected.kind === "state" ? removeState(current, selected.id) : removeConnection(current, selected.id));
 }
 
 // Places a state where the canvas was clicked, unless one is there already. Returns whether it did
@@ -79,7 +155,7 @@ function placeState(point: Point, isStart: boolean): boolean {
     tell("You cannot place a Node on top of another Node.");
     return false;
   }
-  automaton.set(addState(current, position, isStart).automaton);
+  edit(addState(current, position, isStart).automaton);
   return true;
 }
 
@@ -93,19 +169,23 @@ export function clickCanvas(point: Point): void {
       placeState(point, false);
       return;
 
+    // On a state, makes it the start state, or no longer the start state if it was; elsewhere, places a new start state.
+    // Either way the tool goes back to placing ordinary states
     case "start":
-      if (placeState(point, true)) {
+      if (clickedState) {
+        edit(setStart(current, clickedState.isStart ? null : clickedState.id));
+        tool.set("state");
+      } else if (placeState(point, true)) {
         tool.set("state");
       }
       return;
 
+    // Makes a state final, or no longer final if it was
     case "final":
       if (!clickedState) {
         tell("You must make an existing Node a final Node.");
-      } else if (clickedState.isFinal) {
-        tell("The Node is already a final Node.");
       } else {
-        automaton.set(setFinal(current, clickedState.id, true));
+        edit(setFinal(current, clickedState.id, !clickedState.isFinal));
       }
       return;
 
@@ -125,7 +205,7 @@ export function clickCanvas(point: Point): void {
         return;
       }
       const character = get(tool) === "epsilon" ? EPSILON : get(default_connection_character);
-      automaton.set(addConnection(current, from, clickedState.id, character).automaton);
+      edit(addConnection(current, from, clickedState.id, character).automaton);
       connection_start.set(null);
       if (character !== EPSILON && !get(input_alphabet).includes(character)) {
         input_alphabet.update((alphabet) => [...alphabet, character]);
@@ -163,7 +243,7 @@ export function pressCanvas(point: Point): void {
       (controlPoint) => Math.hypot(controlPoint.x - point.x, controlPoint.y - point.y) <= CONTROL_POINT_REACH,
     );
     if (connection && index !== undefined && index >= 0) {
-      drag = { kind: "control point", connection: connection.id, index: index as 0 | 1 };
+      drag = { kind: "control point", connection: connection.id, index: index as 0 | 1, hasMoved: false };
       return;
     }
   }
@@ -171,7 +251,7 @@ export function pressCanvas(point: Point): void {
   const pressedState = stateAt(current, point);
   if (pressedState) {
     selection.set({ kind: "state", id: pressedState.id });
-    drag = { kind: "state", id: pressedState.id };
+    drag = { kind: "state", id: pressedState.id, hasMoved: false };
     return;
   }
 
@@ -179,22 +259,32 @@ export function pressCanvas(point: Point): void {
   selection.set(near ? { kind: "connection", id: near.id } : null);
 }
 
+// A whole drag is one edit, to undo all at once
 export function dragCanvas(point: Point): void {
   if (!drag) {
     return;
   }
   const current = get(automaton);
+  let moved: Automaton;
   if (drag.kind === "control point") {
-    automaton.set(moveControlPoint(current, drag.connection, drag.index, point));
-    return;
+    moved = moveControlPoint(current, drag.connection, drag.index, point);
+  } else {
+    const position = snapTo(point, MOVING_GRID);
+    const movingId = drag.id;
+    const state = current.states.find((state) => state.id === movingId);
+    const occupied = current.states.some(
+      (state) => state.id !== movingId && state.position.x === position.x && state.position.y === position.y,
+    );
+    if (occupied || (state && state.position.x === position.x && state.position.y === position.y)) {
+      return;
+    }
+    moved = moveState(current, movingId, position);
   }
-  const position = snapTo(point, MOVING_GRID);
-  const movingId = drag.id;
-  const occupied = current.states.some(
-    (state) => state.id !== movingId && state.position.x === position.x && state.position.y === position.y,
-  );
-  if (!occupied) {
-    automaton.set(moveState(current, movingId, position));
+  if (drag.hasMoved) {
+    automaton.set(moved);
+  } else {
+    drag.hasMoved = true;
+    edit(moved);
   }
 }
 
@@ -202,18 +292,37 @@ export function releaseCanvas(): void {
   drag = null;
 }
 
-// Typing a character while a connection is selected relabels it. Shortcuts such as Ctrl+S are left alone
-export function pressKey(event: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean }): void {
+// Ctrl+Z undoes, and Ctrl+Shift+Z or Ctrl+Y redo. Delete and Backspace delete the selection. Typing a character while a
+// connection is selected relabels it. Other shortcuts are left alone. Returns whether the key did something here
+export function pressKey(event: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }): boolean {
+  if ((event.ctrlKey || event.metaKey) && !event.altKey) {
+    const key = event.key.toLowerCase();
+    if (key === "z" && !event.shiftKey) {
+      undo();
+      return true;
+    }
+    if (key === "y" || (key === "z" && event.shiftKey)) {
+      redo();
+      return true;
+    }
+    return false;
+  }
+  if (event.key === "Delete" || event.key === "Backspace") {
+    deleteSelection();
+    return true;
+  }
+
   const selected = get(selection);
-  if (selected?.kind !== "connection" || event.ctrlKey || event.metaKey || event.altKey || [...event.key].length !== 1) {
-    return;
+  if (selected?.kind !== "connection" || event.altKey || [...event.key].length !== 1) {
+    return false;
   }
   const character = event.key;
-  automaton.set(relabelConnection(get(automaton), selected.id, character));
+  edit(relabelConnection(get(automaton), selected.id, character));
   selection.set(null);
   if (character !== EPSILON && !get(input_alphabet).includes(character)) {
     input_alphabet.update((alphabet) => [...alphabet, character]);
   }
+  return true;
 }
 
 // Checks the string against the automaton on the canvas, and shows any message that comes with the answer
