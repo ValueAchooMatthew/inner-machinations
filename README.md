@@ -14,7 +14,7 @@ I was inspired to make this project by my studies in discrete math at university
 - Convert an NFA to an equivalent DFA, and minimize a DFA
 - See the language an automaton accepts, written as a regular expression
 - Test strings against a regular expression, and see its parse tree
-- Workspaces are saved as you go, to a SQLite database on your computer
+- Automata and regular expressions are saved as you go, to a SQLite database on your computer
 
 The regex parser and NFA construction, NFA-to-DFA conversion, DFA minimization, and language determination are implemented from scratch in Rust (`src-tauri/src`).
 
@@ -30,11 +30,13 @@ The installers aren't signed, so your system will warn you the first time:
 
 ## Using it
 
-Pick a tool from the sidebar and click the canvas to place states and draw connections. A connection uses the default character, which the options menu (Esc) sets; to change one, select it with the select tool and type the new character. The select tool also moves states and reshapes curves. Delete removes what is selected, and Ctrl+Z undoes.
+The dashboard lists your saved automata and regular expressions, and the button beside each heading starts a new one.
+
+On the workbench, pick a tool from the sidebar and click the canvas to place states and draw connections. A connection uses the default character, which the options menu (Esc) sets; to change one, select it with the select tool and type the new character. The select tool also moves states and reshapes curves. Delete removes what is selected, and Ctrl+Z undoes.
 
 Regular expressions write union as `+` (or `|`), "any number of times" as `*`, and the empty string as `ε`, with parentheses for grouping. Characters written one after another are concatenated.
 
-Workspaces are saved to `mydb.sqlite3` in the app's data folder: `~/.local/share/com.mach.build` on Linux, `~/Library/Application Support/com.mach.build` on macOS, and `%APPDATA%\com.mach.build` on Windows.
+Automata and regular expressions are saved to `mydb.sqlite3` in the app's data folder: `~/.local/share/com.mach.build` on Linux, `~/Library/Application Support/com.mach.build` on macOS, and `%APPDATA%\com.mach.build` on Windows.
 
 ## Running it from source
 

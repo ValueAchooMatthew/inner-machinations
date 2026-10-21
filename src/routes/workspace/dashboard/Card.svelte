@@ -5,10 +5,10 @@
   import { invokeCommand } from "$lib/utils/backend";
   import { onMount } from "svelte";
   import { dialogue_to_user, workspace_name } from "$lib/utils/automataStores";
-  import type { WorkspaceData } from "$lib/types/interfaces";
+  import type { SavedItem, WorkspaceData } from "$lib/types/interfaces";
 
   export let workspace_title: string;
-  export let workspace_to_delete: string | null;
+  export let to_delete: SavedItem | null;
 
   const handleClick = () => {
     setSessionValue("workspace_name", workspace_title);
@@ -61,7 +61,7 @@
   <button class="absolute flex justify-center bg-orange-500 rounded-r-md w-12 h-12"
     title="Delete {workspace_title}"
     on:click={() => {
-      workspace_to_delete = workspace_title;
+      to_delete = { kind: "workspace", name: workspace_title };
     }}>
     <svg
       class="w-8 h-8 self-center"

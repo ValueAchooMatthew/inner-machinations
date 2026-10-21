@@ -278,7 +278,7 @@ try {
   });
 
   await step('d-create-workspace', async () => {
-    await click('div.fixed.top-0 svg'); // "+" new workspace
+    await click(byText('button', 'New Automaton'), 'xpath');
     await waitFor(async () => (await route()).includes('workbench'), 'workbench route');
     await waitEl('#workspaceName');
     await sleep(800);
@@ -446,8 +446,10 @@ try {
   await step('i-regexes', async () => {
     await click(byText('a', 'Dashboard'), 'xpath');
     await waitText('My Dashboard');
-    await click(byText('a', 'Go To regexes'), 'xpath');
+    await click(byText('button', 'New Regular Expression'), 'xpath');
     await waitEl('#regex');
+    await sleep(500);
+    const created_name = await exec('return document.querySelector("#regexName").value;');
     // The handoff's probes that the old engine got wrong, plus | as union
     const cases = [
       ['a(b+c)*', 'abc', true], ['a(b+c)*', 'ad', false],
@@ -481,14 +483,58 @@ try {
     await type('#regex', '((a+b)(c+d))*((e+f)(g+h))');
     await sleep(800);
     const canvas_drawn = await exec(`const c = document.querySelector('canvas'); const d = c.getContext('2d').getImageData(0,0,c.width,c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n;`);
-    return { ok, ...results, parse_tree_pixels: canvas_drawn };
+    return { ok: ok && created_name === 'Untitled Regular Expression', created_name, ...results, parse_tree_pixels: canvas_drawn };
+  });
+
+  await step('i2-saved-regexes', async () => {
+    const savedRegex = (name) => sql(DB, `SELECT regex FROM saved_regexes WHERE regex_name = '${name}';`);
+    // What was typed last is saved a moment later
+    await sleep(1200);
+    const autosaved = savedRegex('Untitled Regular Expression');
+    const status = await exec('return document.querySelector("#save_status").innerText.trim();');
+    await type('#regexName', 'e2e-regex');
+    await exec('document.querySelector("#regexName").form.requestSubmit();');
+    await waitFor(() => sql(DB, 'SELECT group_concat(regex_name) FROM saved_regexes;') === 'e2e-regex' || null, 'regex renamed');
+    // An edit just before leaving is saved before the dashboard opens
+    await type('#regex', 'a*b');
+    await click(byText('a', 'Dashboard'), 'xpath');
+    await waitText('My Dashboard');
+    const saved_on_leaving = savedRegex('e2e-regex');
+    const card = await exec(`return [...document.querySelectorAll('button')].find(b => b.innerText.includes('e2e-regex'))?.innerText.replace(/\\s+/g, ' ').trim() ?? null;`);
+    await click(byText('button', 'e2e-regex'), 'xpath');
+    await waitFor(async () => (await exec('return document.querySelector("#regex")?.value ?? null;')) === 'a*b' || null, 'saved regex shown');
+    await type('#string_test', 'aab');
+    await sleep(900);
+    const reopened = await feedback();
+    await click(byText('a', 'Dashboard'), 'xpath');
+    await waitText('My Dashboard');
+    // Its card has a preview of its parse tree
+    const preview_pixels = await waitFor(() => exec(`const c = [...document.querySelectorAll('button')].find(b => b.innerText.includes('e2e-regex'))?.querySelector('canvas'); if (!c) return null; const d = c.getContext('2d').getImageData(0,0,c.width,c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n || null;`), 'regex card preview');
+    return {
+      ok: autosaved === '((a+b)(c+d))*((e+f)(g+h))' && status === 'Saved' && saved_on_leaving === 'a*b'
+        && card?.includes('a*b') && reopened === ACCEPTED,
+      autosaved, status, saved_on_leaving, card, reopened, preview_pixels,
+    };
+  });
+
+  await step('i3-deleting-a-regex', async () => {
+    await click('button[title="Delete e2e-regex"]');
+    await sleep(600); // the dialog slides in
+    const asked = (await bodyText()).includes('Are you sure you want to delete "e2e-regex"?');
+    await click(byText('button', 'Yes'), 'xpath');
+    await waitText('No saved regular expressions yet');
+    const left = sql(DB, 'SELECT count(*) FROM saved_regexes;');
+    const workspaces = sql(DB, 'SELECT count(*) FROM saved_workspaces;');
+    return { ok: asked && left === '0' && workspaces !== '0', asked, left, workspaces };
   });
 
   // An epsilon cycle used to overflow the stack when checking strings and freeze the window when converting
   await step('j-nfa-epsilon-cycle-and-convert', async () => {
-    await click(byText('a', 'Dashboard'), 'xpath');
-    await waitText('My Dashboard');
-    await click('div.fixed.top-0 svg'); // "+" new workspace, "Untitled Project"
+    if (!(await route()).includes('dashboard')) {
+      await click(byText('a', 'Dashboard'), 'xpath');
+      await waitText('My Dashboard');
+    }
+    await click(byText('button', 'New Automaton'), 'xpath'); // "Untitled Project"
     await waitFor(async () => (await route()).includes('workbench'), 'workbench route');
     await sleep(800);
     await click('//button[normalize-space(.)="NFA"]', 'xpath');
@@ -533,7 +579,7 @@ try {
     // "Untitled Project" is taken by now, so the next new workspace is numbered
     await click(byText('a', 'Dashboard'), 'xpath');
     await waitText('My Dashboard');
-    await click('div.fixed.top-0 svg');
+    await click(byText('button', 'New Automaton'), 'xpath');
     await waitFor(async () => (await route()).includes('workbench'), 'workbench route');
     await sleep(800);
     const new_name = await exec('return document.querySelector("#workspaceName").value;');

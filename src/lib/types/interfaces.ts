@@ -38,6 +38,19 @@ export interface Literal {
   Literal: string
 }
 
+// A saved regular expression, as the backend sends it
+export interface RegexData {
+  regex_name: string,
+  regex: string,
+  date_of_last_update: string
+}
+
+// Something saved that the dashboard lists, by its name
+export interface SavedItem {
+  kind: "workspace" | "regex",
+  name: string
+}
+
 // A saved workspace, as the backend sends it
 export interface WorkspaceData {
   automaton: Automaton,

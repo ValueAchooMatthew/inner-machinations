@@ -9,6 +9,14 @@ import type { Automaton } from "./automaton";
 export type SaveStatus = "saved" | "unsaved" | "saving" | "failed";
 export const save_status: Writable<SaveStatus> = writable("saved");
 
+// How the banners show each status
+export const SAVE_STATUS_LABELS: Record<SaveStatus, string> = {
+  saved: "Saved",
+  saving: "Saving…",
+  unsaved: "Unsaved changes",
+  failed: "Not saved",
+};
+
 // How long after the last edit to save, so a burst of edits is saved once
 export const AUTOSAVE_DELAY = 800;
 

@@ -1,6 +1,6 @@
 # End-to-end test
 
-`run.mjs` drives a built copy of the app through its real UI: importing a database from an older build, building and testing a DFA, autosaving, minimizing, reopening, strict checking, the options menu and renaming, moving, deleting and undoing, the regex builder, converting an NFA with an epsilon cycle, and saving as the window closes. It runs on Linux only, inside an invisible KWin session, so it never touches your desktop or your saved workspaces.
+`run.mjs` drives a built copy of the app through its real UI: importing a database from an older build, building and testing a DFA, autosaving, minimizing, reopening, strict checking, the options menu and renaming, moving, deleting and undoing, the regex builder, saving, renaming, reopening and deleting a regular expression, converting an NFA with an epsilon cycle, and saving as the window closes. It runs on Linux only, inside an invisible KWin session, so it never touches your desktop or your saved workspaces.
 
 ## Requirements
 

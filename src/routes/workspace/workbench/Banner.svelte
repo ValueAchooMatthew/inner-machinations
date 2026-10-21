@@ -3,17 +3,10 @@
   import { workspace_name, type_of_automata } from "$lib/utils/automataStores";
   import { renameWorkspace } from "$lib/workbench/actions";
   import { invokeCommand } from "$lib/utils/backend";
-  import { save_status, saveNow } from "$lib/workbench/autosave";
+  import { SAVE_STATUS_LABELS, save_status, saveNow } from "$lib/workbench/autosave";
   import { goto } from "$app/navigation";
 
   export let is_option_menu_open: boolean;
-
-  const SAVE_STATUS_LABELS = {
-    saved: "Saved",
-    saving: "Saving…",
-    unsaved: "Unsaved changes",
-    failed: "Not saved",
-  };
 
   // Leaves the workbench once the workspace is saved. If saving fails, the user stays, and is shown why
   async function leaveFor(destination: string) {

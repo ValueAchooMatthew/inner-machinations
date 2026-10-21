@@ -1,13 +1,37 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { onDestroy, onMount } from "svelte";
+  import { goto } from "$app/navigation";
   import TestFeedback from "../workbench/TestFeedback.svelte"
   import Banner from "./Banner.svelte";
+  import Notifications from "$lib/components/Notifications.svelte";
   import { drawParseTree } from "$lib/utils/drawingFuncs";
   import { describeFailure } from "$lib/utils/backend";
+  import { openRegex, regex, regex_name, saveRegexNow, stopRegexAutosave } from "$lib/regexes/savedRegex";
   import type { Token } from "$lib/types/types";
 
+  // Closing the window waits for unsaved changes to be saved, as it does on the workbench
+  let stopWaitingForClose: (() => void) | undefined;
+
+  onMount(async () => {
+    // The builder works on a saved regular expression, chosen or made on the dashboard
+    if (!$regex_name) {
+      goto("/workspace/dashboard");
+      return;
+    }
+    await openRegex();
+    stopWaitingForClose = await getCurrentWindow().onCloseRequested(async () => {
+      await saveRegexNow().catch(() => {});
+    });
+  });
+
+  onDestroy(() => {
+    stopRegexAutosave();
+    stopWaitingForClose?.();
+  });
+
   let was_string_accepted: boolean | null = null;
-  let regex: string = "";
   let string_to_test: string = "";
   // Why the regular expression can't be built, if it can't
   let error_message: string | null = null;
@@ -47,11 +71,7 @@
   }
 
   $: {
-    processRegex(regex, string_to_test);
-  }
-
-  function handleUpdatingRegex(event: Event & {currentTarget: EventTarget & HTMLInputElement}): void {
-    regex = event.currentTarget.value;
+    processRegex($regex, string_to_test);
   }
 
   function handleStringChecking(event: Event & {currentTarget: EventTarget & HTMLInputElement}): void {
@@ -69,7 +89,7 @@
     <form class="self-center flex flex-col gap-6" action="">
       <div>
         <label for="regex">Build Regular Expression: </label>
-        <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2" on:input={handleUpdatingRegex} id="regex" name="regex" type="text">
+        <input class="text-gray-950 bg-white px-2 py-1 rounded-md mt-0.5 overflow-hidden h-12 border-black border-2" bind:value={$regex} id="regex" name="regex" type="text">
       </div>
       <div>
         <label for="string_test">Check String: </label>
@@ -85,6 +105,9 @@
       </p>
     </form>
     <TestFeedback is_string_accepted={was_string_accepted} />
+  </div>
+  <div class="flex justify-center my-4">
+    <Notifications />
   </div>
     <canvas class="self-center border-black border-2 rounded-md mx-2 my-2 bg-white mr-0 shrink-0"
       style={`width: ${width}px; height: ${height}px;`}

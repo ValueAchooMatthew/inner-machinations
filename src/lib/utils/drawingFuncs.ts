@@ -195,10 +195,16 @@ const PARSE_TREE_COLOURS: Record<LaidOutToken["kind"], string> = {
   literal: "#FFFF00",
 };
 
-// Draws the parse tree centred at the top of the canvas, shrunk to fit when it is too big for it
-export function drawParseTree(parse_tree: Token, context: CanvasRenderingContext2D, width: number, height: number) {
+// Draws the parse tree centred at the top of the canvas, shrunk to fit inside the margin when it is too big
+// for it. A small preview wants a small margin
+export function drawParseTree(
+  parse_tree: Token,
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  { margin = 60 } = {},
+) {
   const { root, width: tree_width, height: tree_height } = layoutParseTree(parse_tree);
-  const margin = 60;
   const scale = Math.min(
     1,
     (width - 2 * margin) / Math.max(tree_width, 1),
