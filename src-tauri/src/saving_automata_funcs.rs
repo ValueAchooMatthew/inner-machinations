@@ -1,17 +1,15 @@
-use std::collections::HashMap;
-
 use tauri::State as Managed;
 
 use crate::database::Database;
 use crate::error::{validate_connection_character, validate_workspace_name, CommandResult, Error};
-use crate::models::{Connection, State, TypeOfAutomata, WorkspaceData};
+use crate::models::{AutomatonData, TypeOfAutomata, WorkspaceData};
 use crate::workspace_storage;
 
 #[tauri::command]
 pub fn create_workspace(database: Managed<'_, Database>, workspace_name: &str) -> CommandResult<()> {
   validate_workspace_name(workspace_name)?;
   workspace_storage::create_workspace(&mut database.connection(), workspace_name)
-    .map_err(|error| Error::from_storage(error, "create the workspace", workspace_name))
+    .map_err(|error| Error::from_naming(error, "create the workspace", workspace_name))
 }
 
 #[tauri::command]
@@ -24,14 +22,15 @@ pub fn update_workspace_alphabet(
     .map_err(|error| Error::from_storage(error, "save the alphabet", workspace_name))
 }
 
+// Saves the automaton and the alphabet, and returns the alphabet as saved
 #[tauri::command]
 pub fn save_workspace(
   database: Managed<'_, Database>,
   workspace_name: &str,
-  states: HashMap<String, State>,
-  connections: Vec<Connection>
-) -> CommandResult<()> {
-  workspace_storage::save_workspace(&mut database.connection(), workspace_name, &states, &connections)
+  automaton: AutomatonData,
+  alphabet: Vec<&str>
+) -> CommandResult<Vec<String>> {
+  workspace_storage::save_workspace(&mut database.connection(), workspace_name, &automaton, alphabet)
     .map_err(|error| Error::from_storage(error, "save the workspace", workspace_name))
 }
 
@@ -58,7 +57,7 @@ pub fn update_workspace_name(
     .map_err(|error| {
       // The original name is the one that can be missing, and the new name the one that can be taken
       let name = if error == diesel::result::Error::NotFound { original_workspace_name } else { new_workspace_name };
-      Error::from_storage(error, "rename the workspace", name)
+      Error::from_naming(error, "rename the workspace", name)
     })
 }
 

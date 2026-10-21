@@ -4,11 +4,14 @@ diesel::table! {
     saved_connections (id) {
         id -> Integer,
         workspace_id -> Integer,
-        start_point -> Text,
-        control_point_one -> Text,
-        control_point_two -> Text,
-        end_point -> Text,
+        connection_id -> Integer,
+        from_state -> Integer,
+        to_state -> Integer,
         connection_character -> Text,
+        control_point_one_x -> Integer,
+        control_point_one_y -> Integer,
+        control_point_two_x -> Integer,
+        control_point_two_y -> Integer,
     }
 }
 
@@ -16,7 +19,9 @@ diesel::table! {
     saved_states (id) {
         id -> Integer,
         workspace_id -> Integer,
-        position -> Text,
+        state_id -> Integer,
+        x -> Integer,
+        y -> Integer,
         is_start -> Bool,
         is_final -> Bool,
     }

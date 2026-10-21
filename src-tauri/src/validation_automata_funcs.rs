@@ -1,62 +1,47 @@
+use std::collections::HashSet;
+
 use crate::automaton::parse_input_alphabet;
-use crate::models::State;
-use std::collections::HashMap;
+use crate::models::AutomatonData;
 
+// What strict checking requires of a DFA: one start state, and from every state exactly one connection for each
+// character in the input alphabet, to a state that exists, and no others. Epsilon is never in the alphabet, so
+// epsilon connections aren't allowed either
 #[tauri::command]
-pub fn verify_valid_dfa(
-  state_positions: HashMap<String, State>,
-  input_alphabet: Vec<String>,
-  start_state_position: Option<String>
-) -> bool {
+pub fn verify_valid_dfa(automaton: AutomatonData, input_alphabet: Vec<String>) -> bool {
 
-  let has_start_state = start_state_position
-    .is_some_and(|start_state_position| state_positions.contains_key(&start_state_position));
-
-  if !has_start_state {
+  if automaton.states.iter().filter(|state| state.is_start).count() != 1 {
     return false;
   }
 
-  let input_alphabet: Vec<String> = parse_input_alphabet(&input_alphabet)
+  let input_alphabet: HashSet<String> = parse_input_alphabet(&input_alphabet)
     .into_iter()
     .map(String::from)
     .collect();
+  let state_ids: HashSet<i32> = automaton.states.iter().map(|state| state.id).collect();
 
-  for state in state_positions.values() {
+  for state in &automaton.states {
 
-    // Characters whose connections were all moved to another character are left behind with none
-    let connected_characters: Vec<&String> = state
-      .get_all_connections()
+    // Drawing the same connection twice still only specifies it once
+    let mut targets_by_character: Vec<(&String, i32)> = automaton
+      .connections
       .iter()
-      .filter(|(_, connected_state_keys)| !connected_state_keys.is_empty())
-      .map(|(character, _)| character)
+      .filter(|connection| connection.from == state.id)
+      .map(|connection| (&connection.character, connection.to))
       .collect();
+    targets_by_character.sort();
+    targets_by_character.dedup();
 
-    // If the number of characters with connections doesn't equal the size of the alphabet, we know automatically
-    // that the dfa isn't valid
-    if connected_characters.len() != input_alphabet.len() {
-      return false;
-    };
-
-    for character in connected_characters {
-      // Strictly speaking, in a DFA, every single state must have exactly
-      // one connection for each character in the input alphabet, to a state that exists.
-      // Epsilon is never in the alphabet, so epsilon connections are caught here too
-      if !input_alphabet.contains(character) {
+    for (character, target) in &targets_by_character {
+      if !input_alphabet.contains(*character) || !state_ids.contains(target) {
         return false;
-      };
+      }
+    }
 
-      match state.get_connections_by_character(character) {
-        Some(connected_state_keys) => {
-          if connected_state_keys.len() != 1 {
-            return false
-          };
-          if !connected_state_keys.iter().all(|key| state_positions.contains_key(key)) {
-            return false
-          };
-        },
-        None => return false
-      };
-    };
+    for character in &input_alphabet {
+      if targets_by_character.iter().filter(|(connection_character, _)| *connection_character == character).count() != 1 {
+        return false;
+      }
+    }
 
   };
   true
@@ -65,64 +50,53 @@ pub fn verify_valid_dfa(
 #[cfg(test)]
 mod tests {
   use super::verify_valid_dfa;
-  use crate::models::{Coordinate, State};
-  use std::collections::HashMap;
-
-  fn state(x: i32, connections: &[(&str, i32)]) -> (String, State) {
-    let mut state = State::new(Coordinate { x, y: 100 }, false, false);
-    for (connection_character, target_x) in connections {
-      state.add_connection(connection_character, format!("{target_x},100"));
-    }
-    (format!("{x},100"), state)
-  }
+  use crate::test_support::{automaton, state, TestState};
 
   fn alphabet() -> Vec<String> {
     vec!["a".to_owned(), "b".to_owned(), "".to_owned(), "a".to_owned()]
   }
 
-  fn start() -> Option<String> {
-    Some("100,100".to_owned())
+  // The state at 100 is the start state
+  fn dfa_state(x: i32, connections: &[(&str, i32)]) -> TestState {
+    state(x, x == 100, false, connections)
   }
 
   #[test]
   fn test_complete_dfa_is_valid() {
-    let state_positions = HashMap::from([
-      state(100, &[("a", 200), ("b", 100)]),
-      state(200, &[("a", 200), ("b", 100)])
+    let complete = automaton([
+      dfa_state(100, &[("a", 200), ("b", 100)]),
+      dfa_state(200, &[("a", 200), ("b", 100)])
     ]);
-    assert!(verify_valid_dfa(state_positions, alphabet(), start()));
+    assert!(verify_valid_dfa(complete, alphabet()));
+
+    let drawn_twice = automaton([dfa_state(100, &[("a", 100), ("a", 100), ("b", 100)])]);
+    assert!(verify_valid_dfa(drawn_twice, alphabet()));
   }
 
   #[test]
   fn test_invalid_dfas() {
-    let missing_character = HashMap::from([state(100, &[("a", 100)])]);
-    assert!(!verify_valid_dfa(missing_character, alphabet(), start()));
+    let missing_character = automaton([dfa_state(100, &[("a", 100)])]);
+    assert!(!verify_valid_dfa(missing_character, alphabet()));
 
-    let two_targets = HashMap::from([
-      state(100, &[("a", 100), ("a", 200), ("b", 100)]),
-      state(200, &[("a", 200), ("b", 200)])
+    let two_targets = automaton([
+      dfa_state(100, &[("a", 100), ("a", 200), ("b", 100)]),
+      dfa_state(200, &[("a", 200), ("b", 200)])
     ]);
-    assert!(!verify_valid_dfa(two_targets, alphabet(), start()));
+    assert!(!verify_valid_dfa(two_targets, alphabet()));
 
-    let missing_target = HashMap::from([state(100, &[("a", 100), ("b", 900)])]);
-    assert!(!verify_valid_dfa(missing_target, alphabet(), start()));
+    let missing_target = automaton([dfa_state(100, &[("a", 100), ("b", 900)])]);
+    assert!(!verify_valid_dfa(missing_target, alphabet()));
 
-    let epsilon = HashMap::from([state(100, &[("a", 100), ("b", 100), ("ϵ", 100)])]);
-    assert!(!verify_valid_dfa(epsilon, alphabet(), start()));
+    let epsilon = automaton([dfa_state(100, &[("a", 100), ("b", 100), ("ϵ", 100)])]);
+    assert!(!verify_valid_dfa(epsilon, alphabet()));
 
-    let complete = HashMap::from([state(100, &[("a", 100), ("b", 100)])]);
-    assert!(!verify_valid_dfa(complete.clone(), alphabet(), None));
-    assert!(!verify_valid_dfa(complete, alphabet(), Some("900,900".to_owned())));
-  }
+    let no_start = automaton([state(100, false, false, &[("a", 100), ("b", 100)])]);
+    assert!(!verify_valid_dfa(no_start, alphabet()));
 
-  #[test]
-  fn test_emptied_characters_are_ignored() {
-    let mut state_positions = HashMap::from([state(100, &[("a", 100), ("b", 100), ("c", 100)])]);
-    state_positions
-      .get_mut("100,100")
-      .unwrap()
-      .remove_connection_by_character("c", "100,100")
-      .unwrap();
-    assert!(verify_valid_dfa(state_positions, alphabet(), start()));
+    let two_starts = automaton([
+      state(100, true, false, &[("a", 100), ("b", 100)]),
+      state(200, true, false, &[("a", 200), ("b", 200)])
+    ]);
+    assert!(!verify_valid_dfa(two_starts, alphabet()));
   }
 }

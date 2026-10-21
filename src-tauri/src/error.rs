@@ -19,10 +19,17 @@ impl Error {
   pub fn from_storage(error: DatabaseError, action: &str, workspace_name: &str) -> Self {
     match error {
       DatabaseError::NotFound => Error(format!("There is no workspace called \"{workspace_name}\"")),
+      other => Error(format!("Couldn't {action}: {other}"))
+    }
+  }
+
+  // As from_storage, for giving a workspace a name, which fails when another workspace has the name already
+  pub fn from_naming(error: DatabaseError, action: &str, workspace_name: &str) -> Self {
+    match error {
       DatabaseError::DatabaseError(DatabaseErrorKind::UniqueViolation, _) => {
         Error(format!("There is already a workspace called \"{workspace_name}\""))
       },
-      other => Error(format!("Couldn't {action}: {other}"))
+      other => Error::from_storage(other, action, workspace_name)
     }
   }
 
@@ -67,10 +74,19 @@ mod tests {
       Error::from_storage(DatabaseError::NotFound, "save the workspace", "First"),
       Error::new("There is no workspace called \"First\"")
     );
-    let unique = DatabaseError::DatabaseError(DatabaseErrorKind::UniqueViolation, Box::new("UNIQUE constraint failed".to_owned()));
+    let unique = || DatabaseError::DatabaseError(DatabaseErrorKind::UniqueViolation, Box::new("UNIQUE constraint failed".to_owned()));
     assert_eq!(
-      Error::from_storage(unique, "rename the workspace", "Second"),
+      Error::from_naming(unique(), "rename the workspace", "Second"),
       Error::new("There is already a workspace called \"Second\"")
+    );
+    assert_eq!(
+      Error::from_naming(DatabaseError::NotFound, "rename the workspace", "Second"),
+      Error::new("There is no workspace called \"Second\"")
+    );
+    // Anywhere else, a clash isn't about names
+    assert_eq!(
+      Error::from_storage(unique(), "save the workspace", "First"),
+      Error::new("Couldn't save the workspace: UNIQUE constraint failed")
     );
     assert_eq!(
       Error::from_storage(DatabaseError::BrokenTransactionManager, "save the workspace", "First").to_string(),

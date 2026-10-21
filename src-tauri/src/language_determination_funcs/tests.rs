@@ -1,22 +1,16 @@
-use std::collections::HashMap;
-
 use crate::automaton::Automaton;
-use crate::models::{Coordinate, State};
-
 use crate::language_determination_funcs::determine_language_of_automata;
+use crate::models::AutomatonData;
 use crate::regular_expression_funcs::{parse_regular_expression, convert_parse_tree_to_nfa};
-
-fn state(x: i32, is_final: bool, connections: &[(&str, i32)]) -> (String, State) {
-  let mut state = State::new(Coordinate { x, y: 100 }, x == 100, is_final);
-  for (connection_character, target_x) in connections {
-    state.add_connection(connection_character, format!("{target_x},100"));
-  }
-  (format!("{x},100"), state)
-}
+use crate::test_support::{self, automaton, TestState};
 
 // The start state is always the one at x = 100
-fn language(states: Vec<(String, State)>) -> String {
-  determine_language_of_automata(HashMap::from_iter(states), "100,100")
+fn state(x: i32, is_final: bool, connections: &[(&str, i32)]) -> TestState {
+  test_support::state(x, x == 100, is_final, connections)
+}
+
+fn language(states: Vec<TestState>) -> String {
+  determine_language_of_automata(automaton(states))
 }
 
 #[test]
@@ -37,9 +31,8 @@ fn test_empty_string_and_empty_language() {
   assert_eq!(language(vec![state(100, false, &[("a", 200)]), state(200, false, &[])]), "∅");
   // A final state the start state can't reach
   assert_eq!(language(vec![state(100, false, &[]), state(200, true, &[])]), "∅");
-  // A start state that doesn't exist
-  let state_positions = HashMap::from([state(200, true, &[])]);
-  assert_eq!(determine_language_of_automata(state_positions, "100,100"), "∅");
+  // No start state
+  assert_eq!(language(vec![state(200, true, &[])]), "∅");
 }
 
 #[test]
@@ -95,7 +88,7 @@ impl Random {
   }
 }
 
-fn random_state_positions(random: &mut Random) -> HashMap<String, State> {
+fn random_automaton(random: &mut Random) -> AutomatonData {
   let state_count = 1 + random.below(6);
   let mut states = vec![];
   for index in 0..state_count {
@@ -107,7 +100,7 @@ fn random_state_positions(random: &mut Random) -> HashMap<String, State> {
     }
     states.push(state(x, random.below(3) == 0, &connections));
   }
-  HashMap::from_iter(states)
+  automaton(states)
 }
 
 fn all_strings_up_to(length: usize) -> Vec<String> {
@@ -130,13 +123,13 @@ fn test_random_automata_languages_round_trip() {
   let strings = all_strings_up_to(6);
 
   for _ in 0..500 {
-    let state_positions = random_state_positions(&mut random);
-    let (automaton, _) = Automaton::from_state_positions(&state_positions, Some("100,100"));
-    let language = determine_language_of_automata(state_positions.clone(), "100,100");
+    let automaton_data = random_automaton(&mut random);
+    let (automaton, _) = Automaton::from_data(&automaton_data);
+    let language = determine_language_of_automata(automaton_data.clone());
 
     if language == "∅" {
       for string in &strings {
-        assert!(!automaton.accepts(string), "{state_positions:?} accepts {string:?} but its language is ∅");
+        assert!(!automaton.accepts(string), "{automaton_data:?} accepts {string:?} but its language is ∅");
       }
       continue;
     }
@@ -149,7 +142,7 @@ fn test_random_automata_languages_round_trip() {
       assert_eq!(
         nfa.accepts(string),
         automaton.accepts(string),
-        "language {language:?} of {state_positions:?} disagrees on {string:?}"
+        "language {language:?} of {automaton_data:?} disagrees on {string:?}"
       );
     }
   }

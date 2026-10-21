@@ -1,20 +1,5 @@
 import type { Token } from "./types";
-
-// A state as the backend sends and receives it: keyed by its position, and listing the positions of the
-// states it connects to, by character
-export interface State {
-  position: Coordinate;
-  states_connected_to: Record<string, Array<string>>;
-  is_start: boolean;
-  is_final: boolean;
-  element: "State";
-}
-
-export interface Connection {
-  curve: BezierCurve;
-  connection_character: string;
-  element: "Connection";
-}
+import type { Automaton } from "$lib/workbench/automaton";
 
 export interface BezierCurve {
   start_point: Coordinate;
@@ -53,17 +38,13 @@ export interface Literal {
   Literal: string
 }
 
+// A saved workspace, as the backend sends it
 export interface WorkspaceData {
-  start_state_index: number | null,
-  start_state_position: string | null,
-  state_positions: { [key: string]: State; },
-  list_of_states: Array<State>,
-  list_of_connections: Array<Connection>,
+  automaton: Automaton,
   type_of_automata: string,
   date_of_last_update: string,
   alphabet: Array<string>,
   should_strict_check: boolean,
   should_show_string_traversal: boolean,
   default_connection_character: string
-
 }

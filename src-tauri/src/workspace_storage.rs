@@ -1,14 +1,13 @@
 // Workspaces in the database. Each function is given the connection to use, so the commands can share
 // the app's connection and the tests can each use their own database
-use std::collections::HashMap;
-
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-// The trait, for transactions; its name is taken by the model below
-use diesel::Connection as _;
 use diesel::result::Error::NotFound;
 
-use crate::models::{Connection, SavedWorkspace, State, TypeOfAutomata, WorkspaceData};
+use crate::models::{
+  AutomatonData, ConnectionData, Coordinate, SavedConnection, SavedState, SavedWorkspace, StateData, TypeOfAutomata,
+  WorkspaceData
+};
 use crate::sanitize_input_alphabet;
 use crate::schema::{saved_connections, saved_states, saved_workspaces};
 
@@ -41,23 +40,85 @@ pub fn get_saved_workspaces(connection: &mut SqliteConnection) -> QueryResult<Ve
 }
 
 pub fn retrieve_workspace_data(connection: &mut SqliteConnection, workspace_name: &str) -> QueryResult<WorkspaceData> {
+
   let workspace = get_workspace(connection, workspace_name)?;
-  WorkspaceData::new(workspace, connection)
+
+  let states: Vec<SavedState> = saved_states::table
+    .filter(saved_states::workspace_id.eq(workspace.id))
+    .order(saved_states::state_id)
+    .load(connection)?;
+
+  let connections: Vec<SavedConnection> = saved_connections::table
+    .filter(saved_connections::workspace_id.eq(workspace.id))
+    .order(saved_connections::connection_id)
+    .load(connection)?;
+
+  Ok(WorkspaceData {
+    automaton: AutomatonData {
+      states: states
+        .into_iter()
+        .map(|state| StateData {
+          id: state.state_id,
+          position: Coordinate { x: state.x, y: state.y },
+          is_start: state.is_start,
+          is_final: state.is_final
+        })
+        .collect(),
+      connections: connections
+        .into_iter()
+        .map(|saved_connection| ConnectionData {
+          id: saved_connection.connection_id,
+          from: saved_connection.from_state,
+          to: saved_connection.to_state,
+          character: saved_connection.connection_character,
+          control_points: [
+            Coordinate { x: saved_connection.control_point_one_x, y: saved_connection.control_point_one_y },
+            Coordinate { x: saved_connection.control_point_two_x, y: saved_connection.control_point_two_y }
+          ]
+        })
+        .collect()
+    },
+    type_of_automata: workspace.type_of_automata,
+    date_of_last_update: workspace.date_of_last_update.format("%Y-%m-%d %H:%M:%S").to_string(),
+    alphabet: workspace.alphabet.split(',').filter(|character| !character.is_empty()).map(str::to_owned).collect(),
+    should_strict_check: workspace.should_strict_check,
+    should_show_string_traversal: workspace.should_show_string_traversal,
+    default_connection_character: workspace.default_connection_character
+  })
+
 }
 
-// Replaces the workspace's states and connections, all at once or not at all
+// Replaces the workspace's automaton and alphabet, all at once or not at all, and returns the alphabet as
+// saved: its distinct single characters. A connection to a state the automaton doesn't have, or two states
+// or connections with the same id, is an error and saves nothing
 pub fn save_workspace(
   connection: &mut SqliteConnection,
   workspace_name: &str,
-  states: &HashMap<String, State>,
-  connections: &[Connection]
-) -> QueryResult<()> {
+  automaton: &AutomatonData,
+  alphabet: Vec<&str>
+) -> QueryResult<Vec<String>> {
 
   connection.transaction(|connection| {
     let workspace = get_workspace(connection, workspace_name)?;
-    save_states(connection, workspace.id, states)?;
-    save_connections(connection, workspace.id, connections)?;
-    set_current_time(connection, workspace.id)
+    let sanitized_input_alphabet = sanitize_input_alphabet(alphabet);
+
+    // Connections first, since they refer to the states
+    diesel::delete(saved_connections::table.filter(saved_connections::workspace_id.eq(workspace.id)))
+      .execute(connection)?;
+    diesel::delete(saved_states::table.filter(saved_states::workspace_id.eq(workspace.id)))
+      .execute(connection)?;
+
+    save_states(connection, workspace.id, &automaton.states)?;
+    save_connections(connection, workspace.id, &automaton.connections)?;
+
+    diesel::update(saved_workspaces::table.filter(saved_workspaces::id.eq(workspace.id)))
+      .set((
+        saved_workspaces::alphabet.eq(sanitized_input_alphabet.join(",")),
+        saved_workspaces::date_of_last_update.eq::<NaiveDateTime>(chrono::offset::Local::now().naive_local())
+      ))
+      .execute(connection)?;
+
+    Ok(sanitized_input_alphabet)
   })
 
 }
@@ -68,10 +129,10 @@ pub fn delete_workspace(connection: &mut SqliteConnection, workspace_name: &str)
   connection.transaction(|connection| {
     let workspace = get_workspace(connection, workspace_name)?;
 
-    diesel::delete(saved_states::table.filter(saved_states::workspace_id.eq(workspace.id)))
+    diesel::delete(saved_connections::table.filter(saved_connections::workspace_id.eq(workspace.id)))
       .execute(connection)?;
 
-    diesel::delete(saved_connections::table.filter(saved_connections::workspace_id.eq(workspace.id)))
+    diesel::delete(saved_states::table.filter(saved_states::workspace_id.eq(workspace.id)))
       .execute(connection)?;
 
     diesel::delete(saved_workspaces::table.filter(saved_workspaces::id.eq(workspace.id)))
@@ -186,18 +247,17 @@ fn expect_one_row(updated_rows: usize) -> QueryResult<()> {
   Ok(())
 }
 
-fn save_states(connection: &mut SqliteConnection, workspace_id: i32, states: &HashMap<String, State>) -> QueryResult<()> {
-
-  diesel::delete(saved_states::table.filter(saved_states::workspace_id.eq(workspace_id)))
-    .execute(connection)?;
+fn save_states(connection: &mut SqliteConnection, workspace_id: i32, states: &[StateData]) -> QueryResult<()> {
 
   let states_to_be_inserted: Vec<_> = states
     .iter()
-    .map(|(state_position_key, state)| (
+    .map(|state| (
       saved_states::workspace_id.eq(workspace_id),
-      saved_states::position.eq(state_position_key),
-      saved_states::is_start.eq(state.is_start()),
-      saved_states::is_final.eq(state.is_final())
+      saved_states::state_id.eq(state.id),
+      saved_states::x.eq(state.position.x),
+      saved_states::y.eq(state.position.y),
+      saved_states::is_start.eq(state.is_start),
+      saved_states::is_final.eq(state.is_final)
     ))
     .collect();
 
@@ -209,35 +269,25 @@ fn save_states(connection: &mut SqliteConnection, workspace_id: i32, states: &Ha
 
 }
 
-fn save_connections(connection: &mut SqliteConnection, workspace_id: i32, connections: &[Connection]) -> QueryResult<()> {
-
-  diesel::delete(saved_connections::table.filter(saved_connections::workspace_id.eq(workspace_id)))
-    .execute(connection)?;
+fn save_connections(connection: &mut SqliteConnection, workspace_id: i32, connections: &[ConnectionData]) -> QueryResult<()> {
 
   let connections_to_be_inserted: Vec<_> = connections
     .iter()
     .map(|saved_connection| (
       saved_connections::workspace_id.eq(workspace_id),
-      saved_connections::connection_character.eq(&saved_connection.connection_character),
-      saved_connections::start_point.eq::<String>(saved_connection.curve.start_point.into()),
-      saved_connections::control_point_one.eq::<String>(saved_connection.curve.control_point_one.into()),
-      saved_connections::control_point_two.eq::<String>(saved_connection.curve.control_point_two.into()),
-      saved_connections::end_point.eq::<String>(saved_connection.curve.end_point.into())
+      saved_connections::connection_id.eq(saved_connection.id),
+      saved_connections::from_state.eq(saved_connection.from),
+      saved_connections::to_state.eq(saved_connection.to),
+      saved_connections::connection_character.eq(&saved_connection.character),
+      saved_connections::control_point_one_x.eq(saved_connection.control_points[0].x),
+      saved_connections::control_point_one_y.eq(saved_connection.control_points[0].y),
+      saved_connections::control_point_two_x.eq(saved_connection.control_points[1].x),
+      saved_connections::control_point_two_y.eq(saved_connection.control_points[1].y)
     ))
     .collect();
 
   diesel::insert_into(saved_connections::table)
     .values(connections_to_be_inserted)
-    .execute(connection)?;
-
-  Ok(())
-
-}
-
-fn set_current_time(connection: &mut SqliteConnection, workspace_id: i32) -> QueryResult<()> {
-
-  diesel::update(saved_workspaces::table.filter(saved_workspaces::id.eq(workspace_id)))
-    .set(saved_workspaces::date_of_last_update.eq::<NaiveDateTime>(chrono::offset::Local::now().naive_local()))
     .execute(connection)?;
 
   Ok(())

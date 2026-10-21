@@ -271,10 +271,12 @@ try {
     const language = await languageText();
     await click(byText('button', 'Minimize DFA'), 'xpath');
     await sleep(1500);
+    // start --a--> final is minimal already, so it stays as drawn
+    const said_minimal = (await bodyText()).includes('This DFA is already minimal');
     const after = await languageText();
     const a = await checkString('a');
     const expected = 'The language of the automata is: a';
-    return { ok: language === expected && after === expected && a === ACCEPTED, language, language_after_minimize: after, a_after_minimize: a, dialogue: await dialogue() };
+    return { ok: language === expected && said_minimal && after === expected && a === ACCEPTED, language, said_minimal, language_after_minimize: after, a_after_minimize: a };
   });
 
   await step('g-save-and-dashboard', async () => {
@@ -376,7 +378,10 @@ try {
     await click(byText('button', 'Convert NFA to DFA'), 'xpath');
     const converted = await waitFor(async () => (await bodyText()).includes('Minimize DFA'), 'DFA mode after converting', 8000).catch(() => false);
     await sleep(1000);
-    const states = sql(DB, "SELECT group_concat(position || ':' || is_start || is_final, ' ') FROM (SELECT s.position, s.is_start, s.is_final FROM saved_states s JOIN saved_workspaces w ON w.id = s.workspace_id WHERE w.workspace_name = 'Untitled Project' ORDER BY s.position);");
+    // Converting doesn't save by itself; Ctrl+S does
+    await exec('window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true }));');
+    await sleep(1000);
+    const states = sql(DB, "SELECT group_concat(x || ',' || y || ':' || is_start || is_final, ' ') FROM (SELECT s.x, s.y, s.is_start, s.is_final FROM saved_states s JOIN saved_workspaces w ON w.id = s.workspace_id WHERE w.workspace_name = 'Untitled Project' ORDER BY s.x, s.y);");
     const strict_on = await toggleStrict();
     await sleep(300);
     const dfa = { a: await checkString('a'), b: await checkString('b'), language: await languageText(), dialogue: await dialogue() };

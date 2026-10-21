@@ -5,8 +5,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { backend } from "./fakeBackend";
 import {
-  alphabet, automaton, checkString, click, doubleClick, drag, drawing, launchApp, message, openWorkspace, pressKeys,
-  save, selected, selectTool, setAutomatonType, setStrictChecking, trash,
+  alphabet, automaton, automatonType, checkString, click, convert, doubleClick, drag, drawing, launchApp, message, minimize,
+  openWorkspace, pressKeys, save, selected, selectTool, setAutomatonType, setStrictChecking, trash,
 } from "./workbenchDriver";
 
 beforeEach(() => {
@@ -293,32 +293,86 @@ describe("saving", () => {
   });
 });
 
+describe("minimizing and converting", () => {
+  const nfa = { states: ["200,200 start", "500,200 final"], transitions: ["200,200 -a-> 500,200", "200,200 -ϵ-> 500,200"] };
+  // What the backend returns, written as the workbench would draw it
+  const dfa = {
+    states: [
+      { id: 1, position: { x: 200, y: 200 }, isStart: true, isFinal: true },
+      { id: 2, position: { x: 500, y: 200 }, isStart: false, isFinal: true },
+    ],
+    connections: [
+      { id: 1, from: 1, to: 2, character: "a", controlPoints: [{ x: 200, y: 200 }, { x: 500, y: 200 }] },
+    ],
+  };
+
+  it("sends the automaton and alphabet, and shows the minimized DFA", async () => {
+    openWorkspace(nfa, { alphabet: ["a"] });
+    backend.respond("minimize_dfa", () => ({ automaton: dfa, wasAlreadyMinimal: false }));
+    await minimize();
+    expect(backend.callsTo("minimize_dfa")[0].inputAlphabet).toEqual(["a"]);
+    expect(automaton()).toEqual({ states: ["200,200 start final", "500,200 final"], transitions: ["200,200 -a-> 500,200"] });
+  });
+
+  it("leaves a DFA that is already minimal as it was drawn, and says so", async () => {
+    openWorkspace(nfa);
+    backend.respond("minimize_dfa", () => ({ automaton: dfa, wasAlreadyMinimal: true }));
+    await minimize();
+    expect(automaton()).toEqual(nfa);
+    expect(message()).toBe("This DFA is already minimal");
+  });
+
+  it("shows the converted DFA, then makes the workspace a DFA one", async () => {
+    openWorkspace(nfa, { type: "NFA" });
+    backend.respond("convert_nfa_to_dfa", () => dfa);
+    await convert();
+    expect(automaton().transitions).toEqual(["200,200 -a-> 500,200"]);
+    expect(automatonType()).toBe("DFA");
+    expect(backend.callsTo("update_automata_type")[0].typeOfAutomata).toBe("DFA");
+  });
+
+  it("leaves an NFA that couldn't be converted as it was", async () => {
+    openWorkspace(nfa, { type: "NFA" });
+    backend.respond("convert_nfa_to_dfa", () => {
+      throw "The NFA needs a start state to be converted";
+    });
+    await convert();
+    expect(automaton()).toEqual(nfa);
+    expect(automatonType()).toBe("NFA");
+    expect(backend.callsTo("update_automata_type")).toEqual([]);
+    expect(message()).toBe("The NFA needs a start state to be converted");
+  });
+
+  it("doesn't save either result itself", async () => {
+    openWorkspace(nfa, { type: "NFA" });
+    backend.respond("minimize_dfa", () => ({ automaton: dfa, wasAlreadyMinimal: false }));
+    backend.respond("convert_nfa_to_dfa", () => dfa);
+    await minimize();
+    await convert();
+    expect(backend.callsTo("save_workspace")).toEqual([]);
+  });
+});
+
 describe("checking strings", () => {
   const dfa = { states: ["200,200 start", "500,200 final"], transitions: ["200,200 -a-> 500,200"] };
 
   beforeEach(() => {
-    backend.respond("test_string_dfa", () => [false, []]);
-    backend.respond("test_string_nfa", () => [false, []]);
+    backend.respond("test_string", () => [false, []]);
   });
 
-  it("checks a DFA with test_string_dfa, sending it the automaton on the canvas", async () => {
+  it("sends the automaton on the canvas and the string, and shows the answer", async () => {
     openWorkspace(dfa);
-    backend.respond("test_string_dfa", () => [true, []]);
+    backend.respond("test_string", () => [true, [1, 2]]);
     const check = await checkString("a");
-    expect(check).toMatchObject({ accepted: true, command: "test_string_dfa", sent: dfa });
-    expect(backend.callsTo("test_string_dfa")[0]).toMatchObject({ startStateCoordinates: "200,200", stringToCheck: "a" });
+    expect(check).toMatchObject({ accepted: true, command: "test_string", sent: dfa });
+    expect(backend.callsTo("test_string")[0]).toMatchObject({ stringToCheck: "a" });
   });
 
-  it("checks an NFA with test_string_nfa", async () => {
+  it("checks DFAs and NFAs the same way", async () => {
     openWorkspace(dfa, { type: "NFA" });
-    backend.respond("test_string_nfa", () => [false, []]);
-    expect(await checkString("b")).toMatchObject({ accepted: false, command: "test_string_nfa" });
-  });
-
-  it("follows a change between DFA and NFA", async () => {
-    openWorkspace(dfa);
-    setAutomatonType("NFA");
-    expect((await checkString("a")).command).toBe("test_string_nfa");
+    expect((await checkString("b")).command).toBe("test_string");
+    setAutomatonType("DFA");
+    expect((await checkString("b")).command).toBe("test_string");
   });
 
   it("reports an incomplete DFA when strict checking is on, without checking the string", async () => {
@@ -334,8 +388,8 @@ describe("checking strings", () => {
     openWorkspace(dfa);
     setStrictChecking(true);
     backend.respond("verify_valid_dfa", () => true);
-    backend.respond("test_string_dfa", () => [true, []]);
-    expect(await checkString("a")).toMatchObject({ accepted: true, command: "test_string_dfa" });
+    backend.respond("test_string", () => [true, []]);
+    expect(await checkString("a")).toMatchObject({ accepted: true, command: "test_string" });
   });
 
   it("doesn't strictly check NFAs", async () => {
@@ -351,7 +405,6 @@ describe("checking strings", () => {
 
   it.fails("checks the empty string", async () => {
     openWorkspace(dfa);
-    backend.respond("test_string_dfa", () => [false, []]);
-    expect(await checkString("")).toMatchObject({ accepted: false, command: "test_string_dfa" });
+    expect(await checkString("")).toMatchObject({ accepted: false, command: "test_string" });
   });
 });

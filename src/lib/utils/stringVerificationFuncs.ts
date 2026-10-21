@@ -1,7 +1,6 @@
 import { invokeCommand } from "$lib/utils/backend";
 import { Automata } from "../types/enums";
-import type { Automaton } from "$lib/workbench/automaton";
-import { positionKey, startStateKey, toStatePositions, type BackendState } from "$lib/workbench/api";
+import { startState, type Automaton } from "$lib/workbench/automaton";
 
 export interface CheckedStringResponse {
   dialogue: string,
@@ -30,8 +29,7 @@ export const checkInputtedString = async (
       states_traversed: []
     };
   }
-  const start_state_coordinates = startStateKey(automaton);
-  if(!start_state_coordinates) {
+  if(!startState(automaton)) {
     return {
       dialogue: "You must specify at least one start state",
       is_string_accepted: null,
@@ -39,19 +37,16 @@ export const checkInputtedString = async (
     };
   }
 
-  const command = type_of_automata === Automata.DFA ? "test_string_dfa" : "test_string_nfa";
-  const [is_string_accepted, states_traversed]: [boolean, Array<BackendState>] = await invokeCommand(command, {
-    statePositions: toStatePositions(automaton),
-    startStateCoordinates: start_state_coordinates,
+  // DFAs and NFAs are checked the same way
+  const [is_string_accepted, states_traversed]: [boolean, Array<number>] = await invokeCommand("test_string", {
+    automaton,
     stringToCheck: string_to_check,
   });
 
-  // The backend names states by position
-  const id_of_position = new Map(automaton.states.map((state) => [positionKey(state.position), state.id]));
   return {
     dialogue: "",
     is_string_accepted,
-    states_traversed: states_traversed.flatMap((state) => id_of_position.get(positionKey(state.position)) ?? []),
+    states_traversed,
   };
 }
 
@@ -67,9 +62,8 @@ const checkValidityOfDFA = async (
     return true;
   }
   return await invokeCommand("verify_valid_dfa", {
-    statePositions: toStatePositions(automaton),
+    automaton,
     inputAlphabet: input_alphabet,
-    startStatePosition: startStateKey(automaton),
   });
 
 }

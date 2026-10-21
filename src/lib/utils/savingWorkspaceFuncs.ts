@@ -3,18 +3,18 @@ import { automaton, dialogue_to_user, input_alphabet, workspace_name, should_str
 default_connection_character } from "./automataStores";
 import { get } from "svelte/store";
 import { convertFormDataEntriesToStringArray } from "./miscUtils";
-import { toConnections, toStatePositions } from "$lib/workbench/api";
 
+// Saves the automaton and the alphabet. The backend keeps the alphabet's distinct single characters
 export const saveWorkspace = async () => {
 
   dialogue_to_user.set(null);
 
-  await invokeCommand("save_workspace", {
+  const saved_alphabet: Array<string> = await invokeCommand("save_workspace", {
     workspaceName: get(workspace_name),
-    states: toStatePositions(get(automaton)),
-    connections: toConnections(get(automaton)),
+    automaton: get(automaton),
     alphabet: get(input_alphabet)
   });
+  input_alphabet.set(saved_alphabet);
 };
 
 export async function saveOptions(form: HTMLFormElement | undefined) {

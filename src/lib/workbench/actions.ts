@@ -6,15 +6,15 @@ import type { WorkspaceData } from "$lib/types/interfaces";
 import { Automata } from "$lib/types/enums";
 import {
   automaton, connection_start, default_connection_character, dialogue_to_user, input_alphabet, selection,
-  should_show_string_traversal, should_strict_check, tool, type_of_automata, type Tool,
+  should_show_string_traversal, should_strict_check, tool, type_of_automata, workspace_name, type Tool,
 } from "$lib/utils/automataStores";
+import { invokeCommand } from "$lib/utils/backend";
 import { roundToNearest } from "$lib/utils/mathFuncs";
 import { checkInputtedString, type CheckedStringResponse } from "$lib/utils/stringVerificationFuncs";
 import {
   addConnection, addState, connectionById, connectionNear, emptyAutomaton, EPSILON, moveControlPoint, moveState,
   relabelConnection, setFinal, stateAt, stateIsAt, type Automaton, type Point,
 } from "./automaton";
-import { fromWorkspaceData } from "./api";
 
 // New states go on a grid this many pixels apart, and dragged states on a finer one
 const PLACING_GRID = 100;
@@ -47,7 +47,7 @@ export function selectTool(newTool: Tool): void {
 
 // Shows the workspace the backend returned, starting afresh: the state tool, nothing selected, no message
 export function loadWorkspace(workspaceData: WorkspaceData): void {
-  automaton.set(fromWorkspaceData(workspaceData));
+  automaton.set(workspaceData.automaton);
   type_of_automata.set(workspaceData.type_of_automata === "DFA" ? Automata.DFA : Automata.NFA);
   input_alphabet.set(workspaceData.alphabet);
   should_strict_check.set(workspaceData.should_strict_check);
@@ -225,4 +225,28 @@ export async function checkString(stringToCheck: string): Promise<CheckedStringR
   );
   dialogue_to_user.set(result.dialogue || null);
   return result;
+}
+
+// Replaces the DFA with the minimal one, unless it is minimal already, in which case it stays as the user drew it
+export async function minimizeDfa(): Promise<void> {
+  const minimized: { automaton: Automaton; wasAlreadyMinimal: boolean } = await invokeCommand("minimize_dfa", {
+    automaton: get(automaton),
+    inputAlphabet: get(input_alphabet),
+  });
+  if (minimized.wasAlreadyMinimal) {
+    tell("This DFA is already minimal");
+    return;
+  }
+  replaceAutomaton(minimized.automaton);
+}
+
+// Replaces the NFA with an equivalent DFA, and only then makes the workspace a DFA one
+export async function convertNfaToDfa(): Promise<void> {
+  const dfa: Automaton = await invokeCommand("convert_nfa_to_dfa", {
+    automaton: get(automaton),
+    inputAlphabet: get(input_alphabet),
+  });
+  replaceAutomaton(dfa);
+  type_of_automata.set(Automata.DFA);
+  await invokeCommand("update_automata_type", { workspaceName: get(workspace_name), typeOfAutomata: Automata[Automata.DFA] });
 }

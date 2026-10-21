@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 
-use crate::models::State;
+use crate::models::AutomatonData;
 
 #[cfg(test)]
 mod tests;
@@ -26,44 +26,34 @@ impl Automaton {
     Self::default()
   }
 
-  // Builds an automaton from the frontend's states, and returns it with each state's key, in index order.
-  // Connections to states that don't exist, and characters that aren't a single character, are left out
-  pub fn from_state_positions(state_positions: &HashMap<String, State>, start_state_key: Option<&str>) -> (Self, Vec<String>) {
+  // Builds an automaton from the frontend's, and returns it with the id of each state, in index order (which is
+  // the order of their ids). Connections to states that don't exist, and characters that aren't a single
+  // character, are left out. The start state is the one marked as the start, or the first of them if several are
+  pub fn from_data(automaton_data: &AutomatonData) -> (Self, Vec<i32>) {
 
-    let mut state_keys: Vec<String> = state_positions.keys().cloned().collect();
-    state_keys.sort();
+    let mut states = automaton_data.states.clone();
+    states.sort_by_key(|state| state.id);
+    states.dedup_by_key(|state| state.id);
 
     let mut automaton = Automaton::new();
-    {
-      let index_of_key: HashMap<&str, usize> = state_keys
-        .iter()
-        .enumerate()
-        .map(|(index, key)| (key.as_str(), index))
-        .collect();
+    let mut index_of_id: HashMap<i32, usize> = HashMap::new();
 
-      for key in &state_keys {
-        automaton.add_state(state_positions[key].is_final());
-      }
-
-      for (index, key) in state_keys.iter().enumerate() {
-        for (connection_character, connected_state_keys) in state_positions[key].get_all_connections() {
-
-          let Some(symbol) = parse_connection_character(connection_character) else {
-            continue;
-          };
-
-          for connected_state_key in connected_state_keys {
-            if let Some(&target) = index_of_key.get(connected_state_key.as_str()) {
-              automaton.add_transition(index, symbol, target);
-            }
-          }
-        }
-      }
-
-      automaton.start = start_state_key.and_then(|key| index_of_key.get(key).copied());
+    for state in &states {
+      index_of_id.insert(state.id, automaton.add_state(state.is_final));
     }
 
-    (automaton, state_keys)
+    for connection in &automaton_data.connections {
+      let Some(symbol) = parse_connection_character(&connection.character) else {
+        continue;
+      };
+      if let (Some(&from), Some(&to)) = (index_of_id.get(&connection.from), index_of_id.get(&connection.to)) {
+        automaton.add_transition(from, symbol, to);
+      }
+    }
+
+    automaton.start = states.iter().position(|state| state.is_start);
+
+    (automaton, states.iter().map(|state| state.id).collect())
   }
 
   pub fn add_state(&mut self, is_accepting: bool) -> usize {
@@ -103,6 +93,14 @@ impl Automaton {
     self.transitions[state]
       .iter()
       .flat_map(|(symbol, targets)| targets.iter().map(move |target| (*symbol, *target)))
+  }
+
+  // Whether it is a DFA, possibly with missing transitions: no epsilon transitions, and from each state at most
+  // one transition on each character
+  pub fn is_deterministic(&self) -> bool {
+    self.transitions.iter().all(|transitions| {
+      transitions.iter().all(|(symbol, targets)| symbol.is_some() && targets.len() <= 1)
+    })
   }
 
   // Every character the automaton has a transition on, leaving out epsilon

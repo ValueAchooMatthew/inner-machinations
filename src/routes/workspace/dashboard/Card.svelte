@@ -2,7 +2,6 @@
   import { setSessionValue } from "$lib/utils/miscUtils";
   import { goto } from "$app/navigation";
   import { drawAutomaton } from "$lib/utils/drawingFuncs";
-  import { fromWorkspaceData } from "$lib/workbench/api";
   import { invokeCommand } from "$lib/utils/backend";
   import { onMount } from "svelte";
   import { dialogue_to_user, workspace_name } from "$lib/utils/automataStores";
@@ -37,7 +36,7 @@
         workspaceName: workspace_title,
       });
 
-    drawAutomaton(context, width, height, fromWorkspaceData(workspace_data), { scale: 5 });
+    drawAutomaton(context, width, height, workspace_data.automaton, { scale: 5 });
     
   });
 </script>

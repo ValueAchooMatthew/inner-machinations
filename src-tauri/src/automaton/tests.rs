@@ -1,7 +1,7 @@
 use std::collections::{BTreeSet, HashMap};
 
 use crate::automaton::{parse_input_alphabet, Automaton, Dfa};
-use crate::models::{Coordinate, State};
+use crate::models::{AutomatonData, ConnectionData, Coordinate, StateData};
 
 // Builds an automaton from (accepting, transitions) per state, with state 0 as the start.
 // A symbol of None is an epsilon transition
@@ -89,6 +89,13 @@ fn test_determinizing_an_epsilon_cycle_terminates() {
   assert_eq!(dfa.state_count(), 1);
   assert!(dfa.is_accepting(0));
   assert_equivalent(&dfa.to_automaton(), &cycle, 6);
+}
+
+#[test]
+fn test_is_deterministic() {
+  assert!(automaton(&[(false, &[(Some('a'), 1), (Some('b'), 0)]), (true, &[])]).is_deterministic());
+  assert!(!automaton(&[(false, &[(Some('a'), 1), (Some('a'), 0)]), (true, &[])]).is_deterministic());
+  assert!(!automaton(&[(false, &[(None, 1)]), (true, &[])]).is_deterministic());
 }
 
 #[test]
@@ -210,27 +217,36 @@ fn test_minimize_records_which_states_were_merged() {
 }
 
 #[test]
-fn test_from_state_positions() {
-  let mut first = State::new(Coordinate { x: 100, y: 100 }, true, false);
-  first.add_connection("a", "200,100");
-  first.add_connection("ϵ", "200,100");
-  first.add_connection("b", "900,900");
-  first.add_connection("ab", "200,100");
-  let second = State::new(Coordinate { x: 200, y: 100 }, false, true);
-  let state_positions = HashMap::from([
-    ("100,100".to_owned(), first),
-    ("200,100".to_owned(), second)
-  ]);
+fn test_from_data() {
+  let automaton_data = AutomatonData {
+    states: vec![
+      StateData { id: 7, position: Coordinate { x: 200, y: 100 }, is_start: false, is_final: true },
+      StateData { id: 3, position: Coordinate { x: 100, y: 100 }, is_start: true, is_final: false }
+    ],
+    connections: vec![
+      connection(1, 3, 7, "a"),
+      connection(2, 3, 7, "ϵ"),
+      connection(3, 3, 99, "b"),
+      connection(4, 3, 7, "ab"),
+      connection(5, 3, 7, "")
+    ]
+  };
 
-  let (automaton, state_keys) = Automaton::from_state_positions(&state_positions, Some("100,100"));
-  assert_eq!(state_keys, vec!["100,100", "200,100"]);
+  let (automaton, state_ids) = Automaton::from_data(&automaton_data);
+  assert_eq!(state_ids, vec![3, 7]);
   assert_eq!(automaton.start(), Some(0));
   assert_eq!(automaton.transitions_from(0).collect::<Vec<_>>(), vec![(None, 1), (Some('a'), 1)]);
   assert!(automaton.accepts(""));
 
-  let (automaton, _) = Automaton::from_state_positions(&state_positions, Some("900,900"));
+  let no_start = AutomatonData { states: vec![automaton_data.states[0].clone()], connections: vec![] };
+  let (automaton, _) = Automaton::from_data(&no_start);
   assert_eq!(automaton.start(), None);
   assert!(!automaton.accepts(""));
+}
+
+fn connection(id: i32, from: i32, to: i32, character: &str) -> ConnectionData {
+  let point = Coordinate { x: 0, y: 0 };
+  ConnectionData { id, from, to, character: character.to_owned(), control_points: [point, point] }
 }
 
 #[test]

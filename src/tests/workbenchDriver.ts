@@ -8,15 +8,15 @@
 
 import { get } from "svelte/store";
 import { Automata } from "$lib/types/enums";
-import type { State, WorkspaceData } from "$lib/types/interfaces";
+import type { WorkspaceData } from "$lib/types/interfaces";
 import {
   automaton as automatonStore, connection_start, default_connection_character, dialogue_to_user, input_alphabet,
   selection, should_show_string_traversal, should_strict_check, tool, type_of_automata, workspace_name,
 } from "$lib/utils/automataStores";
 import { saveWorkspace } from "$lib/utils/savingWorkspaceFuncs";
 import {
-  checkString as checkStringAction, clickCanvas, doubleClickCanvas, dragCanvas, loadWorkspace, pressCanvas, pressKey,
-  releaseCanvas, selectTool as selectToolAction, trash as trashAction,
+  checkString as checkStringAction, clickCanvas, convertNfaToDfa, doubleClickCanvas, dragCanvas, loadWorkspace,
+  minimizeDfa, pressCanvas, pressKey, releaseCanvas, selectTool as selectToolAction, trash as trashAction,
 } from "$lib/workbench/actions";
 import { connectionCurve, defaultControlPoints, emptyAutomaton, stateById, type Automaton } from "$lib/workbench/automaton";
 import { backend } from "./fakeBackend";
@@ -52,21 +52,24 @@ const parseTransition = (description: string) => {
 const describeState = (key: string, state: { is_start: boolean; is_final: boolean }): string =>
   [key, state.is_start ? "start" : "", state.is_final ? "final" : ""].filter(Boolean).join(" ");
 
-// Reads the automaton out of states keyed by position, as the backend is sent them
-export const describeStatePositions = (statePositions: Record<string, State>): AutomatonDescription => {
-  const entries = Object.entries(statePositions);
-  const states = entries.map(([key, state]) => describeState(key, state)).sort();
-  const transitions = entries
-    .flatMap(([key, state]) =>
-      Object.entries(state.states_connected_to).flatMap(([character, targets]) =>
-        targets.map((target) => `${key} -${character}-> ${target}`),
-      ),
-    )
-    .sort();
-  return { states, transitions };
+const describePoint = (point: { x: number; y: number }): string => `${point.x},${point.y}`;
+
+const describeConnection = (current: Automaton, id: number): string | null => {
+  const connection = current.connections.find((connection) => connection.id === id);
+  if (!connection) {
+    return null;
+  }
+  const curve = connectionCurve(current, connection);
+  return `${describePoint(curve.start_point)} -${connection.character}-> ${describePoint(curve.end_point)}`;
 };
 
-const describePoint = (point: { x: number; y: number }): string => `${point.x},${point.y}`;
+// Describes an automaton: the one on the workbench, or one sent to the backend
+export const describeAutomaton = (current: Automaton): AutomatonDescription => ({
+  states: current.states
+    .map((state) => describeState(describePoint(state.position), { is_start: state.isStart, is_final: state.isFinal }))
+    .sort(),
+  transitions: current.connections.flatMap((connection) => describeConnection(current, connection.id) ?? []).sort(),
+});
 
 // Like starting the app: every store back to how it starts out
 export const launchApp = (): void => {
@@ -91,49 +94,39 @@ export const openWorkspace = (
 ): void => {
   const states = automaton.states.map(parseState);
   const transitions = automaton.transitions.map(parseTransition);
-  const position = (key: string) => {
-    const state = states.find((state) => state.key === key);
-    if (!state) {
+  const indexOf = (key: string) => {
+    const index = states.findIndex((state) => state.key === key);
+    if (index < 0) {
       throw new Error(`No state at ${key}`);
     }
-    return { x: state.x, y: state.y };
+    return index;
   };
+  const position = (key: string) => ({ x: states[indexOf(key)].x, y: states[indexOf(key)].y });
+  const idOf = (key: string) => indexOf(key) + 1;
 
-  const backendStates = states.map((state) => {
-    const connections: Record<string, Array<string>> = {};
-    for (const transition of transitions.filter((transition) => transition.from === state.key)) {
-      (connections[transition.character] ??= []).push(transition.to);
-    }
-    return {
-      position: { x: state.x, y: state.y },
-      states_connected_to: connections,
-      is_start: state.isStart,
-      is_final: state.isFinal,
-      element: "State",
-    };
-  });
-  const startIndex = states.findIndex((state) => state.isStart);
-
-  const workspaceData = {
-    start_state_index: startIndex >= 0 ? startIndex : null,
-    start_state_position: startIndex >= 0 ? states[startIndex].key : null,
-    state_positions: Object.fromEntries(states.map((state, index) => [state.key, backendStates[index]])),
-    list_of_states: backendStates,
-    // Laid out as the workbench lays out connections drawn in this order
-    list_of_connections: transitions.map((transition, index) => {
-      const from = position(transition.from);
-      const to = position(transition.to);
-      const alreadyJoining = transitions
-        .slice(0, index)
-        .filter((other) => (other.from === transition.from && other.to === transition.to) || (other.from === transition.to && other.to === transition.from))
-        .length;
-      const [control_point_one, control_point_two] = defaultControlPoints(from, to, transition.from === transition.to, alreadyJoining);
-      return {
-        curve: { start_point: from, control_point_one, control_point_two, end_point: to },
-        connection_character: transition.character,
-        element: "Connection",
-      };
-    }),
+  const workspaceData: WorkspaceData = {
+    automaton: {
+      states: states.map((state, index) => ({
+        id: index + 1,
+        position: { x: state.x, y: state.y },
+        isStart: state.isStart,
+        isFinal: state.isFinal,
+      })),
+      // Laid out as the workbench lays out connections drawn in this order
+      connections: transitions.map((transition, index) => {
+        const alreadyJoining = transitions
+          .slice(0, index)
+          .filter((other) => (other.from === transition.from && other.to === transition.to) || (other.from === transition.to && other.to === transition.from))
+          .length;
+        return {
+          id: index + 1,
+          from: idOf(transition.from),
+          to: idOf(transition.to),
+          character: transition.character,
+          controlPoints: defaultControlPoints(position(transition.from), position(transition.to), transition.from === transition.to, alreadyJoining),
+        };
+      }),
+    },
     type_of_automata: options.type ?? "DFA",
     date_of_last_update: "2026-10-20 12:00:00",
     alphabet: options.alphabet ?? ["a", "b"],
@@ -186,15 +179,6 @@ export const trash = (): void => {
   trashAction();
 };
 
-const describeConnection = (current: Automaton, id: number): string | null => {
-  const connection = current.connections.find((connection) => connection.id === id);
-  if (!connection) {
-    return null;
-  }
-  const curve = connectionCurve(current, connection);
-  return `${describePoint(curve.start_point)} -${connection.character}-> ${describePoint(curve.end_point)}`;
-};
-
 // The selected state or connection, described like the others
 export const selected = (): string | null => {
   const current = get(automatonStore);
@@ -208,6 +192,12 @@ export const selected = (): string | null => {
   }
   return describeConnection(current, picked.id);
 };
+
+// Like pressing "Minimize DFA" or "Convert NFA to DFA". Failures are shown to the user, as message() reports
+export const minimize = (): Promise<void> => minimizeDfa().catch(() => {});
+export const convert = (): Promise<void> => convertNfaToDfa().catch(() => {});
+
+export const automatonType = (): "DFA" | "NFA" => (get(type_of_automata) === Automata.DFA ? "DFA" : "NFA");
 
 export const setAutomatonType = (type: "DFA" | "NFA"): void => {
   type_of_automata.set(type === "DFA" ? Automata.DFA : Automata.NFA);
@@ -223,15 +213,7 @@ export const message = (): string | null => get(dialogue_to_user) || null;
 export const alphabet = (): Array<string> => get(input_alphabet);
 
 // The automaton the workbench holds, which is what it checks strings against and saves
-export const automaton = (): AutomatonDescription => {
-  const current = get(automatonStore);
-  return {
-    states: current.states
-      .map((state) => describeState(describePoint(state.position), { is_start: state.isStart, is_final: state.isFinal }))
-      .sort(),
-    transitions: current.connections.flatMap((connection) => describeConnection(current, connection.id) ?? []).sort(),
-  };
-};
+export const automaton = (): AutomatonDescription => describeAutomaton(get(automatonStore));
 
 // What the canvas draws: every state and every connection, in drawing order, duplicates included. A
 // connection that has been started but not finished is drawn from its state to the pointer
@@ -254,7 +236,7 @@ export const drawing = (): { states: Array<string>; connections: Array<string> }
 export const save = async (): Promise<AutomatonDescription> => {
   await saveWorkspace();
   const [args] = backend.callsTo("save_workspace").slice(-1);
-  return describeStatePositions(args.states);
+  return describeAutomaton(args.automaton);
 };
 
 export interface StringCheck {
@@ -275,13 +257,11 @@ export const checkString = async (stringToCheck: string): Promise<StringCheck> =
     accepted = (await checkStringAction(stringToCheck)).is_string_accepted;
   }
 
-  const testCall = backend.calls
-    .slice(callsBefore)
-    .find((call) => call.command === "test_string_dfa" || call.command === "test_string_nfa");
+  const testCall = backend.calls.slice(callsBefore).find((call) => call.command === "test_string");
   return {
     accepted,
     message: message(),
     command: testCall?.command ?? null,
-    sent: testCall ? describeStatePositions(testCall.args.statePositions) : null,
+    sent: testCall ? describeAutomaton(testCall.args.automaton) : null,
   };
 };

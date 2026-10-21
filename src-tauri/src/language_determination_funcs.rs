@@ -1,8 +1,8 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use crate::automaton::Automaton;
-use crate::models::State;
+use crate::models::AutomatonData;
 
 #[cfg(test)]
 mod tests;
@@ -10,13 +10,10 @@ mod tests;
 // The language is written as a regular expression in the syntax the regular expression builder accepts:
 // + for union, * for the Kleene star, ε for the empty string, and ∅ for the empty language
 #[tauri::command]
-pub fn determine_language_of_automata(
-  state_positions: HashMap<String, State>,
-  start_state_key: &str
-) -> String {
+pub fn determine_language_of_automata(automaton: AutomatonData) -> String {
 
-  let (automaton, _) = Automaton::from_state_positions(&state_positions, Some(start_state_key));
-  determine_language(&automaton).to_string()
+  let (nfa, _) = Automaton::from_data(&automaton);
+  determine_language(&nfa).to_string()
 
 }
 

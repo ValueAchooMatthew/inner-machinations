@@ -1,8 +1,7 @@
 <script lang="ts">
   import { automaton } from "$lib/utils/automataStores";
   import { invokeCommand } from "$lib/utils/backend";
-  import { startStateKey, toStatePositions } from "$lib/workbench/api";
-  import type { Automaton } from "$lib/workbench/automaton";
+  import { startState, type Automaton } from "$lib/workbench/automaton";
 
   let language_of_automata: string | undefined;
 
@@ -11,15 +10,11 @@
 
   const determineLanguage = async (current: Automaton) => {
     const request = ++latest_request;
-    const start_state_key = startStateKey(current);
-    if (start_state_key === null) {
+    if (!startState(current)) {
       language_of_automata = undefined;
       return;
     }
-    const language: string = await invokeCommand("determine_language_of_automata", {
-      statePositions: toStatePositions(current),
-      startStateKey: start_state_key,
-    });
+    const language: string = await invokeCommand("determine_language_of_automata", { automaton: current });
     if (request === latest_request) {
       language_of_automata = language;
     }

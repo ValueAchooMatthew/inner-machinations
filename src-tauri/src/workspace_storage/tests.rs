@@ -1,11 +1,8 @@
-use std::collections::HashMap;
-
 use diesel::result::{DatabaseErrorKind, Error};
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SqliteConnection};
-use serde_json::Value;
 
 use crate::database::in_memory_connection;
-use crate::models::{BezierCurve, Connection, Coordinate, State, TypeOfAutomata};
+use crate::models::{AutomatonData, ConnectionData, Coordinate, StateData, TypeOfAutomata};
 use crate::schema::{saved_connections, saved_states, saved_workspaces};
 use crate::workspace_storage::{
   create_workspace, delete_workspace, does_workspace_name_exist, get_saved_workspaces, retrieve_workspace_data,
@@ -13,89 +10,31 @@ use crate::workspace_storage::{
   update_strict_checking, update_workspace_alphabet, update_workspace_name
 };
 
-fn state(x: i32, y: i32, is_start: bool, is_final: bool, connections: &[(&str, &str)]) -> (String, State) {
-  let mut state = State::new(Coordinate { x, y }, is_start, is_final);
-  for (connection_character, target) in connections {
-    state.add_connection(connection_character, *target);
+fn point(x: i32, y: i32) -> Coordinate {
+  Coordinate { x, y }
+}
+
+// A start state and a final state, joined both ways, with a loop on the start state. The ids aren't in order
+// or contiguous, as they needn't be after states are deleted
+fn example_automaton() -> AutomatonData {
+  AutomatonData {
+    states: vec![
+      StateData { id: 7, position: point(500, 200), is_start: false, is_final: true },
+      StateData { id: 2, position: point(200, 200), is_start: true, is_final: false }
+    ],
+    connections: vec![
+      ConnectionData { id: 1, from: 2, to: 7, character: "a".to_owned(), control_points: [point(210, 220), point(470, 160)] },
+      ConnectionData { id: 4, from: 2, to: 2, character: "b".to_owned(), control_points: [point(0, 400), point(0, 0)] },
+      ConnectionData { id: 9, from: 7, to: 2, character: "ϵ".to_owned(), control_points: [point(510, 220), point(170, 160)] }
+    ]
   }
-  (format!("{x},{y}"), state)
 }
 
-fn connection(character: &str, from: (i32, i32), to: (i32, i32)) -> Connection {
-  Connection {
-    curve: BezierCurve {
-      start_point: Coordinate { x: from.0, y: from.1 },
-      control_point_one: Coordinate { x: from.0 + 10, y: from.1 + 20 },
-      control_point_two: Coordinate { x: to.0 - 30, y: to.1 - 40 },
-      end_point: Coordinate { x: to.0, y: to.1 }
-    },
-    connection_character: character.to_owned(),
-    element: String::from("Connection")
-  }
-}
-
-fn example_automaton() -> (HashMap<String, State>, Vec<Connection>) {
-  let states = HashMap::from([
-    state(200, 200, true, false, &[("a", "500,200"), ("b", "200,200")]),
-    state(500, 200, false, true, &[("ϵ", "200,200")])
-  ]);
-  let connections = vec![
-    connection("a", (200, 200), (500, 200)),
-    connection("b", (200, 200), (200, 200)),
-    connection("ϵ", (500, 200), (200, 200))
-  ];
-  (states, connections)
-}
-
-// The workspace as the frontend receives it, as JSON
-fn workspace_json(connection: &mut SqliteConnection, workspace_name: &str) -> Value {
-  serde_json::to_value(retrieve_workspace_data(connection, workspace_name).unwrap()).unwrap()
-}
-
-// States as "x,y start final" and transitions as "x,y -a-> x,y", sorted
-fn describe_states(json: &Value) -> (Vec<String>, Vec<String>) {
-  let mut states = vec![];
-  let mut transitions = vec![];
-  for (key, state) in json["state_positions"].as_object().unwrap() {
-    let mut description = key.clone();
-    if state["is_start"] == true {
-      description += " start";
-    }
-    if state["is_final"] == true {
-      description += " final";
-    }
-    states.push(description);
-    for (character, targets) in state["states_connected_to"].as_object().unwrap() {
-      for target in targets.as_array().unwrap() {
-        transitions.push(format!("{key} -{character}-> {}", target.as_str().unwrap()));
-      }
-    }
-  }
-  states.sort();
-  transitions.sort();
-  (states, transitions)
-}
-
-fn describe_connections(json: &Value) -> Vec<String> {
-  let point = |point: &Value| format!("{},{}", point["x"], point["y"]);
-  let mut connections: Vec<String> = json["list_of_connections"]
-    .as_array()
-    .unwrap()
-    .iter()
-    .map(|connection| {
-      let curve = &connection["curve"];
-      format!(
-        "{} -{}-> {} via {} {}",
-        point(&curve["start_point"]),
-        connection["connection_character"].as_str().unwrap(),
-        point(&curve["end_point"]),
-        point(&curve["control_point_one"]),
-        point(&curve["control_point_two"])
-      )
-    })
-    .collect();
-  connections.sort();
-  connections
+// The same automaton, in the order the database returns it: by id
+fn sorted(mut automaton: AutomatonData) -> AutomatonData {
+  automaton.states.sort_by_key(|state| state.id);
+  automaton.connections.sort_by_key(|connection| connection.id);
+  automaton
 }
 
 fn workspace_id(connection: &mut SqliteConnection, workspace_name: &str) -> i32 {
@@ -128,76 +67,127 @@ fn test_new_workspace() {
   assert!(does_workspace_name_exist(connection, "new workspace").unwrap());
   assert!(get_saved_workspaces(connection).unwrap().contains(&"new workspace".to_owned()));
 
-  let json = workspace_json(connection, "new workspace");
-  assert_eq!(json["type_of_automata"], "DFA");
-  assert_eq!(json["alphabet"], serde_json::json!(["a", "b"]));
-  assert_eq!(json["should_strict_check"], false);
-  assert_eq!(json["should_show_string_traversal"], false);
-  assert_eq!(json["default_connection_character"], "a");
-  assert_eq!(json["start_state_position"], Value::Null);
-  assert_eq!(describe_states(&json), (vec![], vec![]));
-  assert_eq!(describe_connections(&json), Vec::<String>::new());
+  let workspace = retrieve_workspace_data(connection, "new workspace").unwrap();
+  assert_eq!(workspace.automaton, AutomatonData::default());
+  assert!(matches!(workspace.type_of_automata, TypeOfAutomata::DFA));
+  assert_eq!(workspace.alphabet, vec!["a", "b"]);
+  assert!(!workspace.should_strict_check);
+  assert!(!workspace.should_show_string_traversal);
+  assert_eq!(workspace.default_connection_character, "a");
 }
 
 #[test]
 fn test_saved_automaton_comes_back_the_same() {
   let connection = &mut in_memory_connection();
   create_workspace(connection, "round trip").unwrap();
-  let (states, connections) = example_automaton();
 
-  save_workspace(connection, "round trip", &states, &connections).unwrap();
+  save_workspace(connection, "round trip", &example_automaton(), vec!["a", "b"]).unwrap();
 
-  let json = workspace_json(connection, "round trip");
-  assert_eq!(describe_states(&json), (
-    vec!["200,200 start".to_owned(), "500,200 final".to_owned()],
-    vec!["200,200 -a-> 500,200".to_owned(), "200,200 -b-> 200,200".to_owned(), "500,200 -ϵ-> 200,200".to_owned()]
-  ));
-  assert_eq!(describe_connections(&json), vec![
-    "200,200 -a-> 500,200 via 210,220 470,160",
-    "200,200 -b-> 200,200 via 210,220 170,160",
-    "500,200 -ϵ-> 200,200 via 510,220 170,160"
-  ]);
-  assert_eq!(json["start_state_position"], "200,200");
-  assert_eq!(json["list_of_states"].as_array().unwrap().len(), 2);
+  assert_eq!(retrieve_workspace_data(connection, "round trip").unwrap().automaton, sorted(example_automaton()));
+}
+
+#[test]
+fn test_workspaces_are_sent_in_the_frontend_s_shape() {
+  let connection = &mut in_memory_connection();
+  create_workspace(connection, "shape").unwrap();
+  save_workspace(connection, "shape", &example_automaton(), vec!["a"]).unwrap();
+
+  let json = serde_json::to_value(retrieve_workspace_data(connection, "shape").unwrap()).unwrap();
+  assert_eq!(json["automaton"]["states"][0], serde_json::json!({
+    "id": 2, "position": { "x": 200, "y": 200 }, "isStart": true, "isFinal": false
+  }));
+  assert_eq!(json["automaton"]["connections"][0], serde_json::json!({
+    "id": 1, "from": 2, "to": 7, "character": "a", "controlPoints": [{ "x": 210, "y": 220 }, { "x": 470, "y": 160 }]
+  }));
+  assert_eq!(json["type_of_automata"], "DFA");
+  assert_eq!(json["alphabet"], serde_json::json!(["a"]));
 }
 
 #[test]
 fn test_saving_again_replaces_the_automaton() {
   let connection = &mut in_memory_connection();
   create_workspace(connection, "saved twice").unwrap();
-  let (states, connections) = example_automaton();
-  save_workspace(connection, "saved twice", &states, &connections).unwrap();
+  save_workspace(connection, "saved twice", &example_automaton(), vec!["a"]).unwrap();
 
-  let states = HashMap::from([state(300, 300, false, true, &[])]);
-  save_workspace(connection, "saved twice", &states, &[]).unwrap();
+  let smaller = AutomatonData {
+    states: vec![StateData { id: 1, position: point(300, 300), is_start: false, is_final: true }],
+    connections: vec![]
+  };
+  save_workspace(connection, "saved twice", &smaller, vec!["a"]).unwrap();
 
-  let json = workspace_json(connection, "saved twice");
-  assert_eq!(describe_states(&json), (vec!["300,300 final".to_owned()], vec![]));
-  assert_eq!(describe_connections(&json), Vec::<String>::new());
+  assert_eq!(retrieve_workspace_data(connection, "saved twice").unwrap().automaton, smaller);
   let id = workspace_id(connection, "saved twice");
   assert_eq!(saved_row_counts(connection, id), (1, 0));
+}
+
+#[test]
+fn test_saving_saves_the_alphabet() {
+  let connection = &mut in_memory_connection();
+  create_workspace(connection, "alphabet").unwrap();
+
+  let saved_alphabet = save_workspace(connection, "alphabet", &example_automaton(), vec!["x", "", "x", "yz", "é", ",", "ϵ"]).unwrap();
+
+  assert_eq!(saved_alphabet, vec!["x", "é"]);
+  assert_eq!(retrieve_workspace_data(connection, "alphabet").unwrap().alphabet, vec!["x", "é"]);
+}
+
+#[test]
+fn test_a_connection_to_a_missing_state_saves_nothing() {
+  let connection = &mut in_memory_connection();
+  create_workspace(connection, "broken").unwrap();
+  save_workspace(connection, "broken", &example_automaton(), vec!["a", "b"]).unwrap();
+
+  let mut broken = example_automaton();
+  broken.connections[0].to = 99;
+  let error = save_workspace(connection, "broken", &broken, vec!["c"]).unwrap_err();
+  assert!(matches!(error, Error::DatabaseError(DatabaseErrorKind::ForeignKeyViolation, _)));
+
+  // The earlier save is still there, alphabet and all
+  let workspace = retrieve_workspace_data(connection, "broken").unwrap();
+  assert_eq!(workspace.automaton, sorted(example_automaton()));
+  assert_eq!(workspace.alphabet, vec!["a", "b"]);
+}
+
+#[test]
+fn test_repeated_ids_save_nothing() {
+  let connection = &mut in_memory_connection();
+  create_workspace(connection, "repeated").unwrap();
+
+  let mut repeated_state = example_automaton();
+  repeated_state.states[1].id = 7;
+  repeated_state.connections.clear();
+  assert!(matches!(
+    save_workspace(connection, "repeated", &repeated_state, vec![]).unwrap_err(),
+    Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _)
+  ));
+
+  let mut repeated_connection = example_automaton();
+  repeated_connection.connections[1].id = 1;
+  assert!(matches!(
+    save_workspace(connection, "repeated", &repeated_connection, vec![]).unwrap_err(),
+    Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _)
+  ));
+
+  assert_eq!(retrieve_workspace_data(connection, "repeated").unwrap().automaton, AutomatonData::default());
 }
 
 #[test]
 fn test_renaming_keeps_the_automaton() {
   let connection = &mut in_memory_connection();
   create_workspace(connection, "old name").unwrap();
-  let (states, connections) = example_automaton();
-  save_workspace(connection, "old name", &states, &connections).unwrap();
+  save_workspace(connection, "old name", &example_automaton(), vec!["a"]).unwrap();
 
   update_workspace_name(connection, "old name", "new name").unwrap();
 
   assert!(!does_workspace_name_exist(connection, "old name").unwrap());
-  assert!(does_workspace_name_exist(connection, "new name").unwrap());
-  assert_eq!(describe_states(&workspace_json(connection, "new name")).0.len(), 2);
+  assert_eq!(retrieve_workspace_data(connection, "new name").unwrap().automaton, sorted(example_automaton()));
 }
 
 #[test]
 fn test_deleting_removes_states_and_connections() {
   let connection = &mut in_memory_connection();
   create_workspace(connection, "to delete").unwrap();
-  let (states, connections) = example_automaton();
-  save_workspace(connection, "to delete", &states, &connections).unwrap();
+  save_workspace(connection, "to delete", &example_automaton(), vec!["a"]).unwrap();
   let id = workspace_id(connection, "to delete");
   assert_eq!(saved_row_counts(connection, id), (2, 3));
 
@@ -221,12 +211,12 @@ fn test_options_are_saved() {
   update_showing_string_traversal(connection, "options", true).unwrap();
   update_default_connection_character(connection, "options", "y").unwrap();
 
-  let json = workspace_json(connection, "options");
-  assert_eq!(json["alphabet"], serde_json::json!(["x", "y", "0"]));
-  assert_eq!(json["type_of_automata"], "NFA");
-  assert_eq!(json["should_strict_check"], true);
-  assert_eq!(json["should_show_string_traversal"], true);
-  assert_eq!(json["default_connection_character"], "y");
+  let workspace = retrieve_workspace_data(connection, "options").unwrap();
+  assert_eq!(workspace.alphabet, vec!["x", "y", "0"]);
+  assert!(matches!(workspace.type_of_automata, TypeOfAutomata::NFA));
+  assert!(workspace.should_strict_check);
+  assert!(workspace.should_show_string_traversal);
+  assert_eq!(workspace.default_connection_character, "y");
 }
 
 #[test]
@@ -234,21 +224,21 @@ fn test_saving_doesnt_touch_other_workspaces() {
   let connection = &mut in_memory_connection();
   create_workspace(connection, "first of two").unwrap();
   create_workspace(connection, "second of two").unwrap();
-  let (states, connections) = example_automaton();
-  save_workspace(connection, "first of two", &states, &connections).unwrap();
+  save_workspace(connection, "first of two", &example_automaton(), vec!["a"]).unwrap();
 
-  assert_eq!(describe_states(&workspace_json(connection, "second of two")), (vec![], vec![]));
-  let id = workspace_id(connection, "second of two");
-  assert_eq!(saved_row_counts(connection, id), (0, 0));
+  // States in different workspaces may share ids
+  save_workspace(connection, "second of two", &example_automaton(), vec!["a"]).unwrap();
+  delete_workspace(connection, "first of two").unwrap();
+
+  assert_eq!(retrieve_workspace_data(connection, "second of two").unwrap().automaton, sorted(example_automaton()));
 }
 
 #[test]
 fn test_missing_workspaces_are_errors() {
   let connection = &mut in_memory_connection();
-  let (states, connections) = example_automaton();
 
   assert_eq!(retrieve_workspace_data(connection, "missing").unwrap_err(), Error::NotFound);
-  assert_eq!(save_workspace(connection, "missing", &states, &connections).unwrap_err(), Error::NotFound);
+  assert_eq!(save_workspace(connection, "missing", &example_automaton(), vec![]).unwrap_err(), Error::NotFound);
   assert_eq!(delete_workspace(connection, "missing").unwrap_err(), Error::NotFound);
   assert_eq!(update_workspace_name(connection, "missing", "other").unwrap_err(), Error::NotFound);
   assert_eq!(update_workspace_alphabet(connection, "missing", vec!["a"]).unwrap_err(), Error::NotFound);
@@ -283,17 +273,4 @@ fn test_workspaces_are_listed_oldest_first() {
     create_workspace(connection, workspace_name).unwrap();
   }
   assert_eq!(get_saved_workspaces(connection).unwrap(), vec!["b", "c", "a"]);
-}
-
-#[test]
-fn test_damaged_positions_are_errors() {
-  let connection = &mut in_memory_connection();
-  create_workspace(connection, "damaged").unwrap();
-  let id = workspace_id(connection, "damaged");
-  diesel::insert_into(saved_states::table)
-    .values((saved_states::workspace_id.eq(id), saved_states::position.eq("nonsense")))
-    .execute(connection)
-    .unwrap();
-
-  assert!(matches!(retrieve_workspace_data(connection, "damaged").unwrap_err(), Error::DeserializationError(_)));
 }
